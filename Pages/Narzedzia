@@ -1,0 +1,216 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Plus, Wrench, Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+import ToolItem from "../components/tools/ToolItem";
+import ToolFormModal from "../components/tools/ToolFormModal";
+import SendToolModal from "../components/tools/SendToolModal";
+
+export default function Narzedzia() {
+  const [tools, setTools] = useState([]);
+  const [patients, setPatients] = useState([]); // Corrected line: removed extra `= useState`
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingTool, setEditingTool] = useState(null);
+
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [toolToSend, setToolToSend] = useState(null);
+
+  // State for preview modal
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const currentUser = await base44.auth.me();
+      setUser(currentUser);
+      
+      const [toolsData, patientsData] = await Promise.all([
+        base44.entities.Narzedzie.filter({ created_by: currentUser.email }, '-updated_date'),
+        base44.entities.Patient.filter({ created_by: currentUser.email })
+      ]);
+      setTools(toolsData);
+      setPatients(patientsData);
+    } catch (error) {
+      console.error("Błąd podczas ładowania danych:", error);
+    }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleAddTool = () => {
+    setEditingTool(null);
+    setIsFormModalOpen(true);
+  };
+
+  const handleEditTool = (tool) => {
+    setEditingTool(tool);
+    setIsFormModalOpen(true);
+  };
+
+  const handleDeleteTool = async (toolId) => {
+    if (window.confirm("Czy na pewno chcesz usunąć to narzędzie?")) {
+      try {
+        await base44.entities.Narzedzie.delete(toolId);
+        await loadData();
+      } catch (error) {
+        console.error("Błąd podczas usuwania narzędzia:", error);
+        alert("Wystąpił błąd podczas usuwania narzędzia.");
+      }
+    }
+  };
+  
+  const handleOpenSendModal = (tool) => {
+    setToolToSend(tool);
+    setIsSendModalOpen(true);
+  };
+
+  const handleOpenPreview = async (tool) => {
+    if (tool.type === 'link') {
+      window.open(tool.link_url, '_blank');
+      return;
+    }
+    
+    try {
+      // Ensure tool has file_uri before proceeding
+      if (!tool.file_uri) {
+        throw new Error("Brak URI pliku do podglądu.");
+      }
+      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: tool.file_uri });
+      setPreviewFile({ url: signed_url, type: tool.file_type, title: tool.title });
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Błąd podczas generowania podglądu:", error);
+      alert("Nie udało się otworzyć podglądu pliku. Spróbuj ponownie później.");
+    }
+  };
+
+  const filteredTools = tools.filter(tool => 
+    tool.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Wrench className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Narzędzia psychoterapeutyczne</h1>
+              <p className="text-gray-600 mt-1">
+                Zarządzaj swoimi materiałami i wysyłaj je pacjentom
+              </p>
+            </div>
+          </div>
+          <Button onClick={handleAddTool} className="bg-purple-600 hover:bg-purple-700 shadow-lg">
+            <Plus className="w-5 h-5 mr-2" />
+            Dodaj nowe narzędzie
+          </Button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input 
+            placeholder="Szukaj narzędzia po nazwie..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 w-full"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 mx-auto animate-spin text-purple-600" />
+            <p className="mt-4 text-gray-600">Ładowanie narzędzi...</p>
+          </div>
+        ) : filteredTools.length === 0 ? (
+          <div className="text-center py-20 bg-white/70 backdrop-blur-sm shadow-lg rounded-lg">
+            <Wrench className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800">
+              {searchQuery ? "Brak wyników wyszukiwania" : "Brak narzędzi w bibliotece"}
+            </h3>
+            <p className="text-gray-500 mt-2 mb-6">
+              {searchQuery ? `Nie znaleziono narzędzi pasujących do "${searchQuery}"` : "Dodaj pierwsze narzędzie, aby móc wysyłać je swoim pacjentom."}
+            </p>
+            <Button onClick={handleAddTool} className="bg-purple-600 hover:bg-purple-700">
+              <Plus className="w-5 h-5 mr-2" />
+              Dodaj pierwsze narzędzie
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredTools.map(tool => (
+              <ToolItem
+                key={tool.id}
+                tool={tool}
+                onSend={() => handleOpenSendModal(tool)}
+                onEdit={() => handleEditTool(tool)}
+                onDelete={() => handleDeleteTool(tool.id)}
+                onView={() => handleOpenPreview(tool)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {isFormModalOpen && (
+        <ToolFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          tool={editingTool}
+          onSave={() => {
+            setIsFormModalOpen(false);
+            loadData();
+          }}
+        />
+      )}
+
+      {isSendModalOpen && toolToSend && (
+        <SendToolModal
+          isOpen={isSendModalOpen}
+          onClose={() => setIsSendModalOpen(false)}
+          tool={toolToSend}
+          patients={patients}
+        />
+      )}
+
+      {isPreviewOpen && previewFile && (
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{previewFile.title}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 mt-4 flex items-center justify-center min-h-0">
+              {previewFile.type.startsWith('image/') ? (
+                <img src={previewFile.url} alt="Podgląd" className="max-w-full max-h-full object-contain"/>
+              ) : previewFile.type === 'application/pdf' ? (
+                <iframe src={previewFile.url} className="w-full h-full border-0" title={previewFile.title} />
+              ) : (
+                <div className="text-center p-8">
+                  <p className="mb-4 text-gray-700">Podgląd dla tego typu pliku nie jest dostępny w aplikacji.</p>
+                  <Button asChild>
+                    <a href={previewFile.url} target="_blank" rel="noopener noreferrer">
+                      Otwórz w nowej karcie
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
