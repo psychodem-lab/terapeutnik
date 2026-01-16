@@ -1,0 +1,26 @@
+{
+  "name": "NoteTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Tytu\u0142 szablonu"
+    },
+    "content": {
+      "type": "string",
+      "description": "Tre\u015b\u0107 szablonu notatki"
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
