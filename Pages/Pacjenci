@@ -1,0 +1,206 @@
+import { useState, useEffect, useCallback } from "react";
+import { Patient } from "@/entities/Patient";
+import { User } from "@/entities/User";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Link, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Plus, Users, CheckCircle, X, Download } from "lucide-react";
+
+import SearchBar from "../components/patients/SearchBar";
+import PatientCard from "../components/patients/PatientCard";
+import PatientFilters from "../components/patients/PatientFilters";
+import ImportExportModal from "../components/patients/ImportExportModal";
+
+export default function Pacjenci() {
+  const location = useLocation();
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("wszyscy");
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showImportExport, setShowImportExport] = useState(false);
+
+  useEffect(() => {
+    loadInitialData();
+    
+    // Check for success message from navigation state
+    if (location.state?.message && location.state?.messageType === 'success') {
+      setSuccessMessage(location.state.message);
+      
+      // Clear the message after 5 seconds
+      const timer = setTimeout(() => {
+        setSuccessMessage("");
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
+
+  const filterPatients = useCallback(() => {
+    let filtered = patients;
+
+    if (activeFilter !== "wszyscy") {
+      filtered = filtered.filter(patient => patient.status === activeFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(patient => 
+        patient.imie.toLowerCase().includes(query) ||
+        patient.nazwisko.toLowerCase().includes(query) ||
+        (patient.telefon && patient.telefon.includes(query)) ||
+        (patient.miejsce_terapii && patient.miejsce_terapii.toLowerCase().includes(query))
+      );
+    }
+
+    setFilteredPatients(filtered);
+  }, [patients, searchQuery, activeFilter]);
+
+  useEffect(() => {
+    filterPatients();
+  }, [filterPatients]);
+
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      const currentUser = await User.me();
+      setUser(currentUser);
+      const data = await Patient.filter({ created_by: currentUser.email }, '-updated_date');
+      setPatients(data);
+    } catch (error) {
+      console.error("Błąd podczas ładowania pacjentów:", error);
+    }
+    setIsLoading(false);
+  };
+  
+  const loadPatients = loadInitialData;
+
+  return (
+    <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {successMessage && (
+          <Card className="p-4 bg-green-50 border-green-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <p className="text-green-800 font-medium">{successMessage}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSuccessMessage("")}
+                className="text-green-600 hover:text-green-700"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Users className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Lista pacjentów</h1>
+              <p className="text-gray-600 mt-1">
+                Zarządzaj swoimi pacjentami ({filteredPatients.length} 
+                {filteredPatients.length !== patients.length && ` z ${patients.length}`})
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={() => setShowImportExport(true)}
+              className="hover:bg-blue-50"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Import/Export
+            </Button>
+            <Link to={createPageUrl("DodajPacjenta")}>
+              <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg">
+                <Plus className="w-5 h-5 mr-2" />
+                Dodaj pacjenta
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <Card className="p-6 bg-white/70 backdrop-blur-sm shadow-lg">
+          <div className="space-y-4">
+            <SearchBar 
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              placeholder="Szukaj pacjenta po imieniu, nazwisku, telefonie lub miejscu terapii..."
+            />
+            
+            <PatientFilters 
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              patients={patients}
+            />
+          </div>
+        </Card>
+
+        <div className="grid gap-4">
+          {isLoading ? (
+            <div className="grid gap-4">
+              {Array(3).fill(0).map((_, i) => (
+                <Card key={i} className="p-6 animate-pulse">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-3 flex-1">
+                      <div className="h-6 bg-gray-200 rounded w-48"></div>
+                      <div className="h-4 bg-gray-100 rounded w-32"></div>
+                      <div className="h-4 bg-gray-100 rounded w-64"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : filteredPatients.length === 0 ? (
+            <Card className="p-12 text-center bg-white/70 backdrop-blur-sm">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {searchQuery ? "Brak wyników wyszukiwania" : "Brak pacjentów"}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {searchQuery 
+                  ? `Nie znaleziono pacjentów pasujących do "${searchQuery}"`
+                  : "Dodaj pierwszego pacjenta, aby rozpocząć pracę z systemem"
+                }
+              </p>
+              {!searchQuery && (
+                <Link to={createPageUrl("DodajPacjenta")}>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Dodaj pierwszego pacjenta
+                  </Button>
+                </Link>
+              )}
+            </Card>
+          ) : (
+            filteredPatients.map((patient) => (
+              <PatientCard 
+                key={patient.id}
+                patient={patient}
+                onPatientUpdate={loadPatients}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        onDataUpdate={loadPatients}
+      />
+    </div>
+  );
+}
