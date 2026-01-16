@@ -1,0 +1,61 @@
+{
+  "name": "Wizyta",
+  "type": "object",
+  "properties": {
+    "patient_id": {
+      "type": "string",
+      "description": "ID pacjenta"
+    },
+    "patient_name": {
+      "type": "string",
+      "description": "Imi\u0119 i nazwisko pacjenta dla szybkiego dost\u0119pu"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data i godzina rozpocz\u0119cia wizyty"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data i godzina zako\u0144czenia wizyty"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "zaplanowana",
+        "odbyta",
+        "odwo\u0142ana"
+      ],
+      "default": "zaplanowana",
+      "description": "Status wizyty"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "oplacona",
+        "nieoplacona"
+      ],
+      "default": "nieoplacona",
+      "description": "Status p\u0142atno\u015bci za wizyt\u0119"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notatki dotycz\u0105ce konkretnej wizyty"
+    }
+  },
+  "required": [
+    "patient_id",
+    "patient_name",
+    "start_time",
+    "end_time"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
