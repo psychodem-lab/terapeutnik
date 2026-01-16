@@ -1,0 +1,51 @@
+{
+  "name": "Narzedzie",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Tytu\u0142 narz\u0119dzia terapeutycznego"
+    },
+    "description": {
+      "type": "string",
+      "description": "Opis narz\u0119dzia"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "file",
+        "link"
+      ],
+      "default": "file",
+      "description": "Typ narz\u0119dzia (plik lub link)"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Prywatny URI do pliku narz\u0119dzia"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Oryginalna nazwa pliku"
+    },
+    "file_type": {
+      "type": "string",
+      "description": "Typ MIME pliku (np. application/pdf)"
+    },
+    "link_url": {
+      "type": "string",
+      "description": "URL do zewn\u0119trznego zasobu"
+    }
+  },
+  "required": [
+    "title",
+    "type"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
