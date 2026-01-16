@@ -1,0 +1,181 @@
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Patient } from "@/entities/Patient";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+
+import PatientInfo from "../components/patient-details/PatientInfo";
+import PatientNotes from "../components/patient-details/PatientNotes";
+import DiagnosisNotes from "../components/patient-details/DiagnosisNotes";
+import DeletePatientModal from "../components/patient-details/DeletePatientModal";
+import PatientAttachments from "../components/patient-details/PatientAttachments";
+import PatientPDFGenerator from "../components/patient-details/PatientPDFGenerator"; // New import
+
+export default function SzczegolyPacjenta() {
+  const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const patientId = urlParams.get('id');
+  
+  const [patient, setPatient] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const loadPatient = useCallback(async () => {
+    if (!patientId) return;
+    
+    setIsLoading(true);
+    try {
+      const patients = await Patient.list();
+      const foundPatient = patients.find(p => p.id === patientId);
+      setPatient(foundPatient);
+    } catch (error) {
+      console.error("Błąd podczas ładowania pacjenta:", error);
+    }
+    setIsLoading(false);
+  }, [patientId]);
+
+  useEffect(() => {
+    loadPatient();
+  }, [loadPatient]);
+
+  const handleSave = async (updatedData) => {
+    setIsLoading(true);
+    try {
+      await Patient.update(patientId, updatedData);
+      await loadPatient();
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji pacjenta:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeletePatient = async () => {
+    setIsDeleting(true);
+    try {
+      await Patient.delete(patientId);
+      
+      navigate(createPageUrl("Pacjenci"), { 
+        state: { 
+          message: `Pacjent ${patient.imie} ${patient.nazwisko} został pomyślnie usunięty.`,
+          messageType: 'success' 
+        }
+      });
+    } catch (error) {
+      console.error("Błąd podczas usuwania pacjenta:", error);
+      alert("Wystąpił błąd podczas usuwania pacjenta. Spróbuj ponownie.");
+      setIsDeleting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Pacjent nie został znaleziony</h1>
+          <Button onClick={() => navigate(createPageUrl("Pacjenci"))}>
+            Powrót do listy pacjentów
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => navigate(createPageUrl("Pacjenci"))}
+              className="hover:bg-blue-50"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {patient.imie} {patient.nazwisko}
+              </h1>
+              <p className="text-gray-600 mt-1">Szczegóły pacjenta</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={() => setShowDeleteModal(true)}
+              className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Usuń pacjenta
+            </Button>
+            
+            {!isEditing && (
+              <Button 
+                onClick={() => setIsEditing(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edytuj dane
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 space-y-6">
+            <PatientInfo 
+              patient={patient}
+              isEditing={isEditing}
+              onSave={handleSave}
+              onCancel={() => setIsEditing(false)}
+            />
+          </div>
+          
+          <div className="lg:col-span-2 space-y-6">
+            <PatientNotes 
+              patient={patient}
+              onNotesUpdate={loadPatient}
+            />
+            <DiagnosisNotes 
+              patient={patient}
+              onNotesUpdate={loadPatient}
+            />
+            <PatientAttachments
+              patient={patient}
+              onAttachmentsUpdate={loadPatient}
+            />
+            <PatientPDFGenerator patient={patient} />
+          </div>
+        </div>
+
+        <DeletePatientModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeletePatient}
+          patientName={`${patient.imie} ${patient.nazwisko}`}
+          isLoading={isDeleting}
+        />
+      </div>
+    </div>
+  );
+}
