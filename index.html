@@ -3,681 +3,561 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik - System Bezpiecznej Dokumentacji</title>
-    
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
-
+    <title>Terapeuta PRO - E2EE JSON</title>
     <style>
+        /* Zmienne CSS dla trybu Jasnego (Domyślnego) */
         :root { 
-            --p: #059669; /* Primary Green */
+            --p: #059669; 
             --p-hover: #047857;
             --p-light: rgba(5, 150, 105, 0.1);
-            --bg: #f1f5f9; 
-            --card-bg: #ffffff;
+            --bg: #f8fafc; 
+            --card: #ffffff; 
             --txt: #1e293b; 
-            --txt-muted: #64748b;
-            --border: #cbd5e1;
-            --input-bg: #ffffff;
+            --border: #e2e8f0; 
             --danger: #ef4444;
-            --danger-hover: #dc2626;
+            --input-bg: #ffffff;
+            --muted: #64748b;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root { 
-                --bg: #0f172a;
-                --card-bg: #1e293b;
-                --txt: #f8fafc; 
-                --txt-muted: #94a3b8;
-                --border: #334155;
-                --input-bg: #0f172a;
-            }
+        /* Zmienne CSS dla trybu Ciemnego */
+        [data-theme="dark"] {
+            --p: #10b981;
+            --p-hover: #059669;
+            --p-light: rgba(16, 185, 129, 0.15);
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --txt: #f8fafc; 
+            --border: #334155; 
+            --input-bg: #0f172a;
+            --muted: #94a3b8;
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg); color: var(--txt); 
-            margin: 0; padding: 0; min-height: 100vh;
-            display: flex; justify-content: center;
-        }
-        
-        /* --- EKRAN LOGOWANIA --- */
-        #loginScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 5000;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px; box-sizing: border-box;
-        }
-        .login-card {
-            background: var(--card-bg); width: 100%; max-width: 400px;
-            padding: 30px; border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        .login-logo {
-            width: 48px; height: 48px; margin-bottom: 15px; fill: var(--p);
-        }
-        .login-btn-group {
-            display: flex; flex-direction: column; gap: 10px; margin-top: 20px;
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--txt); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            transition: background-color 0.3s, color 0.3s;
+            box-sizing: border-box;
+            min-height: 100vh;
         }
 
-        /* --- GŁÓWNY INTERFEJS --- */
-        #appLayout {
-            display: none; /* Ukryte domyślnie */
-            gap: 20px; width: 100%; max-width: 1400px; padding: 20px; box-sizing: border-box;
+        .container { 
+            display: flex; 
+            gap: 20px; 
+            width: 100%; 
+            max-width: 1400px; 
+            height: calc(100vh - 40px); 
         }
         
-        /* Sidebar */
-        .sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
-        .card { background: var(--card-bg); padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        /* Pasek boczny */
+        .sidebar { 
+            width: 320px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            flex-shrink: 0;
+        }
 
-        /* Main Area */
-        .main-area { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
+        .card { 
+            background: var(--card); 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            transition: background-color 0.3s, border-color 0.3s;
+        }
         
-        .tabs { display: flex; gap: 10px; }
-        .tab-btn { flex: 1; background: var(--card-bg); color: var(--txt-muted); border: 1px solid var(--border); border-bottom: 3px solid transparent; font-weight: 600; cursor: pointer; height: 48px; border-radius: 12px 12px 0 0; transition: all 0.2s; }
-        .tab-btn.active { color: var(--p); border-bottom-color: var(--p); background: var(--card-bg); }
+        /* Widok główny */
+        .main { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--card); 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            overflow: hidden; 
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        .nav { display: flex; border-bottom: 1px solid var(--border); background: var(--card); }
+        .nav-btn { 
+            flex: 1; 
+            padding: 15px; 
+            border: none; 
+            background: none; 
+            cursor: pointer; 
+            color: var(--muted); 
+            font-weight: 600; 
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            margin-bottom: 0;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .nav-btn.active { color: var(--p); border-bottom-color: var(--p); }
 
-        .editor-container { flex-grow: 1; display: none; flex-direction: column; background: var(--card-bg); border-radius: 0 12px 12px 12px; border: 1px solid var(--border); overflow: hidden; min-height: 500px; }
-        .editor-container.active { display: flex; }
+        /* Elementy formularza */
+        input, textarea, select, button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+            background: var(--input-bg); 
+            color: var(--txt); 
+            box-sizing: border-box; 
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--p); }
         
-        .patient-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--p-light); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
-        .patient-header h2 { margin: 0; font-size: 18px; color: var(--p); }
-
-        label { display: block; font-size: 12px; font-weight: 700; color: var(--txt-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left;}
-        
-        input, textarea, select, button { border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); padding: 10px 12px; box-sizing: border-box; font-size: 15px; margin-bottom: 12px; outline: none; transition: all 0.2s; width: 100%; }
-        input:focus, textarea:focus, select:focus { border-color: var(--p); box-shadow: 0 0 0 3px var(--p-light); }
-        
-        button { background: var(--p); color: white; border: none; font-weight: 600; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 0; }
+        button { 
+            background: var(--p); 
+            color: white; 
+            border: none; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
         button:hover { background: var(--p-hover); }
-        button:active { transform: scale(0.98); }
+        button.sec { background: transparent; color: var(--txt); border: 1px solid var(--border); }
+        button.sec:hover { background: var(--bg); }
         
-        button.secondary { background: transparent; color: var(--txt); border: 1px solid var(--border); }
-        button.secondary:hover { background: var(--input-bg); }
-        
-        button.danger { background: var(--danger); color: white; border: none; }
-        button.danger:hover { background: var(--danger-hover); }
+        /* Lista pacjentów */
+        .patient-list { overflow-y: auto; flex: 1; margin-top: 10px; }
+        .patient-item { 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-bottom: 5px; 
+            border-left: 4px solid transparent; 
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .patient-item:hover { background: var(--bg); }
+        .patient-item.active { background: var(--p-light); border-left-color: var(--p); color: var(--p); }
 
-        button.action { background: #3b82f6; }
-        button.action:hover { background: #2563eb; }
+        /* Panele edytora i kalendarza */
+        #editor, #calendar { display: none; flex-direction: column; flex: 1; padding: 20px; overflow-y: auto; }
+        #editor.active, #calendar.active { display: flex; }
         
-        textarea { flex-grow: 1; border: none; font-family: "SF Mono", Consolas, monospace; resize: none; padding: 20px; font-size: 16px; line-height: 1.6; margin-bottom: 0; background: transparent; min-height: 300px; }
-        
-        .status { padding: 10px; border-radius: 6px; text-align: center; display: none; font-size: 13px; font-weight: 600; margin-top: 10px; }
+        .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .editor-header h2 { margin: 0; font-size: 20px; }
 
-        /* Lista Pacjentów */
-        .patient-list { max-height: 500px; overflow-y: auto; margin-top: 10px; }
-        .patient-item { cursor: pointer; padding: 10px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; transition: all 0.2s; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center;}
-        .patient-item:hover { background: var(--input-bg); }
-        .patient-item.active { border-left-color: var(--p); background: var(--p-light); color: var(--p); }
-
-        /* Galeria Zdjęć */
-        .gallery-container { padding: 15px 20px; border-top: 1px solid var(--border); background: var(--input-bg); }
-        .gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        textarea { 
+            flex: 1; 
+            min-height: 300px; 
+            font-family: monospace; 
+            font-size: 15px; 
+            resize: none; 
+            line-height: 1.6;
+        }
         
-        .img-wrapper { position: relative; width: 80px; height: 80px; }
-        .img-thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
-        .img-thumb:hover { opacity: 0.8; }
-        .img-delete { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 2px solid var(--card-bg); }
+        /* Zdjęcia */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
+        .gallery img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); transition: opacity 0.2s; }
+        .gallery img:hover { opacity: 0.8; }
 
         /* Kalendarz */
-        .calendar-header { padding: 20px; border-bottom: 1px solid var(--border); }
-        .calendar-grid { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .time-slot { display: flex; align-items: center; gap: 15px; }
-        .time-label { width: 60px; font-weight: bold; color: var(--txt-muted); text-align: right; }
-        .time-select { flex-grow: 1; margin-bottom: 0; }
+        .time-row { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .time-row span { width: 50px; font-weight: bold; font-size: 14px; text-align: right; color: var(--muted); }
+        .time-row select { margin-bottom: 0; flex: 1; }
 
-        /* Pełny ekran */
-        #imgModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 6000; justify-content: center; align-items: center; }
-        #imgModal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+        /* --- TRYB SKUPIENIA (ZEN MODE) --- */
+        .zen-close-btn { display: none; position: fixed; top: 15px; right: 20px; z-index: 10001; width: auto; background: var(--danger); padding: 10px 20px; }
+        
+        body.zen-mode { padding: 0; }
+        body.zen-mode .sidebar { display: none !important; }
+        body.zen-mode .nav { display: none !important; }
+        body.zen-mode .editor-header { display: none !important; }
+        body.zen-mode #photoSection { display: none !important; }
+        body.zen-mode .main { border: none; border-radius: 0; height: 100vh; }
+        body.zen-mode #editor { padding: 0; }
+        body.zen-mode textarea { 
+            height: 100vh; 
+            border-radius: 0; 
+            border: none; 
+            padding: 40px 15%; 
+            font-size: 18px; 
+            margin: 0;
+        }
+        body.zen-mode .zen-close-btn { display: block; }
 
-        /* Responsywność */
+        /* --- WSPARCIE MOBILNE (RWD) --- */
         @media (max-width: 900px) {
-            #appLayout { flex-direction: column; padding: 10px; }
-            .sidebar { width: 100%; }
-            .patient-header { flex-direction: column; align-items: stretch; }
-            .patient-header button { width: 100%; margin-top: 5px; }
+            body { padding: 10px; }
+            .container { flex-direction: column; height: auto; display: block; }
+            .sidebar { width: 100%; margin-bottom: 20px; }
+            .main { min-height: 70vh; }
+            .patient-list { max-height: 250px; border: 1px solid var(--border); border-radius: 8px; }
+            body.zen-mode textarea { padding: 20px; }
         }
     </style>
 </head>
 <body>
 
-<div id="loginScreen">
-    <div class="login-card">
-        <svg class="login-logo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-        <h2 style="margin-top:0;">Terapeutnik Pro</h2>
-        <p style="color: var(--txt-muted); font-size: 14px;">Zaloguj się, aby odszyfrować bazę pacjentów lub utwórz nową.</p>
-        
-        <div style="text-align: left; margin-top: 20px;">
-            <label>Nazwa Użytkownika</label>
-            <input type="text" id="loginUser" placeholder="Np. jan_kowalski" autocomplete="username">
-            
-            <label>Hasło Szyfrujące</label>
-            <input type="password" id="loginPass" placeholder="Wprowadź hasło..." autocomplete="current-password">
-        </div>
+<button class="zen-close-btn" onclick="toggleZenMode()">✖ Wyjdź z trybu pisania</button>
 
-        <div class="login-btn-group">
-            <button onclick="handleLogin('open')">📂 Otwórz Istniejącą Bazę</button>
-            <button class="secondary" onclick="handleLogin('create')">✨ Utwórz Nową Bazę</button>
-        </div>
-        
-        <div id="loginStatus" class="status"></div>
-        <div style="font-size: 11px; color: var(--txt-muted); margin-top: 15px;">
-            Obsługiwane pliki: <strong>.json</strong> (Szyfrowane AES-256)
-        </div>
-    </div>
-</div>
-
-<div class="layout" id="appLayout">
+<div class="container">
     <div class="sidebar">
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <label style="margin:0;">Zalogowano jako:</label>
-                <button class="secondary" style="width: auto; height: 24px; font-size: 10px; padding: 0 8px;" onclick="location.reload()">WYLOGUJ</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <label style="font-size: 12px; font-weight: bold; color: var(--muted); margin: 0;">HASŁO (AES-256)</label>
+                <button onclick="toggleTheme()" class="sec" style="width: auto; padding: 5px 10px; margin: 0; font-size: 12px;">Dzień / Noc</button>
             </div>
-            <div id="currentUserDisplay" style="font-weight: bold; color: var(--p); font-size: 16px; margin-bottom: 15px;">...</div>
-
-            <label>Zarządzanie Plikiem</label>
-            <button onclick="saveDbFile()" id="btnSave" class="secondary">💾 Zapisz zmiany </button>
-            <div id="fileInfo" style="font-size: 11px; color: var(--txt-muted); text-align: center; margin-top: 5px;"></div>
-            <div id="appMsg" class="status"></div>
-        </div>
-
-        <div class="card">
-            <label>Narzędzia</label>
-            <button class="action" onclick="addPatient()">👤 Nowy Pacjent</button>
             
-            <label style="margin-top: 15px;">Lista Pacjentów</label>
-            <div class="patient-list" id="patientList"></div>
+            <input type="password" id="pass" placeholder="Wprowadź klucz...">
+            
+            <button onclick="openFile()">📂 Otwórz Bazę</button>
+            <button class="sec" onclick="saveFile()" id="btnSave" style="display:none">💾 Zapisz Zmiany</button>
+            <button class="sec" onclick="createEmptyDb()" style="margin-top: 15px; font-size: 12px;">📥 Utwórz nową (pustą) bazę</button>
+            
+            <input type="file" id="mobileFileInput" accept=".enc" style="display: none;" onchange="handleMobileFile(event)">
         </div>
+        
+        <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+            <button onclick="addPatient()">➕ Nowy Pacjent</button>
+            <div class="patient-list" id="pList">
+                <div style="text-align: center; color: var(--muted); font-size: 13px; padding: 20px;">Otwórz bazę, aby zobaczyć listę.</div>
+            </div>
+        </div>
+        <div id="status" style="font-size: 12px; text-align: center; color: var(--p); font-weight: bold; min-height: 15px;"></div>
     </div>
 
-    <div class="main-area">
-        <div class="tabs">
-            <button class="tab-btn active" id="tabEditor" onclick="switchTab('editor')">📝 Karta Pacjenta</button>
-            <button class="tab-btn" id="tabCalendar" onclick="switchTab('calendar')">📅 Kalendarz</button>
+    <div class="main">
+        <div class="nav">
+            <button class="nav-btn active" id="btnViewEditor" onclick="setView('editor')">📝 Karta Pacjenta</button>
+            <button class="nav-btn" id="btnViewCalendar" onclick="setView('calendar')">📅 Kalendarz</button>
         </div>
 
-        <div class="editor-container active" id="viewEditor">
-            <div class="patient-header" id="patientHeader" style="display: none;">
-                <div style="display:flex; align-items: center; gap: 10px;">
-                    <h2 id="activePatientName">Pacjent</h2>
-                </div>
-                <div style="display:flex; gap: 8px;">
-                    <button class="secondary" style="width: auto; height: 32px; font-size: 12px;" onclick="addVisit()">📝 Nowa Wizyta</button>
-                    <button class="danger" style="width: auto; height: 32px; font-size: 12px;" onclick="deleteCurrentPatient()">🗑️ Usuń Pacjenta</button>
-                </div>
+        <div id="editor" class="active">
+            <div class="editor-header">
+                <h2 id="pTitle">Brak wybranego pacjenta</h2>
+                <button class="sec" id="btnZen" style="width: auto; margin: 0; display: none;" onclick="toggleZenMode()">⛶ Pełny ekran</button>
             </div>
             
-            <textarea id="content" oninput="saveCurrentNote()" placeholder="Wybierz pacjenta z listy po lewej stronie, aby edytować notatki." disabled></textarea>
+            <textarea id="notes" oninput="updateNotes()" placeholder="Wybierz pacjenta z listy po lewej stronie, aby rozpocząć edycję..." disabled></textarea>
             
-            <div class="gallery-container" id="galleryContainer" style="display: none;">
-                <label>Załączniki (Szyfrowane)</label>
-                <input type="file" id="imgUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                
-                <button class="secondary" style="width: auto; height: 30px; font-size: 12px;" onclick="document.getElementById('imgUploader').click()">+ Dodaj zdjęcie</button>
-                <div class="gallery" id="patientGallery"></div>
+            <div id="photoSection" style="display:none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <label style="font-size: 12px; font-weight: bold; color: var(--muted);">ZAŁĄCZNIKI (JPG/PNG - automatyczna kompresja)</label>
+                <input type="file" id="imgInp" accept="image/*" onchange="uploadImg(this)" style="margin-top:10px">
+                <div class="gallery" id="pGallery"></div>
             </div>
         </div>
 
-        <div class="editor-container" id="viewCalendar">
-            <div class="calendar-header">
-                <label>Wybierz dzień</label>
-                <input type="date" id="calDate" onchange="renderCalendar()" style="margin-bottom: 0; max-width: 250px;">
-            </div>
-            <div class="calendar-grid" id="timeSlots"></div>
+        <div id="calendar">
+            <label style="font-size: 12px; font-weight: bold; color: var(--muted);">WYBIERZ DZIEŃ</label>
+            <input type="date" id="calDate" onchange="renderCal()" style="max-width: 250px;">
+            <div id="calSlots" style="margin-top: 15px;"></div>
         </div>
     </div>
-</div>
-
-<div id="imgModal" onclick="this.style.display='none'">
-    <img id="imgModalSrc" src="">
 </div>
 
 <script>
-    const ITER = 100000; // Iteracje PBKDF2 dla bezpieczeństwa
+    // --- STRUKTURA BAZY I ZMIENNE GLOBALNE ---
     let db = { patients: {}, calendar: {} };
-    let activePatientId = null;
-    let fileHandle = null;
-    let currentUsername = "";
-    let currentPassword = ""; // Przechowywane w pamięci tylko na czas sesji
+    let activePid = null;
+    let fileHandle = null; // Uchwyt pliku dla PC (File System Access API)
+    const ITER = 100000;   // Ilość iteracji dla PBKDF2
 
-    // --- LOGIKA LOGOWANIA I PLIKÓW ---
+    // --- INICJALIZACJA MOTYWU ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+    initTheme();
 
-    async function handleLogin(mode) {
-        const user = document.getElementById('loginUser').value.trim();
-        const pass = document.getElementById('loginPass').value;
-        const status = document.getElementById('loginStatus');
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
 
-        if (!user || !pass) {
-            showStatus(status, "Podaj nazwę użytkownika i hasło!", false);
-            return;
-        }
-
-        currentUsername = user;
-        currentPassword = pass;
-
-        if (mode === 'create') {
-            // TWORZENIE NOWEJ BAZY
-            db = { patients: {}, calendar: {} };
-            try {
-                if(window.showSaveFilePicker) {
-                    const opts = {
-                        suggestedName: `${user}.json`,
-                        types: [{ description: 'Baza Terapeutnik', accept: {'application/json': ['.json']} }],
-                    };
-                    fileHandle = await window.showSaveFilePicker(opts);
-                    await saveToDisk();
-                    enterApp();
-                } else {
-                    // Fallback dla braku API
-                    downloadFallback();
-                    enterApp();
-                }
-            } catch (e) {
-                if(e.name !== 'AbortError') showStatus(status, "Błąd tworzenia pliku.", false);
-            }
-        } else {
-            // OTWIERANIE ISTNIEJĄCEJ
-            try {
-                let fileData;
-                if(window.showOpenFilePicker) {
-                    [fileHandle] = await window.showOpenFilePicker({
-                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
-                    });
-                    const file = await fileHandle.getFile();
-                    document.getElementById('fileInfo').innerText = file.name;
-                    fileData = await file.text();
-                } else {
-                    // Fallback input
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.json';
-                    input.onchange = async e => {
-                        const file = e.target.files[0];
-                        if(file) {
-                            document.getElementById('fileInfo').innerText = file.name;
-                            const text = await file.text();
-                            await processLoad(text, status);
-                        }
-                    };
-                    input.click();
-                    return; // Czekamy na event onchange
-                }
-
-                if(fileData) await processLoad(fileData, status);
-
-            } catch (e) {
-                if(e.name !== 'AbortError') {
-                    console.error(e);
-                    showStatus(status, "Błąd odczytu pliku.", false);
-                }
-            }
+    // --- TRYB SKUPIENIA (ZEN MODE) ---
+    function toggleZenMode() {
+        document.body.classList.toggle('zen-mode');
+        if(document.body.classList.contains('zen-mode')) {
+            document.getElementById('notes').focus();
         }
     }
 
-    async function processLoad(jsonString, statusElem) {
-        try {
-            const encryptedObj = JSON.parse(jsonString);
-            
-            // Opcjonalne sprawdzenie właściciela pliku (jeśli zapisano w metadanych)
-            if(encryptedObj.username && encryptedObj.username !== currentUsername) {
-                if(!confirm(`Uwaga! Plik należy do użytkownika "${encryptedObj.username}", a logujesz się jako "${currentUsername}". Kontynuować?`)) {
-                    return;
-                }
+    // --- NAWIGACJA ZAKŁADEK ---
+    function setView(v) {
+        document.getElementById('editor').classList.toggle('active', v === 'editor');
+        document.getElementById('calendar').classList.toggle('active', v === 'calendar');
+        document.getElementById('btnViewEditor').classList.toggle('active', v === 'editor');
+        document.getElementById('btnViewCalendar').classList.toggle('active', v === 'calendar');
+        if(v === 'calendar') {
+            if(!document.getElementById('calDate').value) {
+                document.getElementById('calDate').value = new Date().toISOString().split('T')[0];
             }
-
-            // Odszyfrowanie
-            const decryptedJson = await decryptData(encryptedObj, currentPassword);
-            db = JSON.parse(decryptedJson);
-            
-            // Naprawa struktury jeśli pusta
-            if(!db.patients) db.patients = {};
-            if(!db.calendar) db.calendar = {};
-
-            enterApp();
-        } catch (e) {
-            console.error(e);
-            showStatus(statusElem, "BŁĘDNE HASŁO lub uszkodzony plik!", false);
+            renderCal();
         }
     }
 
-    function enterApp() {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('appLayout').style.display = 'flex';
-        document.getElementById('currentUserDisplay').innerText = currentUsername;
-        renderPatientList();
-        renderCalendar();
+    function msg(text, isError = false) {
+        const s = document.getElementById('status');
+        s.innerText = text;
+        s.style.color = isError ? "var(--danger)" : "var(--p)";
+        setTimeout(() => s.innerText = '', 4000);
     }
-
-    // --- KRYPTOGRAFIA (AES-GCM w JSON Wrapper) ---
-    
-    // Helpers do konwersji Buffer <-> Base64
-    function buffToBase64(buff) {
-        return btoa(String.fromCharCode.apply(null, new Uint8Array(buff)));
-    }
-    function base64ToBuff(b64) {
-        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    }
-
-    async function getKey(pw, salt) {
-        const enc = new TextEncoder();
-        const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
-        return crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' },
-            bKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-        );
-    }
-
-    async function encryptData(dataStr, pw) {
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await getKey(pw, salt);
-        const encoded = new TextEncoder().encode(dataStr);
-        
-        const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv: iv}, key, encoded);
-
-        return {
-            username: currentUsername, // Metadane jawne
-            salt: buffToBase64(salt),
-            iv: buffToBase64(iv),
-            data: buffToBase64(ciphertext)
-        };
-    }
-
-    async function decryptData(wrapperObj, pw) {
-        const salt = base64ToBuff(wrapperObj.salt);
-        const iv = base64ToBuff(wrapperObj.iv);
-        const data = base64ToBuff(wrapperObj.data);
-        
-        const key = await getKey(pw, salt);
-        const decryptedInfo = await crypto.subtle.decrypt({name: 'AES-GCM', iv: iv}, key, data);
-        
-        return new TextDecoder().decode(decryptedInfo);
-    }
-
-    // --- ZAPISYWANIE ---
-
-    async function saveToDisk() {
-        const msg = document.getElementById('appMsg');
-        try {
-            const jsonStr = JSON.stringify(db);
-            const encryptedWrapper = await encryptData(jsonStr, currentPassword);
-            const finalFileContent = JSON.stringify(encryptedWrapper, null, 2);
-
-            if (fileHandle) {
-                const writable = await fileHandle.createWritable();
-                await writable.write(finalFileContent);
-                await writable.close();
-                showStatus(msg, "Zapisano zmiany w pliku JSON.", true);
-            } else {
-                // Fallback download
-                const blob = new Blob([finalFileContent], {type: "application/json"});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${currentUsername}_baza.json`;
-                a.click();
-                showStatus(msg, "Pobrano nową wersję pliku.", true);
-            }
-        } catch (e) {
-            showStatus(msg, "Błąd zapisu! " + e.message, false);
-        }
-    }
-    
-    // Alias dla przycisku w menu
-    function saveDbFile() { saveToDisk(); }
-    function downloadFallback() { saveToDisk(); }
 
     // --- ZARZĄDZANIE PACJENTAMI ---
-
     function addPatient() {
-        const name = prompt("Podaj inicjały lub identyfikator pacjenta:");
-        if (name && name.trim()) {
-            const id = 'p_' + Date.now();
-            db.patients[id] = { name: name.trim(), notes: "", images: [] };
-            selectPatient(id);
-            renderPatientList();
-            switchTab('editor');
-            saveToDisk(); // Autosave struktury
-        }
-    }
-
-    function deleteCurrentPatient() {
-        if(!activePatientId) return;
-        if(confirm(`Czy na pewno chcesz usunąć pacjenta "${db.patients[activePatientId].name}"?\nTej operacji nie można cofnąć!`)) {
-            // Usuń z kalendarza
-            for(let date in db.calendar) {
-                for(let hour in db.calendar[date]) {
-                    if(db.calendar[date][hour] === activePatientId) {
-                        delete db.calendar[date][hour];
-                    }
-                }
-            }
-            // Usuń z bazy
-            delete db.patients[activePatientId];
-            
-            // Reset widoku
-            activePatientId = null;
-            document.getElementById('content').value = "";
-            document.getElementById('content').disabled = true;
-            document.getElementById('patientHeader').style.display = 'none';
-            document.getElementById('galleryContainer').style.display = 'none';
-            
-            renderPatientList();
-            renderCalendar(); // Odśwież by usunąć wpisy w kalendarzu
-            saveToDisk();
-        }
-    }
-
-    function renderPatientList() {
-        const list = document.getElementById('patientList');
-        list.innerHTML = '';
-        const patientIds = Object.keys(db.patients);
+        const name = prompt("Podaj inicjały, kod lub nazwisko pacjenta:");
+        if(!name || !name.trim()) return;
+        const id = 'p_' + Date.now();
+        db.patients[id] = { name: name.trim(), notes: "", imgs: [] };
         
-        if(patientIds.length === 0) {
-            list.innerHTML = '<div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">Brak pacjentów.</div>';
+        document.getElementById('btnSave').style.display = 'flex'; // Pokaż przycisk zapisu jeśli był ukryty
+        renderPList();
+        selectPatient(id);
+    }
+
+    function renderPList() {
+        const c = document.getElementById('pList');
+        c.innerHTML = '';
+        const keys = Object.keys(db.patients);
+        
+        if(keys.length === 0) {
+            c.innerHTML = '<div style="text-align: center; color: var(--muted); font-size: 13px; padding: 20px;">Brak pacjentów w bazie.</div>';
             return;
         }
 
-        patientIds.forEach(id => {
-            const el = document.createElement('div');
-            el.className = 'patient-item' + (id === activePatientId ? ' active' : '');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.innerText = db.patients[id].name;
-            el.appendChild(nameSpan);
-            
-            // Onclick na cały element
-            el.onclick = () => selectPatient(id);
-            
-            list.appendChild(el);
+        keys.forEach(id => {
+            const div = document.createElement('div');
+            div.className = `patient-item ${id === activePid ? 'active' : ''}`;
+            div.innerText = db.patients[id].name;
+            div.onclick = () => selectPatient(id);
+            c.appendChild(div);
         });
     }
 
     function selectPatient(id) {
-        activePatientId = id;
+        activePid = id;
         const p = db.patients[id];
+        document.getElementById('pTitle').innerText = p.name;
         
-        document.getElementById('patientHeader').style.display = 'flex';
-        document.getElementById('galleryContainer').style.display = 'block';
-        document.getElementById('activePatientName').innerText = p.name;
+        const notesArea = document.getElementById('notes');
+        notesArea.value = p.notes;
+        notesArea.disabled = false;
+        notesArea.placeholder = "Wpisuj notatki pacjenta tutaj...";
         
-        const content = document.getElementById('content');
-        content.disabled = false;
-        content.value = p.notes || "";
+        document.getElementById('photoSection').style.display = 'block';
+        document.getElementById('btnZen').style.display = 'flex';
         
-        renderPatientList();
+        renderPList();
         renderGallery();
-        switchTab('editor');
+        setView('editor');
     }
 
-    function saveCurrentNote() {
-        if(activePatientId && db.patients[activePatientId]) {
-            db.patients[activePatientId].notes = document.getElementById('content').value;
-        }
+    function updateNotes() {
+        if(activePid) db.patients[activePid].notes = document.getElementById('notes').value;
     }
 
-    function addVisit() {
-        if(!activePatientId) return;
-        const dateStr = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const visitTemplate = `\n----------------------------------------\n📅 WIZYTA: ${dateStr}\n\n1. Obserwacje / Wywiad:\n   \n\n2. Interwencje / Przebieg:\n   \n\n3. Zalecenia / Plan:\n   \n`;
-        const contentArea = document.getElementById('content');
-        const start = contentArea.selectionStart;
-        
-        // Wstaw na początku lub w miejscu kursora? Zwykle na końcu jest wygodniej, ale tutaj w miejscu kursora.
-        const newVal = contentArea.value.substring(0, start) + visitTemplate + contentArea.value.substring(contentArea.selectionEnd);
-        contentArea.value = newVal;
-        
-        saveCurrentNote();
-        contentArea.focus();
-    }
-
-    // --- ZDJĘCIA ---
-
-    function handleImageUpload(e) {
-        if(!activePatientId) return;
-        const file = e.target.files[0];
-        if(!file) return;
-
+    // --- ZDJĘCIA (Base64) ---
+    function uploadImg(input) {
+        if(!activePid || !input.files[0]) return;
         const reader = new FileReader();
-        reader.onload = function(event) {
+        reader.onload = e => {
             const img = new Image();
-            img.onload = function() {
-                // Kompresja
+            img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1000;
-                let scale = 1;
-                if(img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
-                canvas.width = img.width * scale;
-                canvas.height = img.height * scale;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
-                
-                if(!db.patients[activePatientId].images) db.patients[activePatientId].images = [];
-                db.patients[activePatientId].images.push(dataUrl);
+                const max = 1000;
+                let w = img.width, h = img.height;
+                if(w > max) { h *= max/w; w = max; }
+                canvas.width = w; canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+                db.patients[activePid].imgs.push(canvas.toDataURL('image/jpeg', 0.6));
                 renderGallery();
-                saveToDisk(); // Save po dodaniu zdjęcia
-                
-                document.getElementById('imgUploader').value = '';
-            }
-            img.src = event.target.result;
-        }
-        reader.readAsDataURL(file);
-    }
-
-    function deleteImage(index) {
-        if(!activePatientId) return;
-        if(confirm("Usunąć to zdjęcie?")) {
-            db.patients[activePatientId].images.splice(index, 1);
-            renderGallery();
-            saveToDisk();
-        }
+                input.value = ''; // Reset
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 
     function renderGallery() {
-        if(!activePatientId) return;
-        const gal = document.getElementById('patientGallery');
-        gal.innerHTML = '';
-        const images = db.patients[activePatientId].images || [];
-        
-        images.forEach((imgSrc, idx) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'img-wrapper';
-
+        if(!activePid) return;
+        const g = document.getElementById('pGallery');
+        g.innerHTML = '';
+        db.patients[activePid].imgs.forEach(src => {
             const img = document.createElement('img');
-            img.src = imgSrc;
-            img.className = 'img-thumb';
+            img.src = src;
             img.onclick = () => {
-                document.getElementById('imgModalSrc').src = imgSrc;
-                document.getElementById('imgModal').style.display = 'flex';
+                const w = window.open();
+                w.document.write(`<body style="margin:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh;"><img src="${src}" style="max-width:100%; max-height:100%;"></body>`);
             };
-
-            const delBtn = document.createElement('div');
-            delBtn.className = 'img-delete';
-            delBtn.innerHTML = '✕';
-            delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(idx); };
-
-            wrapper.appendChild(img);
-            wrapper.appendChild(delBtn);
-            gal.appendChild(wrapper);
+            g.appendChild(img);
         });
     }
 
-    // --- KALENDARZ I INTERFEJS ---
-
-    function renderCalendar() {
-        const dateStr = document.getElementById('calDate').value || new Date().toISOString().split('T')[0];
-        document.getElementById('calDate').value = dateStr;
+    // --- KALENDARZ ---
+    function renderCal() {
+        const date = document.getElementById('calDate').value;
+        if(!date) return;
         
-        const slotsContainer = document.getElementById('timeSlots');
-        slotsContainer.innerHTML = '';
+        const container = document.getElementById('calSlots');
+        container.innerHTML = '';
+        if(!db.calendar[date]) db.calendar[date] = {};
 
-        if(!db.calendar[dateStr]) db.calendar[dateStr] = {};
-
-        for(let i = 8; i <= 20; i++) {
-            const hour = (i < 10 ? '0' + i : i) + ':00';
+        for(let h=8; h<=20; h++) {
+            const time = `${h < 10 ? '0'+h : h}:00`;
             const row = document.createElement('div');
-            row.className = 'time-slot';
+            row.className = 'time-row';
+            row.innerHTML = `<span>${time}</span>`;
             
-            const label = document.createElement('div');
-            label.className = 'time-label';
-            label.innerText = hour;
-
-            const select = document.createElement('select');
-            select.className = 'time-select';
-            select.innerHTML = '<option value="">-- Wolny termin --</option>';
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="">-- Wolny termin --</option>';
             
-            // Sortowanie pacjentów alfabetycznie w select
-            const sortedIds = Object.keys(db.patients).sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name));
-            
-            sortedIds.forEach(pid => {
-                const opt = document.createElement('option');
-                opt.value = pid;
-                opt.innerText = db.patients[pid].name;
-                if(db.calendar[dateStr][hour] === pid) opt.selected = true;
-                select.appendChild(opt);
+            Object.keys(db.patients).forEach(pid => {
+                sel.innerHTML += `<option value="${pid}" ${db.calendar[date][time] === pid ? 'selected' : ''}>${db.patients[pid].name}</option>`;
             });
-
-            select.onchange = (e) => {
-                db.calendar[dateStr][hour] = e.target.value;
-                saveToDisk(); // Save po zmianie kalendarza
-            };
-
-            row.appendChild(label);
-            row.appendChild(select);
-            slotsContainer.appendChild(row);
+            
+            sel.onchange = (e) => db.calendar[date][time] = e.target.value;
+            row.appendChild(sel);
+            container.appendChild(row);
         }
     }
 
-    function switchTab(tab) {
-        document.getElementById('tabEditor').classList.remove('active');
-        document.getElementById('tabCalendar').classList.remove('active');
-        document.getElementById('viewEditor').classList.remove('active');
-        document.getElementById('viewCalendar').classList.remove('active');
+    // --- KRYPTOGRAFIA (AES-GCM JSON) ---
+    async function getKey(pw, salt) {
+        const b = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:ITER, hash:'SHA-256'}, b, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    }
 
-        if(tab === 'editor') {
-            document.getElementById('tabEditor').classList.add('active');
-            document.getElementById('viewEditor').classList.add('active');
+    async function processEncryption(pw) {
+        const dataStr = JSON.stringify(db);
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await getKey(pw, salt);
+        const cipher = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(dataStr));
+        const combined = new Uint8Array(16 + 12 + cipher.byteLength);
+        combined.set(salt, 0); 
+        combined.set(iv, 16); 
+        combined.set(new Uint8Array(cipher), 28);
+        return combined;
+    }
+
+    async function processDecryption(buffer, pw) {
+        const data = new Uint8Array(buffer);
+        const key = await getKey(pw, data.slice(0, 16));
+        const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv: data.slice(16,28)}, key, data.slice(28));
+        const jsonStr = new TextDecoder().decode(dec);
+        db = JSON.parse(jsonStr);
+        
+        // Zabezpieczenie na wypadek brakujących obiektów
+        if(!db.patients) db.patients = {};
+        if(!db.calendar) db.calendar = {};
+        
+        activePid = null;
+        document.getElementById('notes').value = "";
+        document.getElementById('notes').disabled = true;
+        document.getElementById('pTitle').innerText = "Wybierz pacjenta";
+        document.getElementById('photoSection').style.display = 'none';
+        document.getElementById('btnZen').style.display = 'none';
+        
+        renderPList();
+        if(document.getElementById('calendar').classList.contains('active')) renderCal();
+        document.getElementById('btnSave').style.display = 'flex';
+        msg("Baza poprawnie odszyfrowana!");
+    }
+
+    // --- OBSŁUGA PLIKÓW (PC ORAZ MOBILE) ---
+    function createEmptyDb() {
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Musisz podać hasło w lewym górnym rogu, aby utworzyć nową bazę!");
+        db = { patients: {}, calendar: {} };
+        activePid = null;
+        fileHandle = null; // Resetujemy uchwyt, zmuszając do pobrania przy zapisie
+        renderPList();
+        document.getElementById('btnSave').style.display = 'flex';
+        msg("Nowa pusta baza utworzona w pamięci.");
+    }
+
+    async function openFile() {
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Podaj hasło przed wczytaniem pliku!");
+
+        // Sprawdzamy czy przeglądarka wspiera bezpośrednie nadpisywanie plików (PC Chrome/Edge/Opera)
+        if (window.showOpenFilePicker) {
+            try {
+                [fileHandle] = await window.showOpenFilePicker({
+                    types: [{ description: 'Zaszyfrowana Baza', accept: {'application/octet-stream': ['.enc']} }]
+                });
+                const file = await fileHandle.getFile();
+                const buffer = await file.arrayBuffer();
+                await processDecryption(buffer, pw);
+            } catch(e) {
+                if(e.name !== 'AbortError') msg("Błąd odszyfrowania pliku!", true);
+            }
         } else {
-            document.getElementById('tabCalendar').classList.add('active');
-            document.getElementById('viewCalendar').classList.add('active');
-            renderCalendar();
+            // Urządzenia mobilne (lub Firefox/Safari)
+            document.getElementById('mobileFileInput').click();
         }
     }
 
-    function showStatus(elem, msg, success) {
-        elem.innerText = msg; 
-        elem.style.display = 'block';
-        elem.style.background = success ? 'var(--p-light)' : 'rgba(239, 68, 68, 0.1)';
-        elem.style.color = success ? 'var(--p)' : 'var(--danger)';
-        setTimeout(() => { elem.style.display = 'none'; }, 4000);
+    async function handleMobileFile(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const pw = document.getElementById('pass').value;
+        
+        try {
+            const buffer = await file.arrayBuffer();
+            await processDecryption(buffer, pw);
+            event.target.value = ''; // Reset
+        } catch(e) {
+            msg("Błędne hasło lub plik!", true);
+            event.target.value = '';
+        }
     }
 
-    // Inicjalizacja daty przy starcie
-    document.getElementById('calDate').valueAsDate = new Date();
+    async function saveFile() {
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Nie można zapisać bez hasła!");
 
+        try {
+            const encryptedData = await processEncryption(pw);
+
+            // Zapis bezpośrednio do pliku (Tylko PC z obsługą API)
+            if (window.showSaveFilePicker && fileHandle) {
+                const writable = await fileHandle.createWritable();
+                await writable.write(encryptedData);
+                await writable.close();
+                msg("Zmiany bezpiecznie zapisane na dysku!");
+            } 
+            // Pobranie zaktualizowanego pliku (Telefony, Firefox, lub nowa baza)
+            else {
+                const blob = new Blob([encryptedData], {type: 'application/octet-stream'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const d = new Date();
+                const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+                a.download = `klinika_baza_${dateStr}.enc`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                msg("Pobrano zaktualizowaną bazę do folderu 'Pobrane'");
+            }
+        } catch(e) {
+            msg("Wystąpił błąd podczas zapisu!", true);
+            console.error(e);
+        }
+    }
 </script>
+
 </body>
 </html>
