@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klinika - Dokumentacja E2EE</title>
+    <title>Klinika - Dokumentacja E2EE (Pro)</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M20 6h-4V4c0-1.103-.897-2-2-2h-4c-1.103 0-2 .897-2 2v2H4c-1.103 0-2 .897-2 2v12c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2zm-10-2h4v2h-4V4zm-6 4h16v3H4V8zm0 12v-7h16l.001 7H4z'/%3E%3C/svg%3E" type="image/svg+xml">
 
@@ -22,7 +22,7 @@
 
         @media (prefers-color-scheme: dark) {
             :root { 
-                --bg: #0f172a; 
+                --bg: #0f172a;
                 --card-bg: #1e293b;
                 --txt: #f8fafc; 
                 --txt-muted: #94a3b8;
@@ -32,104 +32,88 @@
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg); color: var(--txt); 
             padding: 20px; display: flex; justify-content: center; margin: 0;
             min-height: 100vh; box-sizing: border-box;
             transition: background-color 0.3s, color 0.3s;
         }
         
-        .layout { 
-            display: flex; gap: 20px; width: 100%; max-width: 1400px; 
-            transition: all 0.3s ease;
-        }
+        .layout { display: flex; gap: 20px; width: 100%; max-width: 1400px; transition: all 0.3s ease; }
         
-        /* Panel Boczny (Menu Psychologa) */
-        .sidebar { 
-            width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; 
-        }
-        
-        .card { 
-            background: var(--card-bg); padding: 18px; border-radius: 12px; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border);
-        }
+        /* Sidebar */
+        .sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        .card { background: var(--card-bg); padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border); }
 
-        /* Edytor (Główna przestrzeń) */
-        .editor-container { 
-            flex-grow: 1; display: flex; flex-direction: column; 
-            background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);
-            overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
+        /* Main Area */
+        .main-area { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
         
+        .tabs { display: flex; gap: 10px; }
+        .tab-btn { flex: 1; background: var(--card-bg); color: var(--txt-muted); border: 1px solid var(--border); border-bottom: 3px solid transparent; font-weight: 600; cursor: pointer; height: 48px; border-radius: 12px 12px 0 0; transition: all 0.2s; }
+        .tab-btn.active { color: var(--p); border-bottom-color: var(--p); background: var(--card-bg); }
+
+        .editor-container { flex-grow: 1; display: none; flex-direction: column; background: var(--card-bg); border-radius: 0 12px 12px 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .editor-container.active { display: flex; }
+        
+        .patient-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--p-light); display: flex; justify-content: space-between; align-items: center; }
+        .patient-header h2 { margin: 0; font-size: 18px; color: var(--p); }
+
         label { display: block; font-size: 12px; font-weight: 700; color: var(--txt-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        input, textarea, button { 
-            width: 100%; border-radius: 8px; border: 1px solid var(--border); 
-            background: var(--input-bg); color: var(--txt); padding: 10px 12px; 
-            box-sizing: border-box; font-size: 15px; margin-bottom: 12px; outline: none;
-            transition: all 0.2s;
-        }
+        input, textarea, select, button { border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); padding: 10px 12px; box-sizing: border-box; font-size: 15px; margin-bottom: 12px; outline: none; transition: all 0.2s; width: 100%; }
+        input:focus, textarea:focus, select:focus { border-color: var(--p); box-shadow: 0 0 0 3px var(--p-light); }
         
-        input:focus, textarea:focus { border-color: var(--p); box-shadow: 0 0 0 3px var(--p-light); }
-        
-        button { background: var(--p); color: white; border: none; font-weight: 600; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        button { background: var(--p); color: white; border: none; font-weight: 600; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         button:active { transform: scale(0.98); }
         button.secondary { background: transparent; color: var(--txt); border: 1px solid var(--border); }
         button.secondary:hover { background: var(--input-bg); }
         button.action { background: #3b82f6; }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;}
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         
-        textarea { 
-            flex-grow: 1; border: none; font-family: "SF Mono", Consolas, monospace; 
-            resize: none; padding: 20px; font-size: 16px; line-height: 1.6; margin-bottom: 0;
-            background: transparent;
-        }
+        textarea { flex-grow: 1; border: none; font-family: "SF Mono", Consolas, monospace; resize: none; padding: 20px; font-size: 16px; line-height: 1.6; margin-bottom: 0; background: transparent; min-height: 300px; }
         
         .status { padding: 8px; border-radius: 6px; text-align: center; display: none; font-size: 13px; font-weight: 600; margin-top: 5px; }
 
-        .progress-wrapper { width: 100%; height: 3px; background: var(--border); }
-        .progress-bar { height: 100%; background: var(--p); width: 0%; transition: width 0.1s ease-out; }
-
-        .tags-container { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--input-bg); min-height: 24px;}
-        .tag-pill { background: var(--p-light); color: var(--p); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
-
-        /* Lista Pacjentów (Dawny TOC) */
+        /* Lista Pacjentów */
         .patient-list { max-height: 400px; overflow-y: auto; margin-top: 10px; }
-        .patient-item { cursor: pointer; padding: 8px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; transition: all 0.2s; }
-        .patient-item:hover { background: var(--input-bg); border-left-color: var(--p); }
-        .patient-name { font-weight: 700; color: var(--txt); font-size: 14px; }
-        .patient-visit { font-size: 12px; color: var(--txt-muted); padding-left: 10px; margin-top: 4px; }
-        .patient-visit:hover { color: var(--p); text-decoration: underline; }
+        .patient-item { cursor: pointer; padding: 10px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; transition: all 0.2s; font-weight: 600; font-size: 14px; }
+        .patient-item:hover { background: var(--input-bg); }
+        .patient-item.active { border-left-color: var(--p); background: var(--p-light); color: var(--p); }
 
-        /* Responsywność dla urządzeń mobilnych */
+        /* Galeria Zdjęć */
+        .gallery-container { padding: 15px 20px; border-top: 1px solid var(--border); background: var(--input-bg); }
+        .gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .img-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
+        .img-thumb:hover { opacity: 0.8; }
+
+        /* Kalendarz */
+        .calendar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .calendar-grid { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .time-slot { display: flex; align-items: center; gap: 15px; }
+        .time-label { width: 60px; font-weight: bold; color: var(--txt-muted); text-align: right; }
+        .time-select { flex-grow: 1; margin-bottom: 0; }
+
+        /* Pełny ekran dla zdjęcia */
+        #imgModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        #imgModal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+
         @media (max-width: 900px) {
             .layout { flex-direction: column; }
             .sidebar { width: 100%; }
-            .editor-container { min-height: 60vh; }
         }
-
-        /* Tryb Zen */
-        body.zen-active { padding: 0; }
-        body.zen-active .sidebar { display: none; }
-        body.zen-active .layout { max-width: 900px; height: 100vh; margin: 0 auto; }
-        body.zen-active .editor-container { border-radius: 0; border: none; box-shadow: none; }
-        
-        .zen-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 25px; background: var(--txt-muted); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000; border: none; opacity: 0.5; transition: opacity 0.3s; }
-        .zen-btn:hover, body.zen-active .zen-btn { opacity: 1; }
     </style>
 </head>
 <body>
 
 <div class="layout">
     <div class="sidebar">
-        
         <div class="card">
             <label>Klucz Szyfrujący AES-256</label>
             <input type="password" id="pass" placeholder="Wprowadź hasło bazy..." autocomplete="new-password">
             
             <label style="margin-top: 10px;">Zarządzanie Plikiem (PC)</label>
-            <button class="secondary" onclick="openDbFile()" id="btnOpenAPI">📂 Otwórz plik .enc</button>
+            <button class="secondary" onclick="openDbFile()" id="btnOpenAPI">📂 Otwórz plik bazy</button>
             <button onclick="saveDbFile()" id="btnSaveAPI" style="display: none;">💾 Zapisz zmiany w pliku</button>
             <div id="fileStatus" style="font-size: 11px; color: var(--txt-muted); text-align: center; margin-bottom: 10px;">Brak połączonego pliku</div>
             
@@ -146,129 +130,252 @@
         </div>
 
         <div class="card">
-            <label>Narzędzia Edycyjne</label>
-            <div class="grid-2">
-                <button class="action" onclick="addPatient()">👤 Nowy Pacjent</button>
-                <button class="action" style="background: var(--txt-muted);" onclick="addVisit()">📝 Nowa Wizyta</button>
-            </div>
+            <label>Narzędzia</label>
+            <button class="action" onclick="addPatient()">👤 Nowy Pacjent</button>
             
             <label style="margin-top: 15px;">Lista Pacjentów</label>
             <div class="patient-list" id="patientList">
                 <div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">
-                    Otwórz bazę, aby zobaczyć pacjentów.
+                    Otwórz bazę, aby zobaczyć listę.
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="editor-container">
-        <div class="progress-wrapper"><div id="progressBar" class="progress-bar"></div></div>
-        <div class="tags-container" id="tagsContainer">
-            <span style="font-size: 12px; color: var(--txt-muted); align-self: center;">Wykryte tagi pojawią się tutaj...</span>
+    <div class="main-area">
+        <div class="tabs">
+            <button class="tab-btn active" id="tabEditor" onclick="switchTab('editor')">📝 Karta Pacjenta</button>
+            <button class="tab-btn" id="tabCalendar" onclick="switchTab('calendar')">📅 Kalendarz</button>
         </div>
-        
-        <textarea id="content" placeholder="Przestrzeń robocza. Ze względów bezpieczeństwa pamiętaj o regularnym zapisie. Używaj #tagów (np. #lęk, #depresja) do łatwego wyszukiwania."></textarea>
+
+        <div class="editor-container active" id="viewEditor">
+            <div class="patient-header" id="patientHeader" style="display: none;">
+                <h2 id="activePatientName">Wybierz lub dodaj pacjenta</h2>
+                <button class="secondary" style="width: auto; height: 32px; font-size: 12px; margin: 0;" onclick="addVisit()">📝 Wpisz wizytę</button>
+            </div>
+            
+            <textarea id="content" oninput="saveCurrentNote()" placeholder="Baza jest zablokowana lub żaden pacjent nie jest wybrany. Wczytaj plik, a następnie wybierz pacjenta z listy po lewej stronie." disabled></textarea>
+            
+            <div class="gallery-container" id="galleryContainer" style="display: none;">
+                <label>Pliki / Zdjęcia dołączone do karty (zostaną zaszyfrowane)</label>
+                <input type="file" id="imgUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                <button class="secondary" style="width: auto; height: 30px; font-size: 12px; margin-bottom: 0;" onclick="document.getElementById('imgUploader').click()">+ Dodaj zdjęcie (JPG/PNG)</button>
+                <div class="gallery" id="patientGallery"></div>
+            </div>
+        </div>
+
+        <div class="editor-container" id="viewCalendar">
+            <div class="calendar-header">
+                <label>Wybierz dzień</label>
+                <input type="date" id="calDate" onchange="renderCalendar()" style="margin-bottom: 0; max-width: 250px;">
+            </div>
+            <div class="calendar-grid" id="timeSlots">
+                </div>
+        </div>
     </div>
 </div>
 
-<button class="zen-btn" id="zenToggleBtn" onclick="toggleZen()" title="Tryb Skupienia">🧘</button>
+<div id="imgModal" onclick="this.style.display='none'">
+    <img id="imgModalSrc" src="">
+</div>
 
 <script>
     const ITER = 100000;
-    const contentArea = document.getElementById('content');
-    const progressBar = document.getElementById('progressBar');
-    const tagsContainer = document.getElementById('tagsContainer');
-    const patientList = document.getElementById('patientList');
-    let fileHandle = null; // Uchwyt do bezpośredniego nadpisywania plików
+    let fileHandle = null;
+    
+    // Główna struktura Bazy Danych
+    let db = {
+        patients: {}, // { "uuid": { name: "Jan K.", notes: "...", images: ["base64..."] } }
+        calendar: {}  // { "YYYY-MM-DD": { "08:00": "uuid", "09:00": "" } }
+    };
+    
+    let activePatientId = null;
 
-    // --- Narzędzia Psychologa ---
+    // --- INTERFEJS I NAWIGACJA ---
+    function switchTab(tab) {
+        document.getElementById('tabEditor').classList.remove('active');
+        document.getElementById('tabCalendar').classList.remove('active');
+        document.getElementById('viewEditor').classList.remove('active');
+        document.getElementById('viewCalendar').classList.remove('active');
+
+        if(tab === 'editor') {
+            document.getElementById('tabEditor').classList.add('active');
+            document.getElementById('viewEditor').classList.add('active');
+        } else {
+            document.getElementById('tabCalendar').classList.add('active');
+            document.getElementById('viewCalendar').classList.add('active');
+            if(!document.getElementById('calDate').value) {
+                document.getElementById('calDate').valueAsDate = new Date();
+            }
+            renderCalendar();
+        }
+    }
+
+    // --- ZARZĄDZANIE PACJENTAMI ---
     function addPatient() {
         const name = prompt("Podaj inicjały, kod lub nazwisko pacjenta:");
-        if (name) {
-            contentArea.value = `\n# PACJENT: ${name}\n` + contentArea.value;
-            analyzeText();
-            contentArea.focus();
-            contentArea.setSelectionRange(0, 0);
+        if (name && name.trim()) {
+            const id = 'p_' + Date.now() + Math.floor(Math.random()*1000);
+            db.patients[id] = { name: name.trim(), notes: "", images: [] };
+            selectPatient(id);
+            renderPatientList();
+            switchTab('editor');
+        }
+    }
+
+    function renderPatientList() {
+        const list = document.getElementById('patientList');
+        list.innerHTML = '';
+        const patientIds = Object.keys(db.patients);
+        
+        if(patientIds.length === 0) {
+            list.innerHTML = '<div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">Brak pacjentów w bazie.</div>';
+            return;
+        }
+
+        patientIds.forEach(id => {
+            const el = document.createElement('div');
+            el.className = 'patient-item' + (id === activePatientId ? ' active' : '');
+            el.innerText = db.patients[id].name;
+            el.onclick = () => selectPatient(id);
+            list.appendChild(el);
+        });
+    }
+
+    function selectPatient(id) {
+        activePatientId = id;
+        const p = db.patients[id];
+        
+        document.getElementById('patientHeader').style.display = 'flex';
+        document.getElementById('galleryContainer').style.display = 'block';
+        document.getElementById('activePatientName').innerText = p.name;
+        
+        const content = document.getElementById('content');
+        content.disabled = false;
+        content.value = p.notes || "";
+        content.placeholder = "Tutaj wpisuj notatki pacjenta...";
+        
+        renderPatientList();
+        renderGallery();
+        switchTab('editor');
+    }
+
+    function saveCurrentNote() {
+        if(activePatientId && db.patients[activePatientId]) {
+            db.patients[activePatientId].notes = document.getElementById('content').value;
         }
     }
 
     function addVisit() {
+        if(!activePatientId) return;
         const dateStr = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         const visitTemplate = `\n## Wizyta: ${dateStr}\n- Wywiad/Cel wizyty: \n- Przebieg: \n- Wnioski/Zalecenia: \n\n`;
+        const contentArea = document.getElementById('content');
         
         const start = contentArea.selectionStart;
         contentArea.value = contentArea.value.substring(0, start) + visitTemplate + contentArea.value.substring(contentArea.selectionEnd);
-        analyzeText();
+        saveCurrentNote();
         contentArea.focus();
         contentArea.setSelectionRange(start + visitTemplate.length - 2, start + visitTemplate.length - 2);
     }
 
-    // --- Analizator Tekstu (Spis treści i Tagi) ---
-    function analyzeText() {
-        const text = contentArea.value;
+    // --- ZDJĘCIA (Base64) ---
+    function handleImageUpload(e) {
+        if(!activePatientId) return;
+        const file = e.target.files[0];
+        if(!file) return;
 
-        // Pasek postępu
-        const scrollH = contentArea.scrollHeight - contentArea.clientHeight;
-        progressBar.style.width = scrollH > 0 ? (contentArea.scrollTop / scrollH) * 100 + '%' : '0%';
-
-        // Wykrywanie Tagów
-        const tags = new Set();
-        const tagRegex = /(?:^|\s)#([a-zA-Z0-9_ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)/g;
-        let match;
-        while ((match = tagRegex.exec(text)) !== null) { tags.add(match[1].toLowerCase()); }
-        
-        tagsContainer.innerHTML = tags.size > 0 ? '' : '<span style="font-size: 12px; color: var(--txt-muted); align-self: center;">Brak wykrytych tagów.</span>';
-        tags.forEach(tag => {
-            const span = document.createElement('span');
-            span.className = 'tag-pill'; span.innerText = '#' + tag;
-            tagsContainer.appendChild(span);
-        });
-
-        // Generowanie Listy Pacjentów z nagłówków Markdown
-        const headerRegex = /^(#{1,2})\s+(.+)$/gm;
-        let htmlList = '';
-        let currentPatientDiv = null;
-
-        patientList.innerHTML = ''; // Czyszczenie
-        
-        while ((match = headerRegex.exec(text)) !== null) {
-            const level = match[1].length;
-            const title = match[2];
-            const idx = match.index;
-
-            const el = document.createElement('div');
-            if (level === 1) {
-                el.className = 'patient-item patient-name';
-                el.innerText = title.replace('PACJENT: ', '');
-            } else {
-                el.className = 'patient-visit';
-                el.innerText = "↳ " + title.replace('Wizyta: ', '');
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                // Kompresja w przeglądarce przed zapisaniem w JSON
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1000;
+                let scale = 1;
+                if(img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
+                
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Zmniejszenie jakości do 60% dla małego wagi pliku
+                
+                if(!db.patients[activePatientId].images) db.patients[activePatientId].images = [];
+                db.patients[activePatientId].images.push(dataUrl);
+                renderGallery();
+                
+                // Reset inputa
+                document.getElementById('imgUploader').value = '';
             }
-
-            el.onclick = () => {
-                contentArea.focus();
-                contentArea.setSelectionRange(idx, idx);
-                const lines = contentArea.value.substr(0, idx).split("\n").length;
-                const lineHeight = parseInt(window.getComputedStyle(contentArea).lineHeight);
-                contentArea.scrollTop = (lines - 1) * lineHeight;
-            };
-            patientList.appendChild(el);
+            img.src = event.target.result;
         }
+        reader.readAsDataURL(file);
+    }
+
+    function renderGallery() {
+        if(!activePatientId) return;
+        const gal = document.getElementById('patientGallery');
+        gal.innerHTML = '';
+        const images = db.patients[activePatientId].images || [];
         
-        if(patientList.innerHTML === '') {
-            patientList.innerHTML = '<div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">Użyj "Nowy Pacjent" aby rozpocząć.</div>';
+        images.forEach((imgSrc, idx) => {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.className = 'img-thumb';
+            img.onclick = () => {
+                document.getElementById('imgModalSrc').src = imgSrc;
+                document.getElementById('imgModal').style.display = 'flex';
+            };
+            gal.appendChild(img);
+        });
+    }
+
+    // --- KALENDARZ ---
+    function renderCalendar() {
+        const dateStr = document.getElementById('calDate').value;
+        if(!dateStr) return;
+        
+        const slotsContainer = document.getElementById('timeSlots');
+        slotsContainer.innerHTML = '';
+
+        if(!db.calendar[dateStr]) db.calendar[dateStr] = {};
+
+        // Godziny od 8 do 20
+        for(let i = 8; i <= 20; i++) {
+            const hour = (i < 10 ? '0' + i : i) + ':00';
+            
+            const row = document.createElement('div');
+            row.className = 'time-slot';
+            
+            const label = document.createElement('div');
+            label.className = 'time-label';
+            label.innerText = hour;
+
+            const select = document.createElement('select');
+            select.className = 'time-select';
+            select.innerHTML = '<option value="">-- Wolny termin --</option>';
+            
+            Object.keys(db.patients).forEach(pid => {
+                const opt = document.createElement('option');
+                opt.value = pid;
+                opt.innerText = db.patients[pid].name;
+                if(db.calendar[dateStr][hour] === pid) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.onchange = (e) => {
+                db.calendar[dateStr][hour] = e.target.value;
+            };
+
+            row.appendChild(label);
+            row.appendChild(select);
+            slotsContainer.appendChild(row);
         }
     }
 
-    contentArea.addEventListener('input', analyzeText);
-    contentArea.addEventListener('scroll', analyzeText);
-
-    function toggleZen() {
-        document.body.classList.toggle('zen-active');
-        document.getElementById('zenToggleBtn').innerText = document.body.classList.contains('zen-active') ? '📖' : '🧘';
-        if(document.body.classList.contains('zen-active')) contentArea.focus();
-    }
-
+    // --- KRYPTOGRAFIA I ZARZĄDZANIE PLIKAMI ---
     function log(m, success) {
         const e = document.getElementById('msg');
         e.innerText = m; e.style.display = 'block';
@@ -277,7 +384,6 @@
         setTimeout(() => { e.style.display = 'none'; }, 5000);
     }
 
-    // --- KRYPTOGRAFIA I ZARZĄDZANIE PLIKAMI ---
     async function getKey(pw, salt) {
         const enc = new TextEncoder();
         const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
@@ -287,75 +393,13 @@
         );
     }
 
-    // 1. File System API (Nowoczesny Zapis - PC)
-    async function openDbFile() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Najpierw wprowadź klucz szyfrujący!");
-        
-        try {
-            if (!window.showOpenFilePicker) throw new Error("API nieobsługiwane. Użyj klasycznego wczytywania poniżej.");
-            
-            [fileHandle] = await window.showOpenFilePicker({ types: [{ accept: {'application/octet-stream': ['.enc']} }] });
-            const file = await fileHandle.getFile();
-            document.getElementById('fileStatus').innerText = "Aktywny plik: " + file.name;
-            
-            await processDecryption(await file.arrayBuffer(), pw);
-            
-            document.getElementById('btnOpenAPI').style.display = 'none';
-            document.getElementById('btnSaveAPI').style.display = 'flex';
-        } catch (e) {
-            if(e.name !== 'AbortError') log(e.message, false);
-        }
-    }
-
-    async function saveDbFile() {
-        if (!fileHandle) return alert("Brak połączonego pliku!");
-        const pw = document.getElementById('pass').value;
-        const text = contentArea.value;
-        if(!pw || !text) return alert("Brak hasła lub danych!");
-
-        try {
-            const combined = await processEncryption(text, pw);
-            const writable = await fileHandle.createWritable();
-            await writable.write(combined);
-            await writable.close();
-            log("Zapisano bezpiecznie na dysku!", true);
-        } catch (e) { log("Błąd zapisu! Sprawdź uprawnienia.", false); }
-    }
-
-    // 2. Fallback (Klasyczne Pobieranie/Wczytywanie - Telefony)
-    async function encryptFallback() {
-        const pw = document.getElementById('pass').value;
-        const text = contentArea.value;
-        if(!pw || !text) return alert("Brak hasła lub danych!");
-        
-        try {
-            const combined = await processEncryption(text, pw);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([combined], {type: 'application/octet-stream'}));
-            a.download = `klinika_${new Date().toISOString().slice(0,10)}.enc`; 
-            a.click();
-            log("Pobrano plik z kopią!", true);
-        } catch(e) { log("Błąd szyfrowania", false); }
-    }
-
-    async function decryptFallback() {
-        const pw = document.getElementById('pass').value;
-        const file = document.getElementById('fallbackFile').files[0];
-        if(!pw || !file) return alert("Podaj klucz i wybierz plik z listy!");
-        
-        try {
-            await processDecryption(await file.arrayBuffer(), pw);
-            document.getElementById('fileStatus').innerText = "Wczytano statycznie: " + file.name;
-        } catch(e) { log("Błąd deszyfracji. Błędne hasło?", false); }
-    }
-
-    // Pomocnicze funkcje Krypto
-    async function processEncryption(text, pw) {
+    async function processEncryption(pw) {
+        // Konwertujemy cały obiekt DB do stringa JSON przed zaszyfrowaniem
+        const dataString = JSON.stringify(db);
         const salt = crypto.getRandomValues(new Uint8Array(16));
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const key = await getKey(pw, salt);
-        const cipher = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(text));
+        const cipher = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(dataString));
         const combined = new Uint8Array(16 + 12 + cipher.byteLength);
         combined.set(salt, 0); combined.set(iv, 16); combined.set(new Uint8Array(cipher), 28);
         return combined;
@@ -365,9 +409,99 @@
         const buf = new Uint8Array(buffer);
         const key = await getKey(pw, buf.slice(0, 16));
         const dec = await crypto.subtle.decrypt({name: 'AES-GCM', iv: buf.slice(16, 28)}, key, buf.slice(28));
-        contentArea.value = new TextDecoder().decode(dec);
-        analyzeText();
-        log("Baza odszyfrowana!", true);
+        const decryptedStr = new TextDecoder().decode(dec);
+        
+        try {
+            // Próba interpretacji jako nowy format JSON
+            db = JSON.parse(decryptedStr);
+            if(!db.patients) db.patients = {};
+            if(!db.calendar) db.calendar = {};
+        } catch(e) {
+            // MIGRACJA STAREGO FORMATU (czysty tekst)
+            db = { patients: {}, calendar: {} };
+            if (decryptedStr.includes('# PACJENT:')) {
+                const parts = decryptedStr.split(/(?=# PACJENT:)/);
+                parts.forEach(p => {
+                    const match = p.match(/# PACJENT:\s*(.*)/);
+                    if(match) {
+                        const id = 'p_' + Math.random().toString(36).substr(2, 9);
+                        db.patients[id] = { name: match[1].trim(), notes: p.replace(match[0], '').trim(), images: [] };
+                    }
+                });
+            } else {
+                // Jeśli nie było formatowania # PACJENT:
+                const id = 'p_migracja';
+                db.patients[id] = { name: "Zaimportowane Notatki", notes: decryptedStr, images: [] };
+            }
+            alert("Pomyślnie zmigrowano dane ze starego formatu do nowego systemu bazodanowego.");
+        }
+
+        activePatientId = null;
+        document.getElementById('content').value = "";
+        document.getElementById('content').disabled = true;
+        document.getElementById('patientHeader').style.display = 'none';
+        document.getElementById('galleryContainer').style.display = 'none';
+        
+        renderPatientList();
+        renderCalendar();
+        log("Baza wczytana pomyślnie!", true);
+    }
+
+    // Zapisywanie PC (File System Access API)
+    async function openDbFile() {
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Najpierw wprowadź klucz szyfrujący!");
+        
+        try {
+            if (!window.showOpenFilePicker) throw new Error("API nieobsługiwane. Użyj klasycznego wczytywania poniżej.");
+            [fileHandle] = await window.showOpenFilePicker({ types: [{ accept: {'application/octet-stream': ['.enc']} }] });
+            const file = await fileHandle.getFile();
+            document.getElementById('fileStatus').innerText = "Aktywny plik: " + file.name;
+            
+            await processDecryption(await file.arrayBuffer(), pw);
+            
+            document.getElementById('btnOpenAPI').style.display = 'none';
+            document.getElementById('btnSaveAPI').style.display = 'flex';
+        } catch (e) {
+            if(e.name !== 'AbortError') log(e.message || "Błąd wczytywania", false);
+        }
+    }
+
+    async function saveDbFile() {
+        if (!fileHandle) return alert("Brak połączonego pliku!");
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Brak hasła!");
+        try {
+            const combined = await processEncryption(pw);
+            const writable = await fileHandle.createWritable();
+            await writable.write(combined);
+            await writable.close();
+            log("Zapisano bezpiecznie na dysku!", true);
+        } catch (e) { log("Błąd zapisu! Sprawdź uprawnienia.", false); }
+    }
+
+    // Telefony (Pobieranie/Wgrywanie)
+    async function encryptFallback() {
+        const pw = document.getElementById('pass').value;
+        if(!pw) return alert("Brak hasła!");
+        try {
+            const combined = await processEncryption(pw);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([combined], {type: 'application/octet-stream'}));
+            a.download = `klinika_pro_${new Date().toISOString().slice(0,10)}.enc`; 
+            a.click();
+            log("Pobrano plik z kopią bazy!", true);
+        } catch(e) { log("Błąd szyfrowania", false); }
+    }
+
+    async function decryptFallback() {
+        const pw = document.getElementById('pass').value;
+        const file = document.getElementById('fallbackFile').files[0];
+        if(!pw || !file) return alert("Podaj klucz i wybierz plik z listy!");
+        try {
+            await processDecryption(await file.arrayBuffer(), pw);
+            document.getElementById('fileStatus').innerText = "Wczytano statycznie: " + file.name;
+        } catch(e) { log("Błąd deszyfracji. Błędne hasło?", false); }
     }
 </script>
 </body>
