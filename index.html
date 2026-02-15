@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klinika - Dokumentacja E2EE (Pro)</title>
+    <title>Klinika - System Bezpiecznej Dokumentacji</title>
     
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M20 6h-4V4c0-1.103-.897-2-2-2h-4c-1.103 0-2 .897-2 2v2H4c-1.103 0-2 .897-2 2v12c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2zm-10-2h4v2h-4V4zm-6 4h16v3H4V8zm0 12v-7h16l.001 7H4z'/%3E%3C/svg%3E" type="image/svg+xml">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
     <style>
         :root { 
-            --p: #059669; /* Medyczna, spokojna zieleń */
-            --p-light: rgba(5, 150, 105, 0.15);
+            --p: #059669; /* Primary Green */
+            --p-hover: #047857;
+            --p-light: rgba(5, 150, 105, 0.1);
             --bg: #f1f5f9; 
             --card-bg: #ffffff;
             --txt: #1e293b; 
@@ -18,6 +19,7 @@
             --border: #cbd5e1;
             --input-bg: #ffffff;
             --danger: #ef4444;
+            --danger-hover: #dc2626;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -34,12 +36,36 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg); color: var(--txt); 
-            padding: 20px; display: flex; justify-content: center; margin: 0;
-            min-height: 100vh; box-sizing: border-box;
-            transition: background-color 0.3s, color 0.3s;
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; justify-content: center;
         }
         
-        .layout { display: flex; gap: 20px; width: 100%; max-width: 1400px; transition: all 0.3s ease; }
+        /* --- EKRAN LOGOWANIA --- */
+        #loginScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 5000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box;
+        }
+        .login-card {
+            background: var(--card-bg); width: 100%; max-width: 400px;
+            padding: 30px; border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .login-logo {
+            width: 48px; height: 48px; margin-bottom: 15px; fill: var(--p);
+        }
+        .login-btn-group {
+            display: flex; flex-direction: column; gap: 10px; margin-top: 20px;
+        }
+
+        /* --- GŁÓWNY INTERFEJS --- */
+        #appLayout {
+            display: none; /* Ukryte domyślnie */
+            gap: 20px; width: 100%; max-width: 1400px; padding: 20px; box-sizing: border-box;
+        }
         
         /* Sidebar */
         .sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
@@ -52,40 +78,48 @@
         .tab-btn { flex: 1; background: var(--card-bg); color: var(--txt-muted); border: 1px solid var(--border); border-bottom: 3px solid transparent; font-weight: 600; cursor: pointer; height: 48px; border-radius: 12px 12px 0 0; transition: all 0.2s; }
         .tab-btn.active { color: var(--p); border-bottom-color: var(--p); background: var(--card-bg); }
 
-        .editor-container { flex-grow: 1; display: none; flex-direction: column; background: var(--card-bg); border-radius: 0 12px 12px 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .editor-container { flex-grow: 1; display: none; flex-direction: column; background: var(--card-bg); border-radius: 0 12px 12px 12px; border: 1px solid var(--border); overflow: hidden; min-height: 500px; }
         .editor-container.active { display: flex; }
         
-        .patient-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--p-light); display: flex; justify-content: space-between; align-items: center; }
+        .patient-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--p-light); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
         .patient-header h2 { margin: 0; font-size: 18px; color: var(--p); }
 
-        label { display: block; font-size: 12px; font-weight: 700; color: var(--txt-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--txt-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left;}
         
         input, textarea, select, button { border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); padding: 10px 12px; box-sizing: border-box; font-size: 15px; margin-bottom: 12px; outline: none; transition: all 0.2s; width: 100%; }
         input:focus, textarea:focus, select:focus { border-color: var(--p); box-shadow: 0 0 0 3px var(--p-light); }
         
-        button { background: var(--p); color: white; border: none; font-weight: 600; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        button { background: var(--p); color: white; border: none; font-weight: 600; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 0; }
+        button:hover { background: var(--p-hover); }
         button:active { transform: scale(0.98); }
+        
         button.secondary { background: transparent; color: var(--txt); border: 1px solid var(--border); }
         button.secondary:hover { background: var(--input-bg); }
-        button.action { background: #3b82f6; }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        button.danger { background: var(--danger); color: white; border: none; }
+        button.danger:hover { background: var(--danger-hover); }
+
+        button.action { background: #3b82f6; }
+        button.action:hover { background: #2563eb; }
         
         textarea { flex-grow: 1; border: none; font-family: "SF Mono", Consolas, monospace; resize: none; padding: 20px; font-size: 16px; line-height: 1.6; margin-bottom: 0; background: transparent; min-height: 300px; }
         
-        .status { padding: 8px; border-radius: 6px; text-align: center; display: none; font-size: 13px; font-weight: 600; margin-top: 5px; }
+        .status { padding: 10px; border-radius: 6px; text-align: center; display: none; font-size: 13px; font-weight: 600; margin-top: 10px; }
 
         /* Lista Pacjentów */
-        .patient-list { max-height: 400px; overflow-y: auto; margin-top: 10px; }
-        .patient-item { cursor: pointer; padding: 10px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; transition: all 0.2s; font-weight: 600; font-size: 14px; }
+        .patient-list { max-height: 500px; overflow-y: auto; margin-top: 10px; }
+        .patient-item { cursor: pointer; padding: 10px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; transition: all 0.2s; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center;}
         .patient-item:hover { background: var(--input-bg); }
         .patient-item.active { border-left-color: var(--p); background: var(--p-light); color: var(--p); }
 
         /* Galeria Zdjęć */
         .gallery-container { padding: 15px 20px; border-top: 1px solid var(--border); background: var(--input-bg); }
         .gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-        .img-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
+        
+        .img-wrapper { position: relative; width: 80px; height: 80px; }
+        .img-thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
         .img-thumb:hover { opacity: 0.8; }
+        .img-delete { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 2px solid var(--card-bg); }
 
         /* Kalendarz */
         .calendar-header { padding: 20px; border-bottom: 1px solid var(--border); }
@@ -94,39 +128,60 @@
         .time-label { width: 60px; font-weight: bold; color: var(--txt-muted); text-align: right; }
         .time-select { flex-grow: 1; margin-bottom: 0; }
 
-        /* Pełny ekran dla zdjęcia */
-        #imgModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        /* Pełny ekran */
+        #imgModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 6000; justify-content: center; align-items: center; }
         #imgModal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
 
+        /* Responsywność */
         @media (max-width: 900px) {
-            .layout { flex-direction: column; }
+            #appLayout { flex-direction: column; padding: 10px; }
             .sidebar { width: 100%; }
+            .patient-header { flex-direction: column; align-items: stretch; }
+            .patient-header button { width: 100%; margin-top: 5px; }
         }
     </style>
 </head>
 <body>
 
-<div class="layout">
+<div id="loginScreen">
+    <div class="login-card">
+        <svg class="login-logo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        <h2 style="margin-top:0;">Terapeutnik Pro</h2>
+        <p style="color: var(--txt-muted); font-size: 14px;">Zaloguj się, aby odszyfrować bazę pacjentów lub utwórz nową.</p>
+        
+        <div style="text-align: left; margin-top: 20px;">
+            <label>Nazwa Użytkownika</label>
+            <input type="text" id="loginUser" placeholder="Np. jan_kowalski" autocomplete="username">
+            
+            <label>Hasło Szyfrujące</label>
+            <input type="password" id="loginPass" placeholder="Wprowadź hasło..." autocomplete="current-password">
+        </div>
+
+        <div class="login-btn-group">
+            <button onclick="handleLogin('open')">📂 Otwórz Istniejącą Bazę</button>
+            <button class="secondary" onclick="handleLogin('create')">✨ Utwórz Nową Bazę</button>
+        </div>
+        
+        <div id="loginStatus" class="status"></div>
+        <div style="font-size: 11px; color: var(--txt-muted); margin-top: 15px;">
+            Obsługiwane pliki: <strong>.json</strong> (Szyfrowane AES-256)
+        </div>
+    </div>
+</div>
+
+<div class="layout" id="appLayout">
     <div class="sidebar">
         <div class="card">
-            <label>Klucz Szyfrujący AES-256</label>
-            <input type="password" id="pass" placeholder="Wprowadź hasło bazy..." autocomplete="new-password">
-            
-            <label style="margin-top: 10px;">Zarządzanie Plikiem (PC)</label>
-            <button class="secondary" onclick="openDbFile()" id="btnOpenAPI">📂 Otwórz plik bazy</button>
-            <button onclick="saveDbFile()" id="btnSaveAPI" style="display: none;">💾 Zapisz zmiany w pliku</button>
-            <div id="fileStatus" style="font-size: 11px; color: var(--txt-muted); text-align: center; margin-bottom: 10px;">Brak połączonego pliku</div>
-            
-            <details style="font-size: 13px; color: var(--txt-muted); margin-top: 15px;">
-                <summary style="cursor: pointer; font-weight: bold;">Klasyczne wczytywanie (Telefony)</summary>
-                <div style="margin-top: 10px;">
-                    <input type="file" id="fallbackFile" accept=".enc" style="padding: 5px;">
-                    <button class="secondary" onclick="decryptFallback()" style="height: 36px; font-size: 13px;">🔓 Odszyfruj z pliku</button>
-                    <button class="secondary" onclick="encryptFallback()" style="height: 36px; font-size: 13px;">⬇️ Pobierz jako kopię</button>
-                </div>
-            </details>
-            
-            <div id="msg" class="status"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <label style="margin:0;">Zalogowano jako:</label>
+                <button class="secondary" style="width: auto; height: 24px; font-size: 10px; padding: 0 8px;" onclick="location.reload()">WYLOGUJ</button>
+            </div>
+            <div id="currentUserDisplay" style="font-weight: bold; color: var(--p); font-size: 16px; margin-bottom: 15px;">...</div>
+
+            <label>Zarządzanie Plikiem</label>
+            <button onclick="saveDbFile()" id="btnSave" class="secondary">💾 Zapisz zmiany (JSON)</button>
+            <div id="fileInfo" style="font-size: 11px; color: var(--txt-muted); text-align: center; margin-top: 5px;"></div>
+            <div id="appMsg" class="status"></div>
         </div>
 
         <div class="card">
@@ -134,11 +189,7 @@
             <button class="action" onclick="addPatient()">👤 Nowy Pacjent</button>
             
             <label style="margin-top: 15px;">Lista Pacjentów</label>
-            <div class="patient-list" id="patientList">
-                <div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">
-                    Otwórz bazę, aby zobaczyć listę.
-                </div>
-            </div>
+            <div class="patient-list" id="patientList"></div>
         </div>
     </div>
 
@@ -150,16 +201,22 @@
 
         <div class="editor-container active" id="viewEditor">
             <div class="patient-header" id="patientHeader" style="display: none;">
-                <h2 id="activePatientName">Wybierz lub dodaj pacjenta</h2>
-                <button class="secondary" style="width: auto; height: 32px; font-size: 12px; margin: 0;" onclick="addVisit()">📝 Wpisz wizytę</button>
+                <div style="display:flex; align-items: center; gap: 10px;">
+                    <h2 id="activePatientName">Pacjent</h2>
+                </div>
+                <div style="display:flex; gap: 8px;">
+                    <button class="secondary" style="width: auto; height: 32px; font-size: 12px;" onclick="addVisit()">📝 Nowa Wizyta</button>
+                    <button class="danger" style="width: auto; height: 32px; font-size: 12px;" onclick="deleteCurrentPatient()">🗑️ Usuń Pacjenta</button>
+                </div>
             </div>
             
-            <textarea id="content" oninput="saveCurrentNote()" placeholder="Baza jest zablokowana lub żaden pacjent nie jest wybrany. Wczytaj plik, a następnie wybierz pacjenta z listy po lewej stronie." disabled></textarea>
+            <textarea id="content" oninput="saveCurrentNote()" placeholder="Wybierz pacjenta z listy po lewej stronie, aby edytować notatki." disabled></textarea>
             
             <div class="gallery-container" id="galleryContainer" style="display: none;">
-                <label>Pliki / Zdjęcia dołączone do karty (zostaną zaszyfrowane)</label>
+                <label>Załączniki (Szyfrowane)</label>
                 <input type="file" id="imgUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                <button class="secondary" style="width: auto; height: 30px; font-size: 12px; margin-bottom: 0;" onclick="document.getElementById('imgUploader').click()">+ Dodaj zdjęcie (JPG/PNG)</button>
+                
+                <button class="secondary" style="width: auto; height: 30px; font-size: 12px;" onclick="document.getElementById('imgUploader').click()">+ Dodaj zdjęcie</button>
                 <div class="gallery" id="patientGallery"></div>
             </div>
         </div>
@@ -169,8 +226,7 @@
                 <label>Wybierz dzień</label>
                 <input type="date" id="calDate" onchange="renderCalendar()" style="margin-bottom: 0; max-width: 250px;">
             </div>
-            <div class="calendar-grid" id="timeSlots">
-                </div>
+            <div class="calendar-grid" id="timeSlots"></div>
         </div>
     </div>
 </div>
@@ -180,46 +236,237 @@
 </div>
 
 <script>
-    const ITER = 100000;
-    let fileHandle = null;
-    
-    // Główna struktura Bazy Danych
-    let db = {
-        patients: {}, // { "uuid": { name: "Jan K.", notes: "...", images: ["base64..."] } }
-        calendar: {}  // { "YYYY-MM-DD": { "08:00": "uuid", "09:00": "" } }
-    };
-    
+    const ITER = 100000; // Iteracje PBKDF2 dla bezpieczeństwa
+    let db = { patients: {}, calendar: {} };
     let activePatientId = null;
+    let fileHandle = null;
+    let currentUsername = "";
+    let currentPassword = ""; // Przechowywane w pamięci tylko na czas sesji
 
-    // --- INTERFEJS I NAWIGACJA ---
-    function switchTab(tab) {
-        document.getElementById('tabEditor').classList.remove('active');
-        document.getElementById('tabCalendar').classList.remove('active');
-        document.getElementById('viewEditor').classList.remove('active');
-        document.getElementById('viewCalendar').classList.remove('active');
+    // --- LOGIKA LOGOWANIA I PLIKÓW ---
 
-        if(tab === 'editor') {
-            document.getElementById('tabEditor').classList.add('active');
-            document.getElementById('viewEditor').classList.add('active');
-        } else {
-            document.getElementById('tabCalendar').classList.add('active');
-            document.getElementById('viewCalendar').classList.add('active');
-            if(!document.getElementById('calDate').value) {
-                document.getElementById('calDate').valueAsDate = new Date();
+    async function handleLogin(mode) {
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        const status = document.getElementById('loginStatus');
+
+        if (!user || !pass) {
+            showStatus(status, "Podaj nazwę użytkownika i hasło!", false);
+            return;
+        }
+
+        currentUsername = user;
+        currentPassword = pass;
+
+        if (mode === 'create') {
+            // TWORZENIE NOWEJ BAZY
+            db = { patients: {}, calendar: {} };
+            try {
+                if(window.showSaveFilePicker) {
+                    const opts = {
+                        suggestedName: `${user}.json`,
+                        types: [{ description: 'Baza Terapeutnik', accept: {'application/json': ['.json']} }],
+                    };
+                    fileHandle = await window.showSaveFilePicker(opts);
+                    await saveToDisk();
+                    enterApp();
+                } else {
+                    // Fallback dla braku API
+                    downloadFallback();
+                    enterApp();
+                }
+            } catch (e) {
+                if(e.name !== 'AbortError') showStatus(status, "Błąd tworzenia pliku.", false);
             }
-            renderCalendar();
+        } else {
+            // OTWIERANIE ISTNIEJĄCEJ
+            try {
+                let fileData;
+                if(window.showOpenFilePicker) {
+                    [fileHandle] = await window.showOpenFilePicker({
+                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
+                    });
+                    const file = await fileHandle.getFile();
+                    document.getElementById('fileInfo').innerText = file.name;
+                    fileData = await file.text();
+                } else {
+                    // Fallback input
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = async e => {
+                        const file = e.target.files[0];
+                        if(file) {
+                            document.getElementById('fileInfo').innerText = file.name;
+                            const text = await file.text();
+                            await processLoad(text, status);
+                        }
+                    };
+                    input.click();
+                    return; // Czekamy na event onchange
+                }
+
+                if(fileData) await processLoad(fileData, status);
+
+            } catch (e) {
+                if(e.name !== 'AbortError') {
+                    console.error(e);
+                    showStatus(status, "Błąd odczytu pliku.", false);
+                }
+            }
         }
     }
 
+    async function processLoad(jsonString, statusElem) {
+        try {
+            const encryptedObj = JSON.parse(jsonString);
+            
+            // Opcjonalne sprawdzenie właściciela pliku (jeśli zapisano w metadanych)
+            if(encryptedObj.username && encryptedObj.username !== currentUsername) {
+                if(!confirm(`Uwaga! Plik należy do użytkownika "${encryptedObj.username}", a logujesz się jako "${currentUsername}". Kontynuować?`)) {
+                    return;
+                }
+            }
+
+            // Odszyfrowanie
+            const decryptedJson = await decryptData(encryptedObj, currentPassword);
+            db = JSON.parse(decryptedJson);
+            
+            // Naprawa struktury jeśli pusta
+            if(!db.patients) db.patients = {};
+            if(!db.calendar) db.calendar = {};
+
+            enterApp();
+        } catch (e) {
+            console.error(e);
+            showStatus(statusElem, "BŁĘDNE HASŁO lub uszkodzony plik!", false);
+        }
+    }
+
+    function enterApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appLayout').style.display = 'flex';
+        document.getElementById('currentUserDisplay').innerText = currentUsername;
+        renderPatientList();
+        renderCalendar();
+    }
+
+    // --- KRYPTOGRAFIA (AES-GCM w JSON Wrapper) ---
+    
+    // Helpers do konwersji Buffer <-> Base64
+    function buffToBase64(buff) {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(buff)));
+    }
+    function base64ToBuff(b64) {
+        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+
+    async function getKey(pw, salt) {
+        const enc = new TextEncoder();
+        const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' },
+            bKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+        );
+    }
+
+    async function encryptData(dataStr, pw) {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await getKey(pw, salt);
+        const encoded = new TextEncoder().encode(dataStr);
+        
+        const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv: iv}, key, encoded);
+
+        return {
+            username: currentUsername, // Metadane jawne
+            salt: buffToBase64(salt),
+            iv: buffToBase64(iv),
+            data: buffToBase64(ciphertext)
+        };
+    }
+
+    async function decryptData(wrapperObj, pw) {
+        const salt = base64ToBuff(wrapperObj.salt);
+        const iv = base64ToBuff(wrapperObj.iv);
+        const data = base64ToBuff(wrapperObj.data);
+        
+        const key = await getKey(pw, salt);
+        const decryptedInfo = await crypto.subtle.decrypt({name: 'AES-GCM', iv: iv}, key, data);
+        
+        return new TextDecoder().decode(decryptedInfo);
+    }
+
+    // --- ZAPISYWANIE ---
+
+    async function saveToDisk() {
+        const msg = document.getElementById('appMsg');
+        try {
+            const jsonStr = JSON.stringify(db);
+            const encryptedWrapper = await encryptData(jsonStr, currentPassword);
+            const finalFileContent = JSON.stringify(encryptedWrapper, null, 2);
+
+            if (fileHandle) {
+                const writable = await fileHandle.createWritable();
+                await writable.write(finalFileContent);
+                await writable.close();
+                showStatus(msg, "Zapisano zmiany w pliku JSON.", true);
+            } else {
+                // Fallback download
+                const blob = new Blob([finalFileContent], {type: "application/json"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${currentUsername}_baza.json`;
+                a.click();
+                showStatus(msg, "Pobrano nową wersję pliku.", true);
+            }
+        } catch (e) {
+            showStatus(msg, "Błąd zapisu! " + e.message, false);
+        }
+    }
+    
+    // Alias dla przycisku w menu
+    function saveDbFile() { saveToDisk(); }
+    function downloadFallback() { saveToDisk(); }
+
     // --- ZARZĄDZANIE PACJENTAMI ---
+
     function addPatient() {
-        const name = prompt("Podaj inicjały, kod lub nazwisko pacjenta:");
+        const name = prompt("Podaj inicjały lub identyfikator pacjenta:");
         if (name && name.trim()) {
-            const id = 'p_' + Date.now() + Math.floor(Math.random()*1000);
+            const id = 'p_' + Date.now();
             db.patients[id] = { name: name.trim(), notes: "", images: [] };
             selectPatient(id);
             renderPatientList();
             switchTab('editor');
+            saveToDisk(); // Autosave struktury
+        }
+    }
+
+    function deleteCurrentPatient() {
+        if(!activePatientId) return;
+        if(confirm(`Czy na pewno chcesz usunąć pacjenta "${db.patients[activePatientId].name}"?\nTej operacji nie można cofnąć!`)) {
+            // Usuń z kalendarza
+            for(let date in db.calendar) {
+                for(let hour in db.calendar[date]) {
+                    if(db.calendar[date][hour] === activePatientId) {
+                        delete db.calendar[date][hour];
+                    }
+                }
+            }
+            // Usuń z bazy
+            delete db.patients[activePatientId];
+            
+            // Reset widoku
+            activePatientId = null;
+            document.getElementById('content').value = "";
+            document.getElementById('content').disabled = true;
+            document.getElementById('patientHeader').style.display = 'none';
+            document.getElementById('galleryContainer').style.display = 'none';
+            
+            renderPatientList();
+            renderCalendar(); // Odśwież by usunąć wpisy w kalendarzu
+            saveToDisk();
         }
     }
 
@@ -229,15 +476,21 @@
         const patientIds = Object.keys(db.patients);
         
         if(patientIds.length === 0) {
-            list.innerHTML = '<div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">Brak pacjentów w bazie.</div>';
+            list.innerHTML = '<div style="font-size: 12px; color: var(--txt-muted); text-align: center; padding: 20px;">Brak pacjentów.</div>';
             return;
         }
 
         patientIds.forEach(id => {
             const el = document.createElement('div');
             el.className = 'patient-item' + (id === activePatientId ? ' active' : '');
-            el.innerText = db.patients[id].name;
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = db.patients[id].name;
+            el.appendChild(nameSpan);
+            
+            // Onclick na cały element
             el.onclick = () => selectPatient(id);
+            
             list.appendChild(el);
         });
     }
@@ -253,7 +506,6 @@
         const content = document.getElementById('content');
         content.disabled = false;
         content.value = p.notes || "";
-        content.placeholder = "Tutaj wpisuj notatki pacjenta...";
         
         renderPatientList();
         renderGallery();
@@ -269,17 +521,20 @@
     function addVisit() {
         if(!activePatientId) return;
         const dateStr = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const visitTemplate = `\n## Wizyta: ${dateStr}\n- Wywiad/Cel wizyty: \n- Przebieg: \n- Wnioski/Zalecenia: \n\n`;
+        const visitTemplate = `\n----------------------------------------\n📅 WIZYTA: ${dateStr}\n\n1. Obserwacje / Wywiad:\n   \n\n2. Interwencje / Przebieg:\n   \n\n3. Zalecenia / Plan:\n   \n`;
         const contentArea = document.getElementById('content');
-        
         const start = contentArea.selectionStart;
-        contentArea.value = contentArea.value.substring(0, start) + visitTemplate + contentArea.value.substring(contentArea.selectionEnd);
+        
+        // Wstaw na początku lub w miejscu kursora? Zwykle na końcu jest wygodniej, ale tutaj w miejscu kursora.
+        const newVal = contentArea.value.substring(0, start) + visitTemplate + contentArea.value.substring(contentArea.selectionEnd);
+        contentArea.value = newVal;
+        
         saveCurrentNote();
         contentArea.focus();
-        contentArea.setSelectionRange(start + visitTemplate.length - 2, start + visitTemplate.length - 2);
     }
 
-    // --- ZDJĘCIA (Base64) ---
+    // --- ZDJĘCIA ---
+
     function handleImageUpload(e) {
         if(!activePatientId) return;
         const file = e.target.files[0];
@@ -289,29 +544,36 @@
         reader.onload = function(event) {
             const img = new Image();
             img.onload = function() {
-                // Kompresja w przeglądarce przed zapisaniem w JSON
+                // Kompresja
                 const canvas = document.createElement('canvas');
                 const MAX_WIDTH = 1000;
                 let scale = 1;
                 if(img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
-                
                 canvas.width = img.width * scale;
                 canvas.height = img.height * scale;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Zmniejszenie jakości do 60% dla małego wagi pliku
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
                 
                 if(!db.patients[activePatientId].images) db.patients[activePatientId].images = [];
                 db.patients[activePatientId].images.push(dataUrl);
                 renderGallery();
+                saveToDisk(); // Save po dodaniu zdjęcia
                 
-                // Reset inputa
                 document.getElementById('imgUploader').value = '';
             }
             img.src = event.target.result;
         }
         reader.readAsDataURL(file);
+    }
+
+    function deleteImage(index) {
+        if(!activePatientId) return;
+        if(confirm("Usunąć to zdjęcie?")) {
+            db.patients[activePatientId].images.splice(index, 1);
+            renderGallery();
+            saveToDisk();
+        }
     }
 
     function renderGallery() {
@@ -321,6 +583,9 @@
         const images = db.patients[activePatientId].images || [];
         
         images.forEach((imgSrc, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'img-wrapper';
+
             const img = document.createElement('img');
             img.src = imgSrc;
             img.className = 'img-thumb';
@@ -328,24 +593,31 @@
                 document.getElementById('imgModalSrc').src = imgSrc;
                 document.getElementById('imgModal').style.display = 'flex';
             };
-            gal.appendChild(img);
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'img-delete';
+            delBtn.innerHTML = '✕';
+            delBtn.onclick = (e) => { e.stopPropagation(); deleteImage(idx); };
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(delBtn);
+            gal.appendChild(wrapper);
         });
     }
 
-    // --- KALENDARZ ---
+    // --- KALENDARZ I INTERFEJS ---
+
     function renderCalendar() {
-        const dateStr = document.getElementById('calDate').value;
-        if(!dateStr) return;
+        const dateStr = document.getElementById('calDate').value || new Date().toISOString().split('T')[0];
+        document.getElementById('calDate').value = dateStr;
         
         const slotsContainer = document.getElementById('timeSlots');
         slotsContainer.innerHTML = '';
 
         if(!db.calendar[dateStr]) db.calendar[dateStr] = {};
 
-        // Godziny od 8 do 20
         for(let i = 8; i <= 20; i++) {
             const hour = (i < 10 ? '0' + i : i) + ':00';
-            
             const row = document.createElement('div');
             row.className = 'time-slot';
             
@@ -357,7 +629,10 @@
             select.className = 'time-select';
             select.innerHTML = '<option value="">-- Wolny termin --</option>';
             
-            Object.keys(db.patients).forEach(pid => {
+            // Sortowanie pacjentów alfabetycznie w select
+            const sortedIds = Object.keys(db.patients).sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name));
+            
+            sortedIds.forEach(pid => {
                 const opt = document.createElement('option');
                 opt.value = pid;
                 opt.innerText = db.patients[pid].name;
@@ -367,6 +642,7 @@
 
             select.onchange = (e) => {
                 db.calendar[dateStr][hour] = e.target.value;
+                saveToDisk(); // Save po zmianie kalendarza
             };
 
             row.appendChild(label);
@@ -375,134 +651,33 @@
         }
     }
 
-    // --- KRYPTOGRAFIA I ZARZĄDZANIE PLIKAMI ---
-    function log(m, success) {
-        const e = document.getElementById('msg');
-        e.innerText = m; e.style.display = 'block';
-        e.style.background = success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
-        e.style.color = success ? '#059669' : '#ef4444';
-        setTimeout(() => { e.style.display = 'none'; }, 5000);
-    }
+    function switchTab(tab) {
+        document.getElementById('tabEditor').classList.remove('active');
+        document.getElementById('tabCalendar').classList.remove('active');
+        document.getElementById('viewEditor').classList.remove('active');
+        document.getElementById('viewCalendar').classList.remove('active');
 
-    async function getKey(pw, salt) {
-        const enc = new TextEncoder();
-        const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
-        return crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' },
-            bKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-        );
-    }
-
-    async function processEncryption(pw) {
-        // Konwertujemy cały obiekt DB do stringa JSON przed zaszyfrowaniem
-        const dataString = JSON.stringify(db);
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await getKey(pw, salt);
-        const cipher = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(dataString));
-        const combined = new Uint8Array(16 + 12 + cipher.byteLength);
-        combined.set(salt, 0); combined.set(iv, 16); combined.set(new Uint8Array(cipher), 28);
-        return combined;
-    }
-
-    async function processDecryption(buffer, pw) {
-        const buf = new Uint8Array(buffer);
-        const key = await getKey(pw, buf.slice(0, 16));
-        const dec = await crypto.subtle.decrypt({name: 'AES-GCM', iv: buf.slice(16, 28)}, key, buf.slice(28));
-        const decryptedStr = new TextDecoder().decode(dec);
-        
-        try {
-            // Próba interpretacji jako nowy format JSON
-            db = JSON.parse(decryptedStr);
-            if(!db.patients) db.patients = {};
-            if(!db.calendar) db.calendar = {};
-        } catch(e) {
-            // MIGRACJA STAREGO FORMATU (czysty tekst)
-            db = { patients: {}, calendar: {} };
-            if (decryptedStr.includes('# PACJENT:')) {
-                const parts = decryptedStr.split(/(?=# PACJENT:)/);
-                parts.forEach(p => {
-                    const match = p.match(/# PACJENT:\s*(.*)/);
-                    if(match) {
-                        const id = 'p_' + Math.random().toString(36).substr(2, 9);
-                        db.patients[id] = { name: match[1].trim(), notes: p.replace(match[0], '').trim(), images: [] };
-                    }
-                });
-            } else {
-                // Jeśli nie było formatowania # PACJENT:
-                const id = 'p_migracja';
-                db.patients[id] = { name: "Zaimportowane Notatki", notes: decryptedStr, images: [] };
-            }
-            alert("Pomyślnie zmigrowano dane ze starego formatu do nowego systemu bazodanowego.");
-        }
-
-        activePatientId = null;
-        document.getElementById('content').value = "";
-        document.getElementById('content').disabled = true;
-        document.getElementById('patientHeader').style.display = 'none';
-        document.getElementById('galleryContainer').style.display = 'none';
-        
-        renderPatientList();
-        renderCalendar();
-        log("Baza wczytana pomyślnie!", true);
-    }
-
-    // Zapisywanie PC (File System Access API)
-    async function openDbFile() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Najpierw wprowadź klucz szyfrujący!");
-        
-        try {
-            if (!window.showOpenFilePicker) throw new Error("API nieobsługiwane. Użyj klasycznego wczytywania poniżej.");
-            [fileHandle] = await window.showOpenFilePicker({ types: [{ accept: {'application/octet-stream': ['.enc']} }] });
-            const file = await fileHandle.getFile();
-            document.getElementById('fileStatus').innerText = "Aktywny plik: " + file.name;
-            
-            await processDecryption(await file.arrayBuffer(), pw);
-            
-            document.getElementById('btnOpenAPI').style.display = 'none';
-            document.getElementById('btnSaveAPI').style.display = 'flex';
-        } catch (e) {
-            if(e.name !== 'AbortError') log(e.message || "Błąd wczytywania", false);
+        if(tab === 'editor') {
+            document.getElementById('tabEditor').classList.add('active');
+            document.getElementById('viewEditor').classList.add('active');
+        } else {
+            document.getElementById('tabCalendar').classList.add('active');
+            document.getElementById('viewCalendar').classList.add('active');
+            renderCalendar();
         }
     }
 
-    async function saveDbFile() {
-        if (!fileHandle) return alert("Brak połączonego pliku!");
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Brak hasła!");
-        try {
-            const combined = await processEncryption(pw);
-            const writable = await fileHandle.createWritable();
-            await writable.write(combined);
-            await writable.close();
-            log("Zapisano bezpiecznie na dysku!", true);
-        } catch (e) { log("Błąd zapisu! Sprawdź uprawnienia.", false); }
+    function showStatus(elem, msg, success) {
+        elem.innerText = msg; 
+        elem.style.display = 'block';
+        elem.style.background = success ? 'var(--p-light)' : 'rgba(239, 68, 68, 0.1)';
+        elem.style.color = success ? 'var(--p)' : 'var(--danger)';
+        setTimeout(() => { elem.style.display = 'none'; }, 4000);
     }
 
-    // Telefony (Pobieranie/Wgrywanie)
-    async function encryptFallback() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Brak hasła!");
-        try {
-            const combined = await processEncryption(pw);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([combined], {type: 'application/octet-stream'}));
-            a.download = `klinika_pro_${new Date().toISOString().slice(0,10)}.enc`; 
-            a.click();
-            log("Pobrano plik z kopią bazy!", true);
-        } catch(e) { log("Błąd szyfrowania", false); }
-    }
+    // Inicjalizacja daty przy starcie
+    document.getElementById('calDate').valueAsDate = new Date();
 
-    async function decryptFallback() {
-        const pw = document.getElementById('pass').value;
-        const file = document.getElementById('fallbackFile').files[0];
-        if(!pw || !file) return alert("Podaj klucz i wybierz plik z listy!");
-        try {
-            await processDecryption(await file.arrayBuffer(), pw);
-            document.getElementById('fileStatus').innerText = "Wczytano statycznie: " + file.name;
-        } catch(e) { log("Błąd deszyfracji. Błędne hasło?", false); }
-    }
 </script>
 </body>
 </html>
