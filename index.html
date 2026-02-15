@@ -3,39 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik Pro 3.0</title>
+    <title>Terapeutnik Pro 3.1</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
     <style>
-        /* --- ZMIENNE KOLORYSTYCZNE (Dzień / Noc) --- */
-        :root {
-            --trans-speed: 0.3s;
-        }
-
-        /* Domyślny (Light Mode) - Jasny, czysty, medyczny */
+        /* --- MOTYWY (Dzień / Noc) --- */
         [data-theme="light"] {
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --sidebar-bg: #ffffff;
             --card-bg: #ffffff;
             --txt: #334155;
             --txt-head: #0f172a;
             --txt-muted: #64748b;
             --border: #e2e8f0;
-            --input-bg: #f1f5f9;
-            --p: #059669; /* Primary Green */
+            --input-bg: #f8fafc;
+            --p: #059669; 
             --p-hover: #047857;
             --p-light: #d1fae5;
             --danger: #ef4444;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
-        /* Dark Mode - Głęboki, kontrastowy */
         [data-theme="dark"] {
-            --bg: #0f172a;
-            --sidebar-bg: #1e293b;
+            --bg: #020617;
+            --sidebar-bg: #0f172a;
             --card-bg: #1e293b;
-            --txt: #e2e8f0;
+            --txt: #cbd5e1;
             --txt-head: #f8fafc;
             --txt-muted: #94a3b8;
             --border: #334155;
@@ -48,189 +42,132 @@
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg); color: var(--txt); 
             margin: 0; padding: 0; height: 100vh; overflow: hidden;
-            transition: background var(--trans-speed), color var(--trans-speed);
+            transition: background 0.3s, color 0.3s;
         }
-        
-        button { cursor: pointer; font-family: inherit; }
-        
-        /* --- LAYOUT GŁÓWNY --- */
+
+        /* --- LAYOUT --- */
         #appLayout {
-            display: none; /* Ukryte przed zalogowaniem */
-            height: 100vh;
-            width: 100vw;
-            display: flex;
+            display: none; 
+            height: 100vh; width: 100vw; display: flex;
         }
 
-        /* Sidebar (Lista pacjentów) */
         .sidebar {
-            width: 300px;
-            background: var(--sidebar-bg);
+            width: 320px; background: var(--sidebar-bg);
             border-right: 1px solid var(--border);
-            display: flex; flex-direction: column;
-            flex-shrink: 0;
-            z-index: 10;
-            transition: transform 0.3s ease;
+            display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;
         }
 
-        /* Main Content (Edytor) */
         .main-area {
-            flex-grow: 1;
-            display: flex; flex-direction: column;
-            background: var(--bg);
-            position: relative;
-            overflow: hidden;
+            flex-grow: 1; display: flex; flex-direction: column;
+            background: var(--bg); position: relative; overflow: hidden;
         }
 
         /* --- LOGOWANIE --- */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 5000;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px; box-sizing: border-box;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         .login-card {
             background: var(--card-bg); width: 100%; max-width: 380px;
-            padding: 40px; border-radius: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            text-align: center;
+            padding: 40px; border-radius: 20px; box-shadow: var(--shadow);
+            border: 1px solid var(--border); text-align: center;
         }
-        .login-logo { width: 50px; height: 50px; fill: var(--p); margin-bottom: 20px; }
-        
-        /* --- UI ELEMENTS --- */
+
+        /* --- UI --- */
         .header-bar {
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border);
+            padding: 15px 20px; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
             background: var(--sidebar-bg);
         }
-        .app-title { font-weight: 800; font-size: 18px; color: var(--p); display: flex; align-items: center; gap: 10px; }
+        .app-title { font-weight: 800; font-size: 18px; color: var(--p); display: flex; align-items: center; gap: 8px; }
 
         .btn-icon {
             background: transparent; border: none; color: var(--txt-muted);
-            padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         .btn-icon:hover { background: var(--input-bg); color: var(--p); }
-        .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
+        .btn-icon svg { width: 22px; height: 22px; fill: currentColor; }
 
         .btn-primary {
-            background: var(--p); color: white; border: none; padding: 10px 16px; border-radius: 8px;
-            font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px;
+            background: var(--p); color: white; border: none; padding: 12px 16px; border-radius: 8px;
+            font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;
         }
         .btn-primary:hover { background: var(--p-hover); }
 
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; font-size: 12px; }
-        .btn-danger:hover { background: var(--danger); color: white; }
-
-        input, select {
-            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-            background: var(--input-bg); color: var(--txt); box-sizing: border-box; margin-bottom: 10px;
-            font-size: 14px; outline: none;
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--input-bg); color: var(--txt); box-sizing: border-box;
+            font-size: 15px; outline: none; transition: border 0.2s;
         }
-        input:focus { border-color: var(--p); }
+        input:focus, textarea:focus { border-color: var(--p); }
 
         /* Lista Pacjentów */
         .scroll-area { overflow-y: auto; flex-grow: 1; padding: 10px; }
         .patient-item {
-            padding: 12px 15px; border-radius: 8px; margin-bottom: 4px;
-            cursor: pointer; font-weight: 500; font-size: 14px;
+            padding: 12px 15px; border-radius: 10px; margin-bottom: 6px;
+            cursor: pointer; font-weight: 600; font-size: 14px;
             display: flex; justify-content: space-between; align-items: center;
-            color: var(--txt); transition: 0.2s;
+            color: var(--txt); transition: 0.2s; border: 1px solid transparent;
         }
-        .patient-item:hover { background: var(--input-bg); }
+        .patient-item:hover { background: var(--input-bg); border-color: var(--border); }
         .patient-item.active { background: var(--p); color: white; }
-        .patient-item.active .patient-date { color: rgba(255,255,255,0.8); }
-        
-        .patient-date { font-size: 11px; color: var(--txt-muted); }
 
         /* Edytor */
-        .editor-wrapper { display: flex; flex-direction: column; height: 100%; }
         .editor-toolbar {
-            padding: 10px 20px; background: var(--bg); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; min-height: 60px;
         }
         #content {
             flex-grow: 1; border: none; resize: none; padding: 30px;
             font-size: 16px; line-height: 1.7; color: var(--txt);
-            background: var(--bg); outline: none; font-family: 'Georgia', serif;
+            background: var(--bg); outline: none; font-family: inherit;
+            user-select: text !important; -webkit-user-select: text !important;
         }
 
         /* Galeria */
         .gallery-bar {
-            padding: 15px 20px; background: var(--card-bg); border-top: 1px solid var(--border);
-            overflow-x: auto; white-space: nowrap; height: 100px; flex-shrink: 0; display: flex; gap: 10px; align-items: center;
+            padding: 15px 20px; background: var(--sidebar-bg); border-top: 1px solid var(--border);
+            display: flex; gap: 12px; overflow-x: auto; align-items: center;
         }
-        .thumb-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; display: inline-block;}
-        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;}
+        .thumb-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; }
+        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
         .thumb-del { 
-            position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; 
+            position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; 
             background: var(--danger); color: white; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* --- KALENDARZ --- */
-        .calendar-view { padding: 20px; overflow-y: auto; height: 100%; display: none; }
+        /* Kalendarz */
+        .calendar-view { padding: 30px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
         .calendar-view.active { display: block; }
-        .time-slot { display: flex; margin-bottom: 10px; align-items: center; }
-        .time-label { width: 60px; font-weight: bold; color: var(--txt-muted); }
+        .time-slot { display: flex; margin-bottom: 10px; align-items: center; gap: 15px; max-width: 600px; }
+        .time-label { width: 70px; font-weight: bold; color: var(--txt-muted); font-size: 14px; }
 
-        /* --- ZEN MODE (Skupienie) --- */
-        body.zen-active .sidebar { display: none; }
-        body.zen-active .editor-toolbar { display: none; }
-        body.zen-active .gallery-bar { display: none; }
-        body.zen-active #content { 
-            max-width: 800px; margin: 0 auto; 
-            font-size: 18px; padding-top: 60px; 
-        }
-        #zenExitBtn {
-            position: fixed; top: 20px; right: 20px;
-            background: var(--input-bg); border: 1px solid var(--border);
-            padding: 10px 20px; border-radius: 30px;
-            box-shadow: var(--shadow); opacity: 0.5; transition: 0.3s;
-            display: none; z-index: 1000; color: var(--txt);
-        }
-        body.zen-active #zenExitBtn { display: block; }
-        #zenExitBtn:hover { opacity: 1; }
-
-        /* --- RESPONSYWNOŚĆ (Mobile) --- */
-        .mobile-back-btn { display: none; }
+        /* --- RESPONSYWNOŚĆ --- */
+        .back-btn { display: flex; margin-right: 12px; } /* Widoczny wszędzie dla ułatwienia nawigacji */
 
         @media (max-width: 768px) {
-            .sidebar { 
-                position: absolute; width: 100%; height: 100%; 
-                transform: translateX(0); 
-            }
-            .main-area { 
-                position: absolute; width: 100%; height: 100%; 
-                transform: translateX(100%); transition: transform 0.3s ease;
-                z-index: 20;
-            }
-            
-            /* Stan: Edycja na mobilu */
-            body.mobile-editing .sidebar { transform: translateX(-20%); }
-            body.mobile-editing .main-area { transform: translateX(0); }
-            
-            .mobile-back-btn { display: flex; margin-right: 10px; }
-            #content { padding: 15px; font-size: 15px; }
-            .thumb-wrap { width: 60px; height: 60px; }
+            .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); transition: 0.3s; }
+            .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); transition: 0.3s; z-index: 20; }
+            body.view-active .sidebar { transform: translateX(-20%); }
+            body.view-active .main-area { transform: translateX(0); }
         }
 
-        /* --- MODAL IMAGE --- */
         #imgModal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 6000;
-            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center;
         }
-        #imgModal img { max-width: 95%; max-height: 95%; border-radius: 4px; }
+        #imgModal img { max-width: 90%; max-height: 90%; }
         
-        .status-msg {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: #fff; padding: 10px 20px; border-radius: 30px;
-            font-size: 13px; z-index: 7000; display: none;
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px;
+            font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -238,23 +175,23 @@
 
 <div id="loginScreen">
     <div class="login-card">
-        <svg class="login-logo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-        <h2 style="margin: 0 0 10px 0; color: var(--txt-head);">Terapeutnik Pro</h2>
-        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 25px;">Szyfrowana dokumentacja medyczna</p>
+        <svg style="width:50px; height:50px; fill:var(--p); margin-bottom:15px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik Pro</h2>
+        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Bezpieczna Dokumentacja Pacjentów</p>
         
         <div style="text-align: left;">
-            <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">UŻYTKOWNIK</label>
-            <input type="text" id="loginUser" placeholder="Login" autocomplete="username">
+            <label style="font-size:11px; font-weight:800; color:var(--txt-muted); text-transform:uppercase;">Użytkownik</label>
+            <input type="text" id="loginUser" placeholder="Wpisz nazwę..." style="margin-bottom:15px;">
             
-            <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">HASŁO KLUCZ</label>
-            <input type="password" id="loginPass" placeholder="Hasło szyfrujące" autocomplete="current-password">
+            <label style="font-size:11px; font-weight:800; color:var(--txt-muted); text-transform:uppercase;">Hasło / Klucz Szyfrujący</label>
+            <input type="password" id="loginPass" placeholder="Wpisz hasło...">
         </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 20px; flex-direction: column;">
-            <button class="btn-primary" style="justify-content: center; width:100%;" onclick="handleLogin('open')">📂 Otwórz Bazę</button>
-            <button class="btn-icon" style="width:100%; border:1px solid var(--border); color:var(--txt);" onclick="handleLogin('create')">✨ Utwórz Nową Bazę</button>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+            <button class="btn-primary" style="justify-content: center;" onclick="handleLogin('open')">Otwórz istniejącą bazę</button>
+            <button class="btn-icon" style="border: 1px solid var(--border); color: var(--txt);" onclick="handleLogin('create')">Utwórz nową bazę</button>
         </div>
-        <div id="loginMsg" style="margin-top:15px; font-size:12px; color:var(--danger);"></div>
+        <div id="loginError" style="color:var(--danger); font-size:12px; margin-top:15px;"></div>
     </div>
 </div>
 
@@ -263,466 +200,353 @@
     <div class="sidebar">
         <div class="header-bar">
             <div class="app-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--p)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 Pacjenci
             </div>
             <button class="btn-icon" onclick="toggleTheme()" title="Zmień motyw">
-                <svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6 6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M20 15.31L23.31 12 20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
             </button>
         </div>
         
-        <div style="padding: 10px;">
-            <button class="btn-primary" style="width:100%" onclick="addPatient()">+ Nowy Pacjent</button>
+        <div style="padding: 15px;">
+            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="addPatient()">+ Dodaj Pacjenta</button>
         </div>
 
-        <div class="scroll-area" id="patientList">
-            </div>
+        <div class="scroll-area" id="patientList"></div>
 
-        <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--bg);">
-            <div style="font-size: 12px; color: var(--txt-muted); margin-bottom: 5px;">Zalogowano: <b id="userDisplay"></b></div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn-icon" style="flex:1; font-size:12px; border:1px solid var(--border);" onclick="saveToDisk()">💾 Zapisz</button>
-                <button class="btn-icon" style="flex:1; font-size:12px; border:1px solid var(--border);" onclick="switchTab('calendar')">📅 Kalendarz</button>
+        <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--input-bg);">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 12px; font-weight: bold;" id="userDisplay">...</span>
+                <button class="btn-icon" style="padding:5px; font-size:11px;" onclick="location.reload()">Wyloguj</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border); font-size:12px;" onclick="saveToDisk()">💾 ZAPISZ</button>
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border); font-size:12px;" onclick="switchTab('calendar')">📅 KALENDARZ</button>
             </div>
         </div>
     </div>
 
     <div class="main-area">
         
-        <div id="viewEditor" class="editor-wrapper">
+        <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
             <div class="editor-toolbar">
-                <div style="display:flex; align-items: center;">
-                    <button class="btn-icon mobile-back-btn" onclick="exitMobileEdit()">
+                <div style="display:flex; align-items:center;">
+                    <button class="btn-icon back-btn" onclick="exitView()" title="Wróć do listy">
                         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                     </button>
-                    <div style="font-weight:bold; font-size:16px;" id="currentPatientName">Wybierz pacjenta</div>
+                    <div style="font-weight:800; font-size:18px; color:var(--txt-head);" id="activePatientName">Wybierz pacjenta</div>
                 </div>
                 
-                <div style="display:flex; gap: 5px;">
-                    <button class="btn-icon" onclick="toggleZen()" title="Tryb Skupienia" id="btnZen">
-                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                    </button>
-                    <button class="btn-icon" onclick="addVisit()" title="Dodaj wizytę">
+                <div style="display:flex; gap: 8px;">
+                    <button class="btn-icon" onclick="addVisitTemplate()" title="Dodaj notatkę wizyty">
                         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                     </button>
-                    <button class="btn-danger" onclick="deleteCurrentPatient()" title="Usuń pacjenta">Usuń</button>
+                    <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()" title="Usuń pacjenta">
+                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
                 </div>
             </div>
 
-            <textarea id="content" placeholder="Wybierz pacjenta i zacznij pisać..." disabled oninput="saveCurrentNote()"></textarea>
+            <textarea id="content" placeholder="Tutaj wpisz swoje notatki..." disabled oninput="updateNotes()"></textarea>
 
             <div class="gallery-bar" id="galleryContainer" style="display:none;">
-                <div class="thumb-wrap" style="display:flex; align-items:center; justify-content:center; background:var(--input-bg); border-radius:6px; cursor:pointer; border:1px dashed var(--border);" onclick="document.getElementById('imgUploader').click()">
+                <div class="thumb-wrap" style="display:flex; align-items:center; justify-content:center; background:var(--input-bg); border:2px dashed var(--border); border-radius:8px; cursor:pointer;" onclick="document.getElementById('imgInp').click()">
                     <span style="font-size:24px; color:var(--txt-muted);">+</span>
                 </div>
-                <input type="file" id="imgUploader" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+                <input type="file" id="imgInp" accept="image/*" style="display:none;" onchange="uploadImg(event)">
                 <div id="galleryList" style="display:contents;"></div>
             </div>
         </div>
 
         <div id="viewCalendar" class="calendar-view">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                <button class="btn-icon mobile-back-btn" onclick="switchTab('editor')">
+            <div style="display:flex; align-items:center; gap:15px; margin-bottom:25px;">
+                <button class="btn-icon back-btn" onclick="switchTab('editor')">
                     <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 </button>
-                <h2>Kalendarz</h2>
+                <h2 style="margin:0;">Terminarz wizyt</h2>
             </div>
-            <input type="date" id="calDate" onchange="renderCalendar()" style="max-width:300px;">
-            <div id="timeSlots" style="margin-top:20px;"></div>
+            <div style="max-width:300px; margin-bottom:30px;">
+                <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">WYBIERZ DATĘ:</label>
+                <input type="date" id="calDate" onchange="renderCalendar()">
+            </div>
+            <div id="timeSlots"></div>
         </div>
-
-        <button id="zenExitBtn" onclick="toggleZen()">Zakończ tryb skupienia</button>
     </div>
 </div>
 
-<div id="imgModal" onclick="this.style.display='none'">
-    <img id="imgModalSrc" src="">
-</div>
-
-<div id="toast" class="status-msg"></div>
+<div id="imgModal" onclick="this.style.display='none'"><img id="imgFull" src=""></div>
+<div id="toast" class="toast"></div>
 
 <script>
-    // --- KONFIGURACJA I ZMIENNE ---
-    const ITER = 100000;
+    // --- KONFIGURACJA SZYFROWANIA ---
+    const PBKDF2_ITER = 100000;
     let db = { patients: {}, calendar: {} };
-    let activePatientId = null;
+    let activeId = null;
     let fileHandle = null;
-    let currentUser = "";
-    let currentPass = "";
+    let authUser = "";
+    let authPass = "";
 
-    // --- INITIALIZATION ---
     window.onload = () => {
-        // Przywróć motyw
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.setAttribute('data-theme', savedTheme);
+        const theme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', theme);
         document.getElementById('calDate').valueAsDate = new Date();
     };
 
-    // --- UI LOGIC ---
     function toggleTheme() {
-        const body = document.body;
-        const current = body.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        body.setAttribute('data-theme', next);
+        const current = document.body.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next);
         localStorage.setItem('theme', next);
     }
 
-    function toggleZen() {
-        document.body.classList.toggle('zen-active');
-        if(document.body.classList.contains('zen-active')) {
-            document.getElementById('content').focus();
-        }
-    }
-
-    function switchTab(tab) {
-        const editor = document.getElementById('viewEditor');
-        const calendar = document.getElementById('viewCalendar');
-        
-        if (tab === 'calendar') {
-            editor.style.display = 'none';
-            calendar.classList.add('active');
-            renderCalendar();
-            // Mobile switch
-            document.body.classList.add('mobile-editing');
-        } else {
-            calendar.classList.remove('active');
-            editor.style.display = 'flex';
-            // Mobile behavior: if patient selected, stay in edit, else list
-            if(!activePatientId) document.body.classList.remove('mobile-editing');
-        }
-    }
-
-    function exitMobileEdit() {
-        document.body.classList.remove('mobile-editing');
-        // Jeśli był kalendarz, wróć do edytora
-        document.getElementById('viewCalendar').classList.remove('active');
-        document.getElementById('viewEditor').style.display = 'flex';
-    }
-
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 3000);
+    function showToast(m) {
+        const t = document.getElementById('toast'); t.innerText = m;
+        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
     }
 
     // --- LOGOWANIE I PLIKI ---
     async function handleLogin(mode) {
-        const user = document.getElementById('loginUser').value.trim();
-        const pass = document.getElementById('loginPass').value;
-        const msg = document.getElementById('loginMsg');
+        const u = document.getElementById('loginUser').value.trim();
+        const p = document.getElementById('loginPass').value;
+        if(!u || !p) return document.getElementById('loginError').innerText = "Wypełnij oba pola.";
         
-        if (!user || !pass) {
-            msg.innerText = "Podaj login i hasło.";
-            return;
-        }
-        
-        currentUser = user;
-        currentPass = pass;
+        authUser = u; authPass = p;
 
         try {
-            if (mode === 'create') {
+            if(mode === 'create') {
                 db = { patients: {}, calendar: {} };
-                if (window.showSaveFilePicker) {
+                if(window.showSaveFilePicker) {
                     fileHandle = await window.showSaveFilePicker({
-                        suggestedName: `${user}_baza.json`,
+                        suggestedName: `${u}.json`,
                         types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
                     });
-                    await saveToDisk();
-                    startApp();
-                } else {
-                    saveToDisk(); // Fallback download
-                    startApp();
                 }
+                await saveToDisk();
+                enterApp();
             } else {
-                let textData;
-                if (window.showOpenFilePicker) {
+                let text;
+                if(window.showOpenFilePicker) {
                     [fileHandle] = await window.showOpenFilePicker({
                         types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
                     });
                     const file = await fileHandle.getFile();
-                    textData = await file.text();
+                    text = await file.text();
                 } else {
-                    // Fallback input
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.json';
+                    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
                     input.onchange = async e => {
                         const f = e.target.files[0];
                         if(f) {
-                            textData = await f.text();
-                            await processDecryption(textData, msg);
+                            const raw = await f.text();
+                            await decryptAndLoad(raw);
                         }
                     };
-                    input.click();
-                    return;
+                    input.click(); return;
                 }
-                if(textData) await processDecryption(textData, msg);
+                if(text) await decryptAndLoad(text);
             }
-        } catch (e) {
-            if(e.name !== 'AbortError') msg.innerText = "Błąd: " + e.message;
-        }
+        } catch(e) { if(e.name !== 'AbortError') alert(e.message); }
     }
 
-    async function processDecryption(text, msgElem) {
+    async function decryptAndLoad(raw) {
         try {
-            const encObj = JSON.parse(text);
-            const decrypted = await decryptData(encObj, currentPass);
+            const wrapper = JSON.parse(raw);
+            const decrypted = await decryptData(wrapper, authPass);
             db = JSON.parse(decrypted);
-            if(!db.patients) db.patients = {};
-            if(!db.calendar) db.calendar = {};
-            startApp();
-        } catch(e) {
-            msgElem.innerText = "Błędne hasło lub uszkodzony plik.";
-            console.error(e);
-        }
+            enterApp();
+        } catch(e) { document.getElementById('loginError').innerText = "Błędne hasło lub plik."; }
     }
 
-    function startApp() {
+    function enterApp() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appLayout').style.display = 'flex';
-        document.getElementById('userDisplay').innerText = currentUser;
-        renderPatientList();
+        document.getElementById('userDisplay').innerText = "Użytkownik: " + authUser;
+        renderList();
     }
 
-    // --- KRYPTOGRAFIA (AES-GCM) ---
-    function buffToBase64(buff) {
-        return btoa(String.fromCharCode.apply(null, new Uint8Array(buff)));
-    }
-    function base64ToBuff(b64) {
-        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    }
+    // --- KRYPTOGRAFIA ---
+    function b64ToBuf(b) { return Uint8Array.from(atob(b), c => c.charCodeAt(0)); }
+    function bufToB64(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
 
-    async function getKey(pw, salt) {
+    async function deriveKey(pw, salt) {
         const enc = new TextEncoder();
-        const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+        const keyMat = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
         return crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' },
-            bKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+            { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITER, hash: 'SHA-256' },
+            keyMat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
         );
     }
 
-    async function encryptData(dataStr, pw) {
+    async function encryptData(str, pw) {
         const salt = crypto.getRandomValues(new Uint8Array(16));
         const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await getKey(pw, salt);
-        const encoded = new TextEncoder().encode(dataStr);
-        const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv: iv}, key, encoded);
-        return {
-            salt: buffToBase64(salt),
-            iv: buffToBase64(iv),
-            data: buffToBase64(ciphertext),
-            username: currentUser
-        };
+        const key = await deriveKey(pw, salt);
+        const encoded = new TextEncoder().encode(str);
+        const encrypted = await crypto.subtle.encrypt({name:'AES-GCM', iv: iv}, key, encoded);
+        return { salt: bufToB64(salt), iv: bufToB64(iv), data: bufToB64(encrypted), user: authUser };
     }
 
-    async function decryptData(wrapper, pw) {
-        const salt = base64ToBuff(wrapper.salt);
-        const iv = base64ToBuff(wrapper.iv);
-        const data = base64ToBuff(wrapper.data);
-        const key = await getKey(pw, salt);
-        const decrypted = await crypto.subtle.decrypt({name: 'AES-GCM', iv: iv}, key, data);
-        return new TextDecoder().decode(decrypted);
+    async function decryptData(w, pw) {
+        const salt = b64ToBuf(w.salt);
+        const iv = b64ToBuf(w.iv);
+        const data = b64ToBuf(w.data);
+        const key = await deriveKey(pw, salt);
+        const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv: iv}, key, data);
+        return new TextDecoder().decode(dec);
     }
 
     async function saveToDisk() {
         try {
-            const jsonStr = JSON.stringify(db);
-            const encrypted = await encryptData(jsonStr, currentPass);
-            const finalStr = JSON.stringify(encrypted, null, 2);
-
-            if (fileHandle) {
+            const encrypted = await encryptData(JSON.stringify(db), authPass);
+            const blob = new Blob([JSON.stringify(encrypted, null, 2)], {type:'application/json'});
+            if(fileHandle) {
                 const w = await fileHandle.createWritable();
-                await w.write(finalStr);
-                await w.close();
-                showToast("Zapisano (File System API)");
+                await w.write(blob); await w.close();
+                showToast("Zapisano zmiany.");
             } else {
-                const b = new Blob([finalStr], {type: "application/json"});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(b);
-                a.download = `${currentUser}_backup.json`;
-                a.click();
-                showToast("Pobrano plik");
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `${authUser}_baza.json`; a.click();
+                showToast("Pobrano plik bazy.");
             }
-        } catch (e) {
-            showToast("Błąd zapisu: " + e.message);
-        }
+        } catch(e) { alert("Błąd zapisu: " + e.message); }
     }
 
-    // --- PACJENCI ---
+    // --- LOGIKA PACJENTÓW ---
     function addPatient() {
-        const name = prompt("Podaj imię/inicjały pacjenta:");
-        if (name) {
-            const id = 'p_' + Date.now();
-            db.patients[id] = { name: name, notes: "", images: [] };
+        const n = prompt("Nazwisko i Imię (lub Inicjały):");
+        if(n) {
+            const id = 'p' + Date.now();
+            db.patients[id] = { name: n, notes: "", images: [] };
+            renderList();
             selectPatient(id);
-            renderPatientList();
+        }
+    }
+
+    function deletePatient() {
+        if(!activeId) return;
+        if(confirm(`Usunąć trwale pacjenta: ${db.patients[activeId].name}?`)) {
+            delete db.patients[activeId];
+            for(let d in db.calendar) { for(let h in db.calendar[d]) if(db.calendar[d][h] === activeId) delete db.calendar[d][h]; }
+            activeId = null;
+            exitView();
+            renderList();
             saveToDisk();
         }
     }
 
-    function deleteCurrentPatient() {
-        if (!activePatientId) return;
-        if (confirm(`Usunąć trwale pacjenta ${db.patients[activePatientId].name}?`)) {
-            // Czyść kalendarz
-            for(let d in db.calendar) {
-                for(let h in db.calendar[d]) {
-                    if(db.calendar[d][h] === activePatientId) delete db.calendar[d][h];
-                }
-            }
-            delete db.patients[activePatientId];
-            activePatientId = null;
-            
-            document.getElementById('content').value = "";
-            document.getElementById('content').disabled = true;
-            document.getElementById('currentPatientName').innerText = "Wybierz pacjenta";
-            document.getElementById('galleryContainer').style.display = "none";
-            
-            renderPatientList();
-            exitMobileEdit();
-            saveToDisk();
-        }
-    }
-
-    function renderPatientList() {
-        const list = document.getElementById('patientList');
-        list.innerHTML = "";
-        
+    function renderList() {
+        const container = document.getElementById('patientList');
+        container.innerHTML = "";
         Object.keys(db.patients).sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name))
         .forEach(id => {
-            const p = db.patients[id];
             const div = document.createElement('div');
-            div.className = `patient-item ${id === activePatientId ? 'active' : ''}`;
-            div.innerHTML = `<span>${p.name}</span> <span class="patient-date">ID: ${id.slice(-4)}</span>`;
+            div.className = `patient-item ${id === activeId ? 'active' : ''}`;
+            div.innerText = db.patients[id].name;
             div.onclick = () => selectPatient(id);
-            list.appendChild(div);
+            container.appendChild(div);
         });
     }
 
     function selectPatient(id) {
-        activePatientId = id;
+        activeId = id;
         const p = db.patients[id];
-        
-        document.getElementById('currentPatientName').innerText = p.name;
+        document.getElementById('activePatientName').innerText = p.name;
         document.getElementById('content').value = p.notes;
         document.getElementById('content').disabled = false;
         document.getElementById('galleryContainer').style.display = "flex";
-        
-        // Mobile Transition
-        document.body.classList.add('mobile-editing');
-        
-        renderPatientList();
+        document.body.classList.add('view-active');
+        renderList();
         renderGallery();
     }
 
-    function saveCurrentNote() {
-        if(activePatientId) {
-            db.patients[activePatientId].notes = document.getElementById('content').value;
-        }
-    }
+    function updateNotes() { if(activeId) db.patients[activeId].notes = document.getElementById('content').value; }
 
-    function addVisit() {
-        if(!activePatientId) return;
-        const now = new Date().toLocaleString('pl-PL');
-        const tmpl = `\n\n--- 📅 WIZYTA: ${now} ---\n\n> Obserwacje:\n\n> Interwencje:\n\n`;
+    function addVisitTemplate() {
+        if(!activeId) return;
         const ta = document.getElementById('content');
-        ta.value += tmpl;
+        const header = `\n\n--- SESJA: ${new Date().toLocaleString('pl-PL')} ---\n\n> TEMAT:\n\n> NOTATKI:\n\n`;
+        ta.value += header;
+        updateNotes();
         ta.focus();
         ta.scrollTop = ta.scrollHeight;
-        saveCurrentNote();
+    }
+
+    function exitView() {
+        document.body.classList.remove('view-active');
+        activeId = null;
+        document.getElementById('content').disabled = true;
+        document.getElementById('content').value = "";
+        document.getElementById('activePatientName').innerText = "Wybierz pacjenta";
+        document.getElementById('galleryContainer').style.display = "none";
+        document.getElementById('viewCalendar').classList.remove('active');
+        document.getElementById('viewEditor').style.display = "flex";
+        renderList();
     }
 
     // --- ZDJĘCIA ---
-    function handleImageUpload(e) {
-        if(!activePatientId || !e.target.files[0]) return;
-        const file = e.target.files[0];
+    function uploadImg(e) {
+        if(!activeId || !e.target.files[0]) return;
         const reader = new FileReader();
-        reader.onload = (evt) => {
-            // Kompresja
+        reader.onload = evt => {
             const img = new Image();
             img.onload = () => {
-                const c = document.createElement('canvas');
-                const max = 900;
-                let s = 1;
+                const canvas = document.createElement('canvas');
+                const max = 1000; let s = 1;
                 if(img.width > max) s = max/img.width;
-                c.width = img.width * s; c.height = img.height * s;
-                c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-                
-                db.patients[activePatientId].images.push(c.toDataURL('image/jpeg', 0.7));
+                canvas.width = img.width*s; canvas.height = img.height*s;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                db.patients[activeId].images.push(canvas.toDataURL('image/jpeg', 0.7));
                 renderGallery();
                 saveToDisk();
-                document.getElementById('imgUploader').value = '';
-            }
+            };
             img.src = evt.target.result;
-        }
-        reader.readAsDataURL(file);
+        };
+        reader.readAsDataURL(e.target.files[0]);
     }
 
     function renderGallery() {
         const list = document.getElementById('galleryList');
         list.innerHTML = "";
-        if(!activePatientId) return;
-        
-        (db.patients[activePatientId].images || []).forEach((src, idx) => {
-            const w = document.createElement('div');
-            w.className = 'thumb-wrap';
-            
-            const img = document.createElement('img');
-            img.className = 'thumb';
-            img.src = src;
-            img.onclick = () => {
-                document.getElementById('imgModalSrc').src = src;
-                document.getElementById('imgModal').style.display = 'flex';
-            };
-
-            const del = document.createElement('div');
-            del.className = 'thumb-del';
-            del.innerText = '×';
-            del.onclick = (e) => {
-                e.stopPropagation();
-                if(confirm("Usunąć zdjęcie?")) {
-                    db.patients[activePatientId].images.splice(idx, 1);
-                    renderGallery();
-                    saveToDisk();
-                }
-            };
-            
-            w.append(img, del);
-            list.appendChild(w);
+        if(!activeId) return;
+        db.patients[activeId].images.forEach((src, i) => {
+            const wrap = document.createElement('div'); wrap.className = 'thumb-wrap';
+            const img = document.createElement('img'); img.className = 'thumb'; img.src = src;
+            img.onclick = () => { document.getElementById('imgFull').src = src; document.getElementById('imgModal').style.display = 'flex'; };
+            const del = document.createElement('div'); del.className = 'thumb-del'; del.innerText = '×';
+            del.onclick = (e) => { e.stopPropagation(); if(confirm("Usunąć obraz?")) { db.patients[activeId].images.splice(i, 1); renderGallery(); saveToDisk(); }};
+            wrap.append(img, del); list.appendChild(wrap);
         });
     }
 
     // --- KALENDARZ ---
+    function switchTab(t) {
+        if(t === 'calendar') {
+            document.getElementById('viewEditor').style.display = 'none';
+            document.getElementById('viewCalendar').classList.add('active');
+            document.body.classList.add('view-active');
+            renderCalendar();
+        } else {
+            document.getElementById('viewCalendar').classList.remove('active');
+            document.getElementById('viewEditor').style.display = 'flex';
+            if(!activeId) document.body.classList.remove('view-active');
+        }
+    }
+
     function renderCalendar() {
         const date = document.getElementById('calDate').value;
         const con = document.getElementById('timeSlots');
         con.innerHTML = "";
-        
         if(!db.calendar[date]) db.calendar[date] = {};
-        
         for(let h=8; h<=20; h++) {
-            const time = (h<10?'0'+h:h) + ":00";
-            const row = document.createElement('div');
-            row.className = 'time-slot';
-            
-            const sel = document.createElement('select');
-            sel.innerHTML = `<option value="">--</option>`;
-            
+            const t = (h<10?'0'+h:h)+":00";
+            const row = document.createElement('div'); row.className = 'time-slot';
+            const sel = document.createElement('select'); sel.innerHTML = `<option value="">-- WOLNE --</option>`;
             Object.keys(db.patients).forEach(pid => {
-                const opt = document.createElement('option');
-                opt.value = pid;
-                opt.innerText = db.patients[pid].name;
-                if(db.calendar[date][time] === pid) opt.selected = true;
-                sel.appendChild(opt);
+                const o = document.createElement('option'); o.value = pid; o.innerText = db.patients[pid].name;
+                if(db.calendar[date][t] === pid) o.selected = true;
+                sel.appendChild(o);
             });
-            
-            sel.onchange = (e) => {
-                db.calendar[date][time] = e.target.value;
-                saveToDisk();
-            };
-
-            row.innerHTML = `<div class="time-label">${time}</div>`;
-            row.appendChild(sel);
+            sel.onchange = e => { db.calendar[date][t] = e.target.value; saveToDisk(); };
+            row.innerHTML = `<div class="time-label">${t}</div>`; row.appendChild(sel);
             con.appendChild(row);
         }
     }
