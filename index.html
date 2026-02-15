@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik Pro 3.1</title>
+    <title>Terapeutnik</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
@@ -463,7 +463,7 @@
     function addVisitTemplate() {
         if(!activeId) return;
         const ta = document.getElementById('content');
-        const header = `\n\n--- SESJA: ${new Date().toLocaleString('pl-PL')} ---\n\n> TEMAT:\n\n> NOTATKI:\n\n`;
+        const header = `\n\n--- SESJA: ${new Date().toLocaleString('pl-PL')} ---\n> stan psychiczny:\n> podjęte działania:\n`;
         ta.value += header;
         updateNotes();
         ta.focus();
