@@ -3,561 +3,729 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeuta PRO - E2EE JSON</title>
+    <title>Terapeutnik Pro 3.0</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
+
     <style>
-        /* Zmienne CSS dla trybu Jasnego (Domyślnego) */
-        :root { 
-            --p: #059669; 
-            --p-hover: #047857;
-            --p-light: rgba(5, 150, 105, 0.1);
-            --bg: #f8fafc; 
-            --card: #ffffff; 
-            --txt: #1e293b; 
-            --border: #e2e8f0; 
-            --danger: #ef4444;
-            --input-bg: #ffffff;
-            --muted: #64748b;
+        /* --- ZMIENNE KOLORYSTYCZNE (Dzień / Noc) --- */
+        :root {
+            --trans-speed: 0.3s;
         }
 
-        /* Zmienne CSS dla trybu Ciemnego */
+        /* Domyślny (Light Mode) - Jasny, czysty, medyczny */
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --txt: #334155;
+            --txt-head: #0f172a;
+            --txt-muted: #64748b;
+            --border: #e2e8f0;
+            --input-bg: #f1f5f9;
+            --p: #059669; /* Primary Green */
+            --p-hover: #047857;
+            --p-light: #d1fae5;
+            --danger: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        /* Dark Mode - Głęboki, kontrastowy */
         [data-theme="dark"] {
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --card-bg: #1e293b;
+            --txt: #e2e8f0;
+            --txt-head: #f8fafc;
+            --txt-muted: #94a3b8;
+            --border: #334155;
+            --input-bg: #020617;
             --p: #10b981;
             --p-hover: #059669;
             --p-light: rgba(16, 185, 129, 0.15);
-            --bg: #0f172a; 
-            --card: #1e293b; 
-            --txt: #f8fafc; 
-            --border: #334155; 
-            --input-bg: #0f172a;
-            --muted: #94a3b8;
+            --danger: #f87171;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
         }
 
         body { 
-            font-family: system-ui, -apple-system, sans-serif; 
-            background: var(--bg); 
-            color: var(--txt); 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: center; 
-            transition: background-color 0.3s, color 0.3s;
-            box-sizing: border-box;
-            min-height: 100vh;
-        }
-
-        .container { 
-            display: flex; 
-            gap: 20px; 
-            width: 100%; 
-            max-width: 1400px; 
-            height: calc(100vh - 40px); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--txt); 
+            margin: 0; padding: 0; height: 100vh; overflow: hidden;
+            transition: background var(--trans-speed), color var(--trans-speed);
         }
         
-        /* Pasek boczny */
-        .sidebar { 
-            width: 320px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            flex-shrink: 0;
-        }
-
-        .card { 
-            background: var(--card); 
-            padding: 15px; 
-            border-radius: 12px; 
-            border: 1px solid var(--border); 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
-            transition: background-color 0.3s, border-color 0.3s;
-        }
+        button { cursor: pointer; font-family: inherit; }
         
-        /* Widok główny */
-        .main { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            background: var(--card); 
-            border-radius: 12px; 
-            border: 1px solid var(--border); 
-            overflow: hidden; 
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        
-        .nav { display: flex; border-bottom: 1px solid var(--border); background: var(--card); }
-        .nav-btn { 
-            flex: 1; 
-            padding: 15px; 
-            border: none; 
-            background: none; 
-            cursor: pointer; 
-            color: var(--muted); 
-            font-weight: 600; 
-            border-bottom: 3px solid transparent;
-            border-radius: 0;
-            margin-bottom: 0;
-            transition: color 0.2s, border-color 0.2s;
-        }
-        .nav-btn.active { color: var(--p); border-bottom-color: var(--p); }
-
-        /* Elementy formularza */
-        input, textarea, select, button { 
-            width: 100%; 
-            padding: 12px; 
-            margin-bottom: 10px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border); 
-            background: var(--input-bg); 
-            color: var(--txt); 
-            box-sizing: border-box; 
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--p); }
-        
-        button { 
-            background: var(--p); 
-            color: white; 
-            border: none; 
-            font-weight: bold; 
-            cursor: pointer; 
+        /* --- LAYOUT GŁÓWNY --- */
+        #appLayout {
+            display: none; /* Ukryte przed zalogowaniem */
+            height: 100vh;
+            width: 100vw;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
-        button:hover { background: var(--p-hover); }
-        button.sec { background: transparent; color: var(--txt); border: 1px solid var(--border); }
-        button.sec:hover { background: var(--bg); }
-        
-        /* Lista pacjentów */
-        .patient-list { overflow-y: auto; flex: 1; margin-top: 10px; }
-        .patient-item { 
-            padding: 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            margin-bottom: 5px; 
-            border-left: 4px solid transparent; 
-            font-weight: 500;
-            transition: background-color 0.2s;
+
+        /* Sidebar (Lista pacjentów) */
+        .sidebar {
+            width: 300px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            flex-shrink: 0;
+            z-index: 10;
+            transition: transform 0.3s ease;
         }
-        .patient-item:hover { background: var(--bg); }
-        .patient-item.active { background: var(--p-light); border-left-color: var(--p); color: var(--p); }
 
-        /* Panele edytora i kalendarza */
-        #editor, #calendar { display: none; flex-direction: column; flex: 1; padding: 20px; overflow-y: auto; }
-        #editor.active, #calendar.active { display: flex; }
-        
-        .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .editor-header h2 { margin: 0; font-size: 20px; }
-
-        textarea { 
-            flex: 1; 
-            min-height: 300px; 
-            font-family: monospace; 
-            font-size: 15px; 
-            resize: none; 
-            line-height: 1.6;
+        /* Main Content (Edytor) */
+        .main-area {
+            flex-grow: 1;
+            display: flex; flex-direction: column;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
         }
-        
-        /* Zdjęcia */
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
-        .gallery img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); transition: opacity 0.2s; }
-        .gallery img:hover { opacity: 0.8; }
 
-        /* Kalendarz */
-        .time-row { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
-        .time-row span { width: 50px; font-weight: bold; font-size: 14px; text-align: right; color: var(--muted); }
-        .time-row select { margin-bottom: 0; flex: 1; }
-
-        /* --- TRYB SKUPIENIA (ZEN MODE) --- */
-        .zen-close-btn { display: none; position: fixed; top: 15px; right: 20px; z-index: 10001; width: auto; background: var(--danger); padding: 10px 20px; }
-        
-        body.zen-mode { padding: 0; }
-        body.zen-mode .sidebar { display: none !important; }
-        body.zen-mode .nav { display: none !important; }
-        body.zen-mode .editor-header { display: none !important; }
-        body.zen-mode #photoSection { display: none !important; }
-        body.zen-mode .main { border: none; border-radius: 0; height: 100vh; }
-        body.zen-mode #editor { padding: 0; }
-        body.zen-mode textarea { 
-            height: 100vh; 
-            border-radius: 0; 
-            border: none; 
-            padding: 40px 15%; 
-            font-size: 18px; 
-            margin: 0;
+        /* --- LOGOWANIE --- */
+        #loginScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 5000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box;
         }
-        body.zen-mode .zen-close-btn { display: block; }
+        .login-card {
+            background: var(--card-bg); width: 100%; max-width: 380px;
+            padding: 40px; border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .login-logo { width: 50px; height: 50px; fill: var(--p); margin-bottom: 20px; }
+        
+        /* --- UI ELEMENTS --- */
+        .header-bar {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--sidebar-bg);
+        }
+        .app-title { font-weight: 800; font-size: 18px; color: var(--p); display: flex; align-items: center; gap: 10px; }
 
-        /* --- WSPARCIE MOBILNE (RWD) --- */
-        @media (max-width: 900px) {
-            body { padding: 10px; }
-            .container { flex-direction: column; height: auto; display: block; }
-            .sidebar { width: 100%; margin-bottom: 20px; }
-            .main { min-height: 70vh; }
-            .patient-list { max-height: 250px; border: 1px solid var(--border); border-radius: 8px; }
-            body.zen-mode textarea { padding: 20px; }
+        .btn-icon {
+            background: transparent; border: none; color: var(--txt-muted);
+            padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-icon:hover { background: var(--input-bg); color: var(--p); }
+        .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .btn-primary {
+            background: var(--p); color: white; border: none; padding: 10px 16px; border-radius: 8px;
+            font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px;
+        }
+        .btn-primary:hover { background: var(--p-hover); }
+
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+        input, select {
+            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--input-bg); color: var(--txt); box-sizing: border-box; margin-bottom: 10px;
+            font-size: 14px; outline: none;
+        }
+        input:focus { border-color: var(--p); }
+
+        /* Lista Pacjentów */
+        .scroll-area { overflow-y: auto; flex-grow: 1; padding: 10px; }
+        .patient-item {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 4px;
+            cursor: pointer; font-weight: 500; font-size: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: var(--txt); transition: 0.2s;
+        }
+        .patient-item:hover { background: var(--input-bg); }
+        .patient-item.active { background: var(--p); color: white; }
+        .patient-item.active .patient-date { color: rgba(255,255,255,0.8); }
+        
+        .patient-date { font-size: 11px; color: var(--txt-muted); }
+
+        /* Edytor */
+        .editor-wrapper { display: flex; flex-direction: column; height: 100%; }
+        .editor-toolbar {
+            padding: 10px 20px; background: var(--bg); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #content {
+            flex-grow: 1; border: none; resize: none; padding: 30px;
+            font-size: 16px; line-height: 1.7; color: var(--txt);
+            background: var(--bg); outline: none; font-family: 'Georgia', serif;
+        }
+
+        /* Galeria */
+        .gallery-bar {
+            padding: 15px 20px; background: var(--card-bg); border-top: 1px solid var(--border);
+            overflow-x: auto; white-space: nowrap; height: 100px; flex-shrink: 0; display: flex; gap: 10px; align-items: center;
+        }
+        .thumb-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; display: inline-block;}
+        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;}
+        .thumb-del { 
+            position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; 
+            background: var(--danger); color: white; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* --- KALENDARZ --- */
+        .calendar-view { padding: 20px; overflow-y: auto; height: 100%; display: none; }
+        .calendar-view.active { display: block; }
+        .time-slot { display: flex; margin-bottom: 10px; align-items: center; }
+        .time-label { width: 60px; font-weight: bold; color: var(--txt-muted); }
+
+        /* --- ZEN MODE (Skupienie) --- */
+        body.zen-active .sidebar { display: none; }
+        body.zen-active .editor-toolbar { display: none; }
+        body.zen-active .gallery-bar { display: none; }
+        body.zen-active #content { 
+            max-width: 800px; margin: 0 auto; 
+            font-size: 18px; padding-top: 60px; 
+        }
+        #zenExitBtn {
+            position: fixed; top: 20px; right: 20px;
+            background: var(--input-bg); border: 1px solid var(--border);
+            padding: 10px 20px; border-radius: 30px;
+            box-shadow: var(--shadow); opacity: 0.5; transition: 0.3s;
+            display: none; z-index: 1000; color: var(--txt);
+        }
+        body.zen-active #zenExitBtn { display: block; }
+        #zenExitBtn:hover { opacity: 1; }
+
+        /* --- RESPONSYWNOŚĆ (Mobile) --- */
+        .mobile-back-btn { display: none; }
+
+        @media (max-width: 768px) {
+            .sidebar { 
+                position: absolute; width: 100%; height: 100%; 
+                transform: translateX(0); 
+            }
+            .main-area { 
+                position: absolute; width: 100%; height: 100%; 
+                transform: translateX(100%); transition: transform 0.3s ease;
+                z-index: 20;
+            }
+            
+            /* Stan: Edycja na mobilu */
+            body.mobile-editing .sidebar { transform: translateX(-20%); }
+            body.mobile-editing .main-area { transform: translateX(0); }
+            
+            .mobile-back-btn { display: flex; margin-right: 10px; }
+            #content { padding: 15px; font-size: 15px; }
+            .thumb-wrap { width: 60px; height: 60px; }
+        }
+
+        /* --- MODAL IMAGE --- */
+        #imgModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 6000;
+            display: none; align-items: center; justify-content: center;
+        }
+        #imgModal img { max-width: 95%; max-height: 95%; border-radius: 4px; }
+        
+        .status-msg {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 10px 20px; border-radius: 30px;
+            font-size: 13px; z-index: 7000; display: none;
         }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
-<button class="zen-close-btn" onclick="toggleZenMode()">✖ Wyjdź z trybu pisania</button>
-
-<div class="container">
-    <div class="sidebar">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <label style="font-size: 12px; font-weight: bold; color: var(--muted); margin: 0;">HASŁO (AES-256)</label>
-                <button onclick="toggleTheme()" class="sec" style="width: auto; padding: 5px 10px; margin: 0; font-size: 12px;">Dzień / Noc</button>
-            </div>
-            
-            <input type="password" id="pass" placeholder="Wprowadź klucz...">
-            
-            <button onclick="openFile()">📂 Otwórz Bazę</button>
-            <button class="sec" onclick="saveFile()" id="btnSave" style="display:none">💾 Zapisz Zmiany</button>
-            <button class="sec" onclick="createEmptyDb()" style="margin-top: 15px; font-size: 12px;">📥 Utwórz nową (pustą) bazę</button>
-            
-            <input type="file" id="mobileFileInput" accept=".enc" style="display: none;" onchange="handleMobileFile(event)">
-        </div>
+<div id="loginScreen">
+    <div class="login-card">
+        <svg class="login-logo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        <h2 style="margin: 0 0 10px 0; color: var(--txt-head);">Terapeutnik Pro</h2>
+        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 25px;">Szyfrowana dokumentacja medyczna</p>
         
-        <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-            <button onclick="addPatient()">➕ Nowy Pacjent</button>
-            <div class="patient-list" id="pList">
-                <div style="text-align: center; color: var(--muted); font-size: 13px; padding: 20px;">Otwórz bazę, aby zobaczyć listę.</div>
-            </div>
-        </div>
-        <div id="status" style="font-size: 12px; text-align: center; color: var(--p); font-weight: bold; min-height: 15px;"></div>
-    </div>
-
-    <div class="main">
-        <div class="nav">
-            <button class="nav-btn active" id="btnViewEditor" onclick="setView('editor')">📝 Karta Pacjenta</button>
-            <button class="nav-btn" id="btnViewCalendar" onclick="setView('calendar')">📅 Kalendarz</button>
-        </div>
-
-        <div id="editor" class="active">
-            <div class="editor-header">
-                <h2 id="pTitle">Brak wybranego pacjenta</h2>
-                <button class="sec" id="btnZen" style="width: auto; margin: 0; display: none;" onclick="toggleZenMode()">⛶ Pełny ekran</button>
-            </div>
+        <div style="text-align: left;">
+            <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">UŻYTKOWNIK</label>
+            <input type="text" id="loginUser" placeholder="Login" autocomplete="username">
             
-            <textarea id="notes" oninput="updateNotes()" placeholder="Wybierz pacjenta z listy po lewej stronie, aby rozpocząć edycję..." disabled></textarea>
-            
-            <div id="photoSection" style="display:none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
-                <label style="font-size: 12px; font-weight: bold; color: var(--muted);">ZAŁĄCZNIKI (JPG/PNG - automatyczna kompresja)</label>
-                <input type="file" id="imgInp" accept="image/*" onchange="uploadImg(this)" style="margin-top:10px">
-                <div class="gallery" id="pGallery"></div>
-            </div>
+            <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">HASŁO KLUCZ</label>
+            <input type="password" id="loginPass" placeholder="Hasło szyfrujące" autocomplete="current-password">
         </div>
 
-        <div id="calendar">
-            <label style="font-size: 12px; font-weight: bold; color: var(--muted);">WYBIERZ DZIEŃ</label>
-            <input type="date" id="calDate" onchange="renderCal()" style="max-width: 250px;">
-            <div id="calSlots" style="margin-top: 15px;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px; flex-direction: column;">
+            <button class="btn-primary" style="justify-content: center; width:100%;" onclick="handleLogin('open')">📂 Otwórz Bazę</button>
+            <button class="btn-icon" style="width:100%; border:1px solid var(--border); color:var(--txt);" onclick="handleLogin('create')">✨ Utwórz Nową Bazę</button>
         </div>
+        <div id="loginMsg" style="margin-top:15px; font-size:12px; color:var(--danger);"></div>
     </div>
 </div>
 
+<div id="appLayout">
+    
+    <div class="sidebar">
+        <div class="header-bar">
+            <div class="app-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--p)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                Pacjenci
+            </div>
+            <button class="btn-icon" onclick="toggleTheme()" title="Zmień motyw">
+                <svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6 6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+            </button>
+        </div>
+        
+        <div style="padding: 10px;">
+            <button class="btn-primary" style="width:100%" onclick="addPatient()">+ Nowy Pacjent</button>
+        </div>
+
+        <div class="scroll-area" id="patientList">
+            </div>
+
+        <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--bg);">
+            <div style="font-size: 12px; color: var(--txt-muted); margin-bottom: 5px;">Zalogowano: <b id="userDisplay"></b></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-icon" style="flex:1; font-size:12px; border:1px solid var(--border);" onclick="saveToDisk()">💾 Zapisz</button>
+                <button class="btn-icon" style="flex:1; font-size:12px; border:1px solid var(--border);" onclick="switchTab('calendar')">📅 Kalendarz</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <div id="viewEditor" class="editor-wrapper">
+            <div class="editor-toolbar">
+                <div style="display:flex; align-items: center;">
+                    <button class="btn-icon mobile-back-btn" onclick="exitMobileEdit()">
+                        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    </button>
+                    <div style="font-weight:bold; font-size:16px;" id="currentPatientName">Wybierz pacjenta</div>
+                </div>
+                
+                <div style="display:flex; gap: 5px;">
+                    <button class="btn-icon" onclick="toggleZen()" title="Tryb Skupienia" id="btnZen">
+                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                    </button>
+                    <button class="btn-icon" onclick="addVisit()" title="Dodaj wizytę">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                    </button>
+                    <button class="btn-danger" onclick="deleteCurrentPatient()" title="Usuń pacjenta">Usuń</button>
+                </div>
+            </div>
+
+            <textarea id="content" placeholder="Wybierz pacjenta i zacznij pisać..." disabled oninput="saveCurrentNote()"></textarea>
+
+            <div class="gallery-bar" id="galleryContainer" style="display:none;">
+                <div class="thumb-wrap" style="display:flex; align-items:center; justify-content:center; background:var(--input-bg); border-radius:6px; cursor:pointer; border:1px dashed var(--border);" onclick="document.getElementById('imgUploader').click()">
+                    <span style="font-size:24px; color:var(--txt-muted);">+</span>
+                </div>
+                <input type="file" id="imgUploader" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+                <div id="galleryList" style="display:contents;"></div>
+            </div>
+        </div>
+
+        <div id="viewCalendar" class="calendar-view">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <button class="btn-icon mobile-back-btn" onclick="switchTab('editor')">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <h2>Kalendarz</h2>
+            </div>
+            <input type="date" id="calDate" onchange="renderCalendar()" style="max-width:300px;">
+            <div id="timeSlots" style="margin-top:20px;"></div>
+        </div>
+
+        <button id="zenExitBtn" onclick="toggleZen()">Zakończ tryb skupienia</button>
+    </div>
+</div>
+
+<div id="imgModal" onclick="this.style.display='none'">
+    <img id="imgModalSrc" src="">
+</div>
+
+<div id="toast" class="status-msg"></div>
+
 <script>
-    // --- STRUKTURA BAZY I ZMIENNE GLOBALNE ---
+    // --- KONFIGURACJA I ZMIENNE ---
+    const ITER = 100000;
     let db = { patients: {}, calendar: {} };
-    let activePid = null;
-    let fileHandle = null; // Uchwyt pliku dla PC (File System Access API)
-    const ITER = 100000;   // Ilość iteracji dla PBKDF2
+    let activePatientId = null;
+    let fileHandle = null;
+    let currentUser = "";
+    let currentPass = "";
 
-    // --- INICJALIZACJA MOTYWU ---
-    function initTheme() {
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        // Przywróć motyw
         const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    }
-    initTheme();
+        document.body.setAttribute('data-theme', savedTheme);
+        document.getElementById('calDate').valueAsDate = new Date();
+    };
 
+    // --- UI LOGIC ---
     function toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme');
+        const body = document.body;
+        const current = body.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
+        body.setAttribute('data-theme', next);
         localStorage.setItem('theme', next);
     }
 
-    // --- TRYB SKUPIENIA (ZEN MODE) ---
-    function toggleZenMode() {
-        document.body.classList.toggle('zen-mode');
-        if(document.body.classList.contains('zen-mode')) {
-            document.getElementById('notes').focus();
+    function toggleZen() {
+        document.body.classList.toggle('zen-active');
+        if(document.body.classList.contains('zen-active')) {
+            document.getElementById('content').focus();
         }
     }
 
-    // --- NAWIGACJA ZAKŁADEK ---
-    function setView(v) {
-        document.getElementById('editor').classList.toggle('active', v === 'editor');
-        document.getElementById('calendar').classList.toggle('active', v === 'calendar');
-        document.getElementById('btnViewEditor').classList.toggle('active', v === 'editor');
-        document.getElementById('btnViewCalendar').classList.toggle('active', v === 'calendar');
-        if(v === 'calendar') {
-            if(!document.getElementById('calDate').value) {
-                document.getElementById('calDate').value = new Date().toISOString().split('T')[0];
-            }
-            renderCal();
+    function switchTab(tab) {
+        const editor = document.getElementById('viewEditor');
+        const calendar = document.getElementById('viewCalendar');
+        
+        if (tab === 'calendar') {
+            editor.style.display = 'none';
+            calendar.classList.add('active');
+            renderCalendar();
+            // Mobile switch
+            document.body.classList.add('mobile-editing');
+        } else {
+            calendar.classList.remove('active');
+            editor.style.display = 'flex';
+            // Mobile behavior: if patient selected, stay in edit, else list
+            if(!activePatientId) document.body.classList.remove('mobile-editing');
         }
     }
 
-    function msg(text, isError = false) {
-        const s = document.getElementById('status');
-        s.innerText = text;
-        s.style.color = isError ? "var(--danger)" : "var(--p)";
-        setTimeout(() => s.innerText = '', 4000);
+    function exitMobileEdit() {
+        document.body.classList.remove('mobile-editing');
+        // Jeśli był kalendarz, wróć do edytora
+        document.getElementById('viewCalendar').classList.remove('active');
+        document.getElementById('viewEditor').style.display = 'flex';
     }
 
-    // --- ZARZĄDZANIE PACJENTAMI ---
-    function addPatient() {
-        const name = prompt("Podaj inicjały, kod lub nazwisko pacjenta:");
-        if(!name || !name.trim()) return;
-        const id = 'p_' + Date.now();
-        db.patients[id] = { name: name.trim(), notes: "", imgs: [] };
-        
-        document.getElementById('btnSave').style.display = 'flex'; // Pokaż przycisk zapisu jeśli był ukryty
-        renderPList();
-        selectPatient(id);
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
     }
 
-    function renderPList() {
-        const c = document.getElementById('pList');
-        c.innerHTML = '';
-        const keys = Object.keys(db.patients);
+    // --- LOGOWANIE I PLIKI ---
+    async function handleLogin(mode) {
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        const msg = document.getElementById('loginMsg');
         
-        if(keys.length === 0) {
-            c.innerHTML = '<div style="text-align: center; color: var(--muted); font-size: 13px; padding: 20px;">Brak pacjentów w bazie.</div>';
+        if (!user || !pass) {
+            msg.innerText = "Podaj login i hasło.";
             return;
         }
+        
+        currentUser = user;
+        currentPass = pass;
 
-        keys.forEach(id => {
+        try {
+            if (mode === 'create') {
+                db = { patients: {}, calendar: {} };
+                if (window.showSaveFilePicker) {
+                    fileHandle = await window.showSaveFilePicker({
+                        suggestedName: `${user}_baza.json`,
+                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
+                    });
+                    await saveToDisk();
+                    startApp();
+                } else {
+                    saveToDisk(); // Fallback download
+                    startApp();
+                }
+            } else {
+                let textData;
+                if (window.showOpenFilePicker) {
+                    [fileHandle] = await window.showOpenFilePicker({
+                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
+                    });
+                    const file = await fileHandle.getFile();
+                    textData = await file.text();
+                } else {
+                    // Fallback input
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = async e => {
+                        const f = e.target.files[0];
+                        if(f) {
+                            textData = await f.text();
+                            await processDecryption(textData, msg);
+                        }
+                    };
+                    input.click();
+                    return;
+                }
+                if(textData) await processDecryption(textData, msg);
+            }
+        } catch (e) {
+            if(e.name !== 'AbortError') msg.innerText = "Błąd: " + e.message;
+        }
+    }
+
+    async function processDecryption(text, msgElem) {
+        try {
+            const encObj = JSON.parse(text);
+            const decrypted = await decryptData(encObj, currentPass);
+            db = JSON.parse(decrypted);
+            if(!db.patients) db.patients = {};
+            if(!db.calendar) db.calendar = {};
+            startApp();
+        } catch(e) {
+            msgElem.innerText = "Błędne hasło lub uszkodzony plik.";
+            console.error(e);
+        }
+    }
+
+    function startApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appLayout').style.display = 'flex';
+        document.getElementById('userDisplay').innerText = currentUser;
+        renderPatientList();
+    }
+
+    // --- KRYPTOGRAFIA (AES-GCM) ---
+    function buffToBase64(buff) {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(buff)));
+    }
+    function base64ToBuff(b64) {
+        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+
+    async function getKey(pw, salt) {
+        const enc = new TextEncoder();
+        const bKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' },
+            bKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+        );
+    }
+
+    async function encryptData(dataStr, pw) {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await getKey(pw, salt);
+        const encoded = new TextEncoder().encode(dataStr);
+        const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv: iv}, key, encoded);
+        return {
+            salt: buffToBase64(salt),
+            iv: buffToBase64(iv),
+            data: buffToBase64(ciphertext),
+            username: currentUser
+        };
+    }
+
+    async function decryptData(wrapper, pw) {
+        const salt = base64ToBuff(wrapper.salt);
+        const iv = base64ToBuff(wrapper.iv);
+        const data = base64ToBuff(wrapper.data);
+        const key = await getKey(pw, salt);
+        const decrypted = await crypto.subtle.decrypt({name: 'AES-GCM', iv: iv}, key, data);
+        return new TextDecoder().decode(decrypted);
+    }
+
+    async function saveToDisk() {
+        try {
+            const jsonStr = JSON.stringify(db);
+            const encrypted = await encryptData(jsonStr, currentPass);
+            const finalStr = JSON.stringify(encrypted, null, 2);
+
+            if (fileHandle) {
+                const w = await fileHandle.createWritable();
+                await w.write(finalStr);
+                await w.close();
+                showToast("Zapisano (File System API)");
+            } else {
+                const b = new Blob([finalStr], {type: "application/json"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(b);
+                a.download = `${currentUser}_backup.json`;
+                a.click();
+                showToast("Pobrano plik");
+            }
+        } catch (e) {
+            showToast("Błąd zapisu: " + e.message);
+        }
+    }
+
+    // --- PACJENCI ---
+    function addPatient() {
+        const name = prompt("Podaj imię/inicjały pacjenta:");
+        if (name) {
+            const id = 'p_' + Date.now();
+            db.patients[id] = { name: name, notes: "", images: [] };
+            selectPatient(id);
+            renderPatientList();
+            saveToDisk();
+        }
+    }
+
+    function deleteCurrentPatient() {
+        if (!activePatientId) return;
+        if (confirm(`Usunąć trwale pacjenta ${db.patients[activePatientId].name}?`)) {
+            // Czyść kalendarz
+            for(let d in db.calendar) {
+                for(let h in db.calendar[d]) {
+                    if(db.calendar[d][h] === activePatientId) delete db.calendar[d][h];
+                }
+            }
+            delete db.patients[activePatientId];
+            activePatientId = null;
+            
+            document.getElementById('content').value = "";
+            document.getElementById('content').disabled = true;
+            document.getElementById('currentPatientName').innerText = "Wybierz pacjenta";
+            document.getElementById('galleryContainer').style.display = "none";
+            
+            renderPatientList();
+            exitMobileEdit();
+            saveToDisk();
+        }
+    }
+
+    function renderPatientList() {
+        const list = document.getElementById('patientList');
+        list.innerHTML = "";
+        
+        Object.keys(db.patients).sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name))
+        .forEach(id => {
+            const p = db.patients[id];
             const div = document.createElement('div');
-            div.className = `patient-item ${id === activePid ? 'active' : ''}`;
-            div.innerText = db.patients[id].name;
+            div.className = `patient-item ${id === activePatientId ? 'active' : ''}`;
+            div.innerHTML = `<span>${p.name}</span> <span class="patient-date">ID: ${id.slice(-4)}</span>`;
             div.onclick = () => selectPatient(id);
-            c.appendChild(div);
+            list.appendChild(div);
         });
     }
 
     function selectPatient(id) {
-        activePid = id;
+        activePatientId = id;
         const p = db.patients[id];
-        document.getElementById('pTitle').innerText = p.name;
         
-        const notesArea = document.getElementById('notes');
-        notesArea.value = p.notes;
-        notesArea.disabled = false;
-        notesArea.placeholder = "Wpisuj notatki pacjenta tutaj...";
+        document.getElementById('currentPatientName').innerText = p.name;
+        document.getElementById('content').value = p.notes;
+        document.getElementById('content').disabled = false;
+        document.getElementById('galleryContainer').style.display = "flex";
         
-        document.getElementById('photoSection').style.display = 'block';
-        document.getElementById('btnZen').style.display = 'flex';
+        // Mobile Transition
+        document.body.classList.add('mobile-editing');
         
-        renderPList();
+        renderPatientList();
         renderGallery();
-        setView('editor');
     }
 
-    function updateNotes() {
-        if(activePid) db.patients[activePid].notes = document.getElementById('notes').value;
+    function saveCurrentNote() {
+        if(activePatientId) {
+            db.patients[activePatientId].notes = document.getElementById('content').value;
+        }
     }
 
-    // --- ZDJĘCIA (Base64) ---
-    function uploadImg(input) {
-        if(!activePid || !input.files[0]) return;
+    function addVisit() {
+        if(!activePatientId) return;
+        const now = new Date().toLocaleString('pl-PL');
+        const tmpl = `\n\n--- 📅 WIZYTA: ${now} ---\n\n> Obserwacje:\n\n> Interwencje:\n\n`;
+        const ta = document.getElementById('content');
+        ta.value += tmpl;
+        ta.focus();
+        ta.scrollTop = ta.scrollHeight;
+        saveCurrentNote();
+    }
+
+    // --- ZDJĘCIA ---
+    function handleImageUpload(e) {
+        if(!activePatientId || !e.target.files[0]) return;
+        const file = e.target.files[0];
         const reader = new FileReader();
-        reader.onload = e => {
+        reader.onload = (evt) => {
+            // Kompresja
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const max = 1000;
-                let w = img.width, h = img.height;
-                if(w > max) { h *= max/w; w = max; }
-                canvas.width = w; canvas.height = h;
-                ctx.drawImage(img, 0, 0, w, h);
-                db.patients[activePid].imgs.push(canvas.toDataURL('image/jpeg', 0.6));
+                const c = document.createElement('canvas');
+                const max = 900;
+                let s = 1;
+                if(img.width > max) s = max/img.width;
+                c.width = img.width * s; c.height = img.height * s;
+                c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+                
+                db.patients[activePatientId].images.push(c.toDataURL('image/jpeg', 0.7));
                 renderGallery();
-                input.value = ''; // Reset
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(input.files[0]);
+                saveToDisk();
+                document.getElementById('imgUploader').value = '';
+            }
+            img.src = evt.target.result;
+        }
+        reader.readAsDataURL(file);
     }
 
     function renderGallery() {
-        if(!activePid) return;
-        const g = document.getElementById('pGallery');
-        g.innerHTML = '';
-        db.patients[activePid].imgs.forEach(src => {
+        const list = document.getElementById('galleryList');
+        list.innerHTML = "";
+        if(!activePatientId) return;
+        
+        (db.patients[activePatientId].images || []).forEach((src, idx) => {
+            const w = document.createElement('div');
+            w.className = 'thumb-wrap';
+            
             const img = document.createElement('img');
+            img.className = 'thumb';
             img.src = src;
             img.onclick = () => {
-                const w = window.open();
-                w.document.write(`<body style="margin:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh;"><img src="${src}" style="max-width:100%; max-height:100%;"></body>`);
+                document.getElementById('imgModalSrc').src = src;
+                document.getElementById('imgModal').style.display = 'flex';
             };
-            g.appendChild(img);
+
+            const del = document.createElement('div');
+            del.className = 'thumb-del';
+            del.innerText = '×';
+            del.onclick = (e) => {
+                e.stopPropagation();
+                if(confirm("Usunąć zdjęcie?")) {
+                    db.patients[activePatientId].images.splice(idx, 1);
+                    renderGallery();
+                    saveToDisk();
+                }
+            };
+            
+            w.append(img, del);
+            list.appendChild(w);
         });
     }
 
     // --- KALENDARZ ---
-    function renderCal() {
+    function renderCalendar() {
         const date = document.getElementById('calDate').value;
-        if(!date) return;
+        const con = document.getElementById('timeSlots');
+        con.innerHTML = "";
         
-        const container = document.getElementById('calSlots');
-        container.innerHTML = '';
         if(!db.calendar[date]) db.calendar[date] = {};
-
+        
         for(let h=8; h<=20; h++) {
-            const time = `${h < 10 ? '0'+h : h}:00`;
+            const time = (h<10?'0'+h:h) + ":00";
             const row = document.createElement('div');
-            row.className = 'time-row';
-            row.innerHTML = `<span>${time}</span>`;
+            row.className = 'time-slot';
             
             const sel = document.createElement('select');
-            sel.innerHTML = '<option value="">-- Wolny termin --</option>';
+            sel.innerHTML = `<option value="">--</option>`;
             
             Object.keys(db.patients).forEach(pid => {
-                sel.innerHTML += `<option value="${pid}" ${db.calendar[date][time] === pid ? 'selected' : ''}>${db.patients[pid].name}</option>`;
+                const opt = document.createElement('option');
+                opt.value = pid;
+                opt.innerText = db.patients[pid].name;
+                if(db.calendar[date][time] === pid) opt.selected = true;
+                sel.appendChild(opt);
             });
             
-            sel.onchange = (e) => db.calendar[date][time] = e.target.value;
+            sel.onchange = (e) => {
+                db.calendar[date][time] = e.target.value;
+                saveToDisk();
+            };
+
+            row.innerHTML = `<div class="time-label">${time}</div>`;
             row.appendChild(sel);
-            container.appendChild(row);
-        }
-    }
-
-    // --- KRYPTOGRAFIA (AES-GCM JSON) ---
-    async function getKey(pw, salt) {
-        const b = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
-        return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:ITER, hash:'SHA-256'}, b, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
-    }
-
-    async function processEncryption(pw) {
-        const dataStr = JSON.stringify(db);
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await getKey(pw, salt);
-        const cipher = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(dataStr));
-        const combined = new Uint8Array(16 + 12 + cipher.byteLength);
-        combined.set(salt, 0); 
-        combined.set(iv, 16); 
-        combined.set(new Uint8Array(cipher), 28);
-        return combined;
-    }
-
-    async function processDecryption(buffer, pw) {
-        const data = new Uint8Array(buffer);
-        const key = await getKey(pw, data.slice(0, 16));
-        const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv: data.slice(16,28)}, key, data.slice(28));
-        const jsonStr = new TextDecoder().decode(dec);
-        db = JSON.parse(jsonStr);
-        
-        // Zabezpieczenie na wypadek brakujących obiektów
-        if(!db.patients) db.patients = {};
-        if(!db.calendar) db.calendar = {};
-        
-        activePid = null;
-        document.getElementById('notes').value = "";
-        document.getElementById('notes').disabled = true;
-        document.getElementById('pTitle').innerText = "Wybierz pacjenta";
-        document.getElementById('photoSection').style.display = 'none';
-        document.getElementById('btnZen').style.display = 'none';
-        
-        renderPList();
-        if(document.getElementById('calendar').classList.contains('active')) renderCal();
-        document.getElementById('btnSave').style.display = 'flex';
-        msg("Baza poprawnie odszyfrowana!");
-    }
-
-    // --- OBSŁUGA PLIKÓW (PC ORAZ MOBILE) ---
-    function createEmptyDb() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Musisz podać hasło w lewym górnym rogu, aby utworzyć nową bazę!");
-        db = { patients: {}, calendar: {} };
-        activePid = null;
-        fileHandle = null; // Resetujemy uchwyt, zmuszając do pobrania przy zapisie
-        renderPList();
-        document.getElementById('btnSave').style.display = 'flex';
-        msg("Nowa pusta baza utworzona w pamięci.");
-    }
-
-    async function openFile() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Podaj hasło przed wczytaniem pliku!");
-
-        // Sprawdzamy czy przeglądarka wspiera bezpośrednie nadpisywanie plików (PC Chrome/Edge/Opera)
-        if (window.showOpenFilePicker) {
-            try {
-                [fileHandle] = await window.showOpenFilePicker({
-                    types: [{ description: 'Zaszyfrowana Baza', accept: {'application/octet-stream': ['.enc']} }]
-                });
-                const file = await fileHandle.getFile();
-                const buffer = await file.arrayBuffer();
-                await processDecryption(buffer, pw);
-            } catch(e) {
-                if(e.name !== 'AbortError') msg("Błąd odszyfrowania pliku!", true);
-            }
-        } else {
-            // Urządzenia mobilne (lub Firefox/Safari)
-            document.getElementById('mobileFileInput').click();
-        }
-    }
-
-    async function handleMobileFile(event) {
-        const file = event.target.files[0];
-        if(!file) return;
-        const pw = document.getElementById('pass').value;
-        
-        try {
-            const buffer = await file.arrayBuffer();
-            await processDecryption(buffer, pw);
-            event.target.value = ''; // Reset
-        } catch(e) {
-            msg("Błędne hasło lub plik!", true);
-            event.target.value = '';
-        }
-    }
-
-    async function saveFile() {
-        const pw = document.getElementById('pass').value;
-        if(!pw) return alert("Nie można zapisać bez hasła!");
-
-        try {
-            const encryptedData = await processEncryption(pw);
-
-            // Zapis bezpośrednio do pliku (Tylko PC z obsługą API)
-            if (window.showSaveFilePicker && fileHandle) {
-                const writable = await fileHandle.createWritable();
-                await writable.write(encryptedData);
-                await writable.close();
-                msg("Zmiany bezpiecznie zapisane na dysku!");
-            } 
-            // Pobranie zaktualizowanego pliku (Telefony, Firefox, lub nowa baza)
-            else {
-                const blob = new Blob([encryptedData], {type: 'application/octet-stream'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                
-                const d = new Date();
-                const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-                a.download = `klinika_baza_${dateStr}.enc`;
-                
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                msg("Pobrano zaktualizowaną bazę do folderu 'Pobrane'");
-            }
-        } catch(e) {
-            msg("Wystąpił błąd podczas zapisu!", true);
-            console.error(e);
+            con.appendChild(row);
         }
     }
 </script>
-
 </body>
 </html>
