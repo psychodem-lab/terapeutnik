@@ -217,23 +217,87 @@
                 </table>
             </div>
         </div>
-
-        <div id="viewCalendar" class="calendar-view">
-            <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
-                <button class="btn-icon back-btn" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-                <h2 style="margin:0;">Terminarz</h2>
+                <div id="viewCalendar" class="calendar-view">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <button class="btn-icon back-btn" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                    <h2 style="margin:0;">Terminarz</h2>
+                </div>
+                <button class="btn-primary" onclick="openVisitModal(document.getElementById('calDate').value, '12:00', null)">+ Dodaj wizytę</button>
             </div>
             
             <div class="calendar-summary">
-                <div>📅 Wizyty: <b id="calCount">0</b></div>
+                <div>📅 Zaplanowane: <b id="calCount">0</b></div>
                 <div>💰 Przychód: <b id="calIncome">0 zł</b></div>
             </div>
-
+        
             <div style="margin-bottom:20px;">
-                <label class="label-sm">WYBIERZ DATĘ:</label>
+                <label class="label-sm">WYBIERZ DZIEŃ:</label>
                 <input type="date" id="calDate" onchange="renderCalendar()">
             </div>
-            <div id="timeSlots"></div>
+        
+            <div id="timeSlots" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+        
+        <div id="visitModal" class="modal-overlay">
+            <div class="modal-card">
+                <h3 style="margin-top:0;">Szczegóły Wizyty</h3>
+                
+                <div class="form-grid">
+                    <div class="full-width">
+                        <label class="label-sm">Pacjent</label>
+                        <select id="visitPatient"></select>
+                    </div>
+                    <div>
+                        <label class="label-sm">Data</label>
+                        <input type="date" id="visitDateInput">
+                    </div>
+                    <div>
+                        <label class="label-sm">Godzina</label>
+                        <input type="time" id="visitTime">
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div>
+                        <label class="label-sm">Status</label>
+                        <select id="visitStatus">
+                            <option value="plan">📅 Zaplanowana</option>
+                            <option value="done">✅ Odbyta</option>
+                            <option value="cancel">❌ Odwołana</option>
+                            <option value="noshow">⛔ Nieobecność</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label-sm">Cena (zł)</label>
+                        <input type="number" id="visitPrice" value="150">
+                    </div>
+                </div>
+        
+                <div style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label style="font-size:13px; font-weight:bold; display:flex; gap:8px; align-items:center; cursor:pointer;">
+                            <input type="checkbox" id="visitPaid"> Opłacona
+                        </label>
+                        <select id="visitMethod" style="width:100px; padding:4px; font-size:12px;">
+                            <option value="Gotówka">Gotówka</option>
+                            <option value="Przelew">Przelew</option>
+                            <option value="BLIK">BLIK</option>
+                            <option value="Karta">Karta</option>
+                        </select>
+                    </div>
+                </div>
+        
+                <label class="label-sm">Notatka techniczna</label>
+                <textarea id="visitNote" rows="2"></textarea>
+                
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button id="btnDeleteVisit" class="btn-icon" style="color:var(--danger); border:1px solid var(--border);" onclick="deleteVisit()">Usuń</button>
+                    <div style="flex:1"></div>
+                    <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeVisitModal()">Anuluj</button>
+                    <button class="btn-primary" onclick="saveVisit()">Zapisz wizytę</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -494,60 +558,86 @@
     }
     
     function renderCalendar() {
-        const d=document.getElementById('calDate').value; const c=document.getElementById('timeSlots'); c.innerHTML="";
-        if(!db.calendar[d]) db.calendar[d]={};
+        const d = document.getElementById('calDate').value;
+        const c = document.getElementById('timeSlots');
+        c.innerHTML = "";
         
-        let dayIncome = 0, dayCount = 0;
-
-        // Generuj sloty co 30 min (8:00 - 20:00)
-        for(let h=8; h<=20; h++) {
-            ['00','30'].forEach(m => {
-                if(h===20 && m==='30') return;
-                const t = (h<10?'0'+h:h)+":"+m;
-                const entry = db.calendar[d][t];
-                
-                const div = document.createElement('div');
-                div.className = 'time-slot';
-                
-                let contentHTML = `<span style="color:var(--txt-muted)">-- Wolne --</span>`;
-                
-                if(entry) {
-                    // Kompatybilność wsteczna
-                    const isObj = typeof entry === 'object';
-                    const pid = isObj ? entry.pid : entry;
-                    const pat = db.patients[pid];
-                    const pName = pat ? pat.name : "??";
-                    
-                    if(isObj) {
-                        // Stylizacja wg statusu
-                        div.classList.add('slot-'+entry.status);
-                        if(entry.status === 'done' && !entry.paid) div.classList.add('slot-done-unpaid');
-                        
-                        let icon = entry.paid ? '💰 ' : '';
-                        if(entry.status==='noshow') icon='⛔ ';
-                        if(entry.status==='cancel') icon='❌ ';
-                        
-                        contentHTML = `<span>${icon}<b>${pName}</b></span> <span>${entry.price||0} zł</span>`;
-                        
-                        // Statystyki dzienne
-                        if(entry.status === 'done' || entry.status === 'plan') dayCount++;
-                        if(entry.paid) dayIncome += parseInt(entry.price||0);
-                        
-                    } else {
-                        // Stary format (tylko ID)
-                        contentHTML = `<b>${pName}</b>`;
-                        div.style.background = 'var(--st-plan)';
-                    }
-                }
-                
-                div.innerHTML = `<div class="slot-time">${t}</div><div class="slot-content">${contentHTML}</div>`;
-                div.onclick = () => openVisitModal(d, t, entry);
-                c.appendChild(div);
-            });
+        if (!db.calendar[d] || Object.keys(db.calendar[d]).length === 0) {
+            c.innerHTML = `<div style="text-align:center; padding:40px; color:var(--txt-muted); border:2px dashed var(--border); border-radius:15px;">Brak wizyt na ten dzień.<br><br>Kliknij "+ Dodaj wizytę" powyżej.</div>`;
+            document.getElementById('calCount').innerText = "0";
+            document.getElementById('calIncome').innerText = "0 zł";
+            return;
         }
+    
+        let dayIncome = 0;
+        let dayCount = 0;
+    
+        // Sortujemy wizyty wg godziny
+        const sortedTimes = Object.keys(db.calendar[d]).sort();
+    
+        sortedTimes.forEach(t => {
+            const entry = db.calendar[d][t];
+            const pid = typeof entry === 'object' ? entry.pid : entry;
+            const p = db.patients[pid];
+            if(!p) return;
+    
+            const div = document.createElement('div');
+            div.className = 'time-slot';
+            
+            // Logika kolorów i ikon (zostaje z v5.0)
+            if(typeof entry === 'object') {
+                div.classList.add('slot-' + entry.status);
+                if(entry.status === 'done' && !entry.paid) div.classList.add('slot-done-unpaid');
+                if(entry.status === 'done' || entry.status === 'plan') dayCount++;
+                if(entry.paid) dayIncome += parseInt(entry.price || 0);
+            }
+    
+            div.innerHTML = `
+                <div class="slot-time">${t}</div>
+                <div class="slot-content">
+                    <b>${p.name}</b>
+                    <span>${entry.price || 0} zł ${entry.paid ? '✅' : ''}</span>
+                </div>
+            `;
+            div.onclick = () => openVisitModal(d, t, entry);
+            c.appendChild(div);
+        });
+    
         document.getElementById('calCount').innerText = dayCount;
         document.getElementById('calIncome').innerText = dayIncome + " zł";
     }
+
+function openVisitModal(date, time, entry) {
+    document.getElementById('visitDateInput').value = date;
+    document.getElementById('visitTime').value = time;
+    
+    // Wypełnij listę pacjentów
+    const sel = document.getElementById('visitPatient');
+    sel.innerHTML = `<option value="">-- Wybierz pacjenta --</option>`;
+    Object.keys(db.patients).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id => {
+        sel.innerHTML += `<option value="${id}">${db.patients[id].name}</option>`;
+    });
+
+    if (entry) {
+        document.getElementById('btnDeleteVisit').style.display = 'block';
+        const pid = typeof entry === 'object' ? entry.pid : entry;
+        sel.value = pid;
+        if(typeof entry === 'object') {
+            document.getElementById('visitStatus').value = entry.status;
+            document.getElementById('visitPrice').value = entry.price;
+            document.getElementById('visitPaid').checked = entry.paid;
+            document.getElementById('visitMethod').value = entry.method || 'Gotówka';
+            document.getElementById('visitNote').value = entry.note || "";
+        }
+    } else {
+        document.getElementById('btnDeleteVisit').style.display = 'none';
+        document.getElementById('visitStatus').value = 'plan';
+        document.getElementById('visitPaid').checked = false;
+        document.getElementById('visitNote').value = "";
+    }
+
+    document.getElementById('visitModal').style.display = 'flex';
+}
 
     // --- MODAL WIZYTY ---
     function openVisitModal(date, time, entry) {
@@ -599,13 +689,20 @@
     }
 
     function saveVisit() {
-        const d = document.getElementById('calDate').value;
-        const t = document.getElementById('visitTime').value;
-        const pid = document.getElementById('visitPatient').value;
+        const oldDate = document.getElementById('calDate').value; // data z widoku kalendarza
+        const oldTime = document.getElementById('visitTime').defaultValue; // pomocnicze do edycji
         
-        if(!pid) { deleteVisit(); return; }
-
-        db.calendar[d][t] = {
+        const newDate = document.getElementById('visitDateInput').value;
+        const newTime = document.getElementById('visitTime').value;
+        const pid = document.getElementById('visitPatient').value;
+    
+        if (!pid || !newDate || !newTime) return alert("Wypełnij dane!");
+    
+        // Jeśli zmieniliśmy datę lub godzinę podczas edycji, usuwamy stary wpis
+        // (uproszczone: zawsze czyścimy i nadpisujemy)
+        if (!db.calendar[newDate]) db.calendar[newDate] = {};
+    
+        db.calendar[newDate][newTime] = {
             pid: pid,
             status: document.getElementById('visitStatus').value,
             price: document.getElementById('visitPrice').value,
@@ -613,6 +710,7 @@
             method: document.getElementById('visitMethod').value,
             note: document.getElementById('visitNote').value
         };
+    
         closeVisitModal();
         renderCalendar();
         triggerAutoSave();
