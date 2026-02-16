@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#059669">
+    <title>Terapeutnik 5.1 Professional</title>
+    
+    <style>
+        :root {
+            --p: #059669; --p-hover: #047857; --p-light: #d1fae5;
+            --danger: #ef4444; --warn: #f59e0b; --border: #e2e8f0;
+            --bg: #f1f5f9; --sidebar: #ffffff; --card: #ffffff;
+            --txt: #334155; --txt-muted: #64748b; --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg: #020617; --sidebar: #0f172a; --card: #1e293b;
+            --txt: #cbd5e1; --txt-muted: #94a3b8; --border: #334155;
+            --p-light: rgba(16, 185, 129, 0.15); --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+        }
+
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--txt); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* LAYOUT */
+        #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--card); padding: 40px; border-radius: 20px; box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
+
+        #appLayout { display: none; height: 100vh; width: 100vw; }
+        .sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; transition: 0.3s; }
+        .main-area { flex: 1; position: relative; background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+
+        /* UI ELEMENTS */
+        .btn-primary { background: var(--p); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--txt); font-size: 14px; }
+
+        /* CALENDAR LIST */
+        .time-slot { background: var(--card); margin-bottom: 10px; padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow); }
+        .time-slot:hover { border-color: var(--p); transform: translateY(-2px); }
+        .slot-time { font-weight: 800; font-size: 16px; color: var(--p); min-width: 60px; }
+        .slot-info { flex: 1; }
+        .slot-status { font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        
+        /* STATUS COLORS */
+        .st-plan { background: #e0f2fe; color: #075985; }
+        .st-done { background: #dcfce7; color: #166534; }
+        .st-noshow { background: #fee2e2; color: #991b1b; }
+        .st-cancel { background: #f1f5f9; color: #64748b; text-decoration: line-through; }
+
+        /* EDITOR */
+        #content { flex: 1; padding: 30px; overflow-y: auto; outline: none; line-height: 1.7; font-size: 16px; background: var(--card); margin: 15px; border-radius: 15px; border: 1px solid var(--border); white-space: pre-wrap; }
+        .toolbar { display: flex; gap: 10px; padding: 10px 20px; background: var(--sidebar); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .mic-active { color: var(--danger) !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal { background: var(--card); width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); }
+            body.view-active .sidebar { transform: translateX(-100%); }
+            .main-area { width: 100%; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+<div id="loginScreen">
+    <div class="login-card">
+        <h2 style="margin:0; color:var(--p);">Terapeutnik 5.1</h2>
+        <p style="color:var(--txt-muted); font-size:14px; margin: 10px 0 30px;">Bezpieczna baza pacjentów</p>
+        <div style="text-align:left; display:flex; flex-direction:column; gap:15px;">
+            <div>
+                <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">UŻYTKOWNIK</label>
+                <input type="text" id="loginUser" placeholder="Twoje imię...">
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold; color:var(--txt-muted);">HASŁO KLUCZ</label>
+                <input type="password" id="loginPass" placeholder="••••••••">
+            </div>
+        </div>
+        <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-primary" onclick="initDB('open')">📂 Otwórz plik bazy</button>
+            <button class="btn-icon" style="border:1px solid var(--border);" onclick="initDB('create')">🆕 Utwórz nową bazę</button>
+        </div>
+        <p id="loginErr" style="color:var(--danger); font-size:12px; margin-top:15px;"></p>
+    </div>
+</div>
+
+<div id="appLayout">
+    <div class="sidebar">
+        <div style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:800; color:var(--p); display:flex; align-items:center; gap:10px;">
+                <svg viewBox="0 0 24 24" style="width:22px; height:22px; fill:var(--p);"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span>Pacjenci</span>
+            </div>
+            <button class="btn-icon" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M20 15.31L23.31 12 20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg></button>
+        </div>
+
+        <div style="padding:15px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-primary" onclick="addPatient()">+ Nowy Pacjent</button>
+            <input type="text" id="searchInp" placeholder="🔍 Szukaj pacjenta..." oninput="renderPatientList()">
+        </div>
+
+        <div id="patientList" style="flex:1; overflow-y:auto; padding:10px;"></div>
+
+        <div style="padding:15px; border-top:1px solid var(--border); background:var(--bg); display:flex; gap:10px;">
+            <button class="btn-primary" style="flex:1;" id="saveBtn" onclick="saveToDisk()">💾 ZAPISZ</button>
+            <button class="btn-icon" style="border:1px solid var(--border);" onclick="openCalendar()">📅 KALENDARZ</button>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
+            <div style="padding:15px 25px; background:var(--sidebar); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <button class="btn-icon mobile-only" onclick="closeView()" style="margin-right:10px;"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                <div style="flex:1;">
+                    <div id="curPatientName" style="font-weight:800; font-size:18px;">Wybierz pacjenta</div>
+                    <div id="curPatientBalance" style="font-size:12px; color:var(--txt-muted);"></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-icon" onclick="openPatientModal()"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+                </div>
+            </div>
+
+            <div class="toolbar" id="editorToolbar" style="display:none;">
+                <button class="btn-icon" onclick="exec('bold')"><b>B</b></button>
+                <button class="btn-icon" onclick="exec('italic')"><i>I</i></button>
+                <div style="width:1px; background:var(--border); margin:0 5px;"></div>
+                <button class="btn-icon" onclick="toggleDictation()" id="micBtn"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                <button class="btn-icon" onclick="insertTemplate()">📋 Szablon</button>
+            </div>
+
+            <div id="content" contenteditable="false" oninput="autoSaveTrigger()"></div>
+        </div>
+
+        <div id="viewCalendar" style="display:none; flex-direction:column; height:100%; padding:20px; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <button class="btn-icon" onclick="closeCalendar()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                    <h2 style="margin:0;">Terminarz</h2>
+                </div>
+                <button class="btn-primary" onclick="openVisitModal(null)">+ Dodaj wizytę</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <div style="flex:1;">
+                    <label style="font-size:11px; font-weight:bold; color:var(--txt-muted);">WYBIERZ DZIEŃ</label>
+                    <input type="date" id="calDate" onchange="renderCalendar()">
+                </div>
+            </div>
+
+            <div id="calList" style="display:flex; flex-direction:column;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="patientModal" class="modal-overlay">
+    <div class="modal">
+        <h3>Dane Pacjenta</h3>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <input type="text" id="pName" placeholder="Imię i Nazwisko">
+            <input type="text" id="pPhone" placeholder="Telefon">
+            <input type="text" id="pEmail" placeholder="Email">
+            <textarea id="pAddress" placeholder="Adres..." rows="2"></textarea>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border);" onclick="closeModal('patientModal')">Anuluj</button>
+                <button class="btn-primary" style="flex:2;" onclick="savePatient()">Zapisz zmiany</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="visitModal" class="modal-overlay">
+    <div class="modal">
+        <h3 id="visitTitle">Nowa Wizyta</h3>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <select id="vPatient"></select>
+            <div style="display:flex; gap:10px;">
+                <input type="date" id="vDate">
+                <input type="time" id="vTime">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <select id="vStatus" style="flex:1;">
+                    <option value="plan">Planowana</option>
+                    <option value="done">Odbyta</option>
+                    <option value="noshow">Nieobecność</option>
+                    <option value="cancel">Odwołana</option>
+                </select>
+                <input type="number" id="vPrice" placeholder="Cena" value="150" style="flex:1;">
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; font-weight:bold;">
+                <input type="checkbox" id="vPaid" style="width:auto;"> Czy opłacona?
+            </label>
+            <textarea id="vNote" placeholder="Krótka notatka (np. powód odwołania)" rows="2"></textarea>
+            
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button id="delVisitBtn" class="btn-icon" style="color:var(--danger); border:1px solid var(--border);" onclick="deleteVisit()">Usuń</button>
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border);" onclick="closeModal('visitModal')">Anuluj</button>
+                <button class="btn-primary" style="flex:2;" onclick="saveVisit()">Zapisz wizytę</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ITER = 100000;
+    let db = { patients: {}, calendar: {} };
+    let activeId = null, fileHandle = null, user = "", pass = "";
+    let autoSaveTimer = null;
+    let recognition = null;
+    let editingVisitKey = null; // format: YYYY-MM-DD|HH:MM
+
+    // --- INICJALIZACJA I ZAPIS (FILE SYSTEM API) ---
+    async function initDB(mode) {
+        user = document.getElementById('loginUser').value;
+        pass = document.getElementById('loginPass').value;
+        if (!user || !pass) return alert("Podaj login i hasło!");
+
+        try {
+            if (mode === 'create') {
+                db = { patients: {}, calendar: {} };
+                // Zapytaj o miejsce zapisu od razu
+                fileHandle = await window.showSaveFilePicker({
+                    suggestedName: `${user}_baza.json`,
+                    types: [{ description: 'Plik Bazy Terapeutnik', accept: { 'application/json': ['.json'] } }]
+                });
+                await saveToDisk();
+                enterApp();
+            } else {
+                [fileHandle] = await window.showOpenFilePicker();
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                await decryptData(content);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function saveToDisk() {
+        if (!fileHandle) return;
+        const btn = document.getElementById('saveBtn');
+        btn.innerText = "⏳ Zapisuję...";
+        
+        try {
+            const encrypted = await encryptData(JSON.stringify(db));
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(encrypted, null, 2));
+            await writable.close();
+            btn.innerText = "💾 ZAPISZ";
+            btn.style.background = "var(--p)";
+        } catch (e) {
+            alert("Błąd zapisu! Sprawdź uprawnienia do pliku.");
+            btn.innerText = "⚠️ BŁĄD";
+        }
+    }
+
+    function autoSaveTrigger() {
+        if (activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML;
+        document.getElementById('saveBtn').style.background = "var(--warn)";
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(saveToDisk, 3000);
+    }
+
+    // --- KRYPTOGRAFIA ---
+    async function encryptData(text) {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveKey(pass, salt);
+        const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
+        return {
+            salt: btoa(String.fromCharCode(...salt)),
+            iv: btoa(String.fromCharCode(...iv)),
+            data: btoa(String.fromCharCode(...new Uint8Array(enc))),
+            user: user
+        };
+    }
+
+    async function decryptData(raw) {
+        try {
+            const json = JSON.parse(raw);
+            const salt = Uint8Array.from(atob(json.salt), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(json.iv), c => c.charCodeAt(0));
+            const data = Uint8Array.from(atob(json.data), c => c.charCodeAt(0));
+            const key = await deriveKey(pass, salt);
+            const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+            db = JSON.parse(new TextDecoder().decode(dec));
+            enterApp();
+        } catch (e) {
+            document.getElementById('loginErr').innerText = "Błędne hasło lub uszkodzony plik!";
+        }
+    }
+
+    async function deriveKey(p, s) {
+        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(p), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: s, iterations: ITER, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    }
+
+    // --- LOGIKA APLIKACJI ---
+    function enterApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appLayout').style.display = 'flex';
+        document.getElementById('calDate').valueAsDate = new Date();
+        renderPatientList();
+    }
+
+    function addPatient() {
+        const n = prompt("Imię i Nazwisko:");
+        if (!n) return;
+        const id = 'p' + Date.now();
+        db.patients[id] = { name: n, notes: "", phone: "", email: "", address: "" };
+        renderPatientList();
+        selectPatient(id);
+    }
+
+    function renderPatientList() {
+        const container = document.getElementById('patientList');
+        const search = document.getElementById('searchInp').value.toLowerCase();
+        container.innerHTML = "";
+        
+        Object.keys(db.patients).sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id => {
+            const p = db.patients[id];
+            if (!p.name.toLowerCase().includes(search)) return;
+            
+            const div = document.createElement('div');
+            div.style = `padding:12px; margin-bottom:5px; border-radius:10px; cursor:pointer; background:${id===activeId?'var(--p-light)':'transparent'}; border:1px solid ${id===activeId?'var(--p)':'transparent'}`;
+            div.innerHTML = `<div style="font-weight:bold; color:${id===activeId?'var(--p)':'var(--txt)'}">${p.name}</div>`;
+            div.onclick = () => selectPatient(id);
+            container.appendChild(div);
+        });
+    }
+
+    function selectPatient(id) {
+        activeId = id;
+        const p = db.patients[id];
+        document.getElementById('curPatientName').innerText = p.name;
+        document.getElementById('content').innerHTML = p.notes;
+        document.getElementById('content').contentEditable = "true";
+        document.getElementById('editorToolbar').style.display = "flex";
+        document.body.classList.add('view-active');
+        updateBalanceDisplay(id);
+        renderPatientList();
+    }
+
+    function updateBalanceDisplay(id) {
+        let balance = 0;
+        Object.values(db.calendar).forEach(day => {
+            Object.values(day).forEach(v => {
+                if (v.pid === id && v.status === 'done') {
+                    if (!v.paid) balance -= parseInt(v.price || 0);
+                }
+            });
+        });
+        const el = document.getElementById('curPatientBalance');
+        el.innerText = balance < 0 ? `Zaległość: ${Math.abs(balance)} zł` : "Rozliczony";
+        el.style.color = balance < 0 ? "var(--danger)" : "var(--txt-muted)";
+    }
+
+    // --- KALENDARZ (DYNAMICZNA LISTA) ---
+    function openCalendar() {
+        document.getElementById('viewEditor').style.display = 'none';
+        document.getElementById('viewCalendar').style.display = 'flex';
+        renderCalendar();
+    }
+
+    function closeCalendar() {
+        document.getElementById('viewCalendar').style.display = 'none';
+        document.getElementById('viewEditor').style.display = 'flex';
+    }
+
+    function renderCalendar() {
+        const date = document.getElementById('calDate').value;
+        const list = document.getElementById('calList');
+        list.innerHTML = "";
+
+        const dayData = db.calendar[date] || {};
+        const times = Object.keys(dayData).sort();
+
+        if (times.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:40px; color:var(--txt-muted); border:2px dashed var(--border); border-radius:15px;">Brak wizyt na ten dzień</div>`;
+        }
+
+        times.forEach(t => {
+            const v = dayData[t];
+            const p = db.patients[v.pid];
+            if (!p) return;
+
+            const div = document.createElement('div');
+            div.className = 'time-slot';
+            div.innerHTML = `
+                <div class="slot-time">${t}</div>
+                <div class="slot-info">
+                    <div style="font-weight:bold;">${p.name}</div>
+                    <div class="slot-status st-${v.status}">${v.status}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold;">${v.price} zł</div>
+                    <div style="font-size:10px;">${v.paid ? '✅ OPŁACONE' : '❌ NIEOPŁACONE'}</div>
+                </div>
+            `;
+            div.onclick = () => openVisitModal(`${date}|${t}`);
+            list.appendChild(div);
+        });
+    }
+
+    function openVisitModal(key) {
+        const sel = document.getElementById('vPatient');
+        sel.innerHTML = `<option value="">-- Wybierz pacjenta --</option>`;
+        Object.keys(db.patients).forEach(id => sel.innerHTML += `<option value="${id}">${db.patients[id].name}</option>`);
+
+        editingVisitKey = key;
+        if (key) {
+            const [date, time] = key.split('|');
+            const v = db.calendar[date][time];
+            document.getElementById('vPatient').value = v.pid;
+            document.getElementById('vDate').value = date;
+            document.getElementById('vTime').value = time;
+            document.getElementById('vStatus').value = v.status;
+            document.getElementById('vPrice').value = v.price;
+            document.getElementById('vPaid').checked = v.paid;
+            document.getElementById('vNote').value = v.note || "";
+            document.getElementById('delVisitBtn').style.display = "block";
+            document.getElementById('visitTitle').innerText = "Edytuj Wizytę";
+        } else {
+            document.getElementById('vDate').value = document.getElementById('calDate').value;
+            document.getElementById('vTime').value = "12:00";
+            document.getElementById('vPaid').checked = false;
+            document.getElementById('delVisitBtn').style.display = "none";
+            document.getElementById('visitTitle').innerText = "Nowa Wizyta";
+        }
+        document.getElementById('visitModal').style.display = 'flex';
+    }
+
+    function saveVisit() {
+        const pid = document.getElementById('vPatient').value;
+        const date = document.getElementById('vDate').value;
+        const time = document.getElementById('vTime').value;
+        if (!pid || !date || !time) return alert("Wybierz pacjenta i czas!");
+
+        // Jeśli edytowaliśmy i zmieniliśmy czas/datę - usuń stary wpis
+        if (editingVisitKey) {
+            const [oldD, oldT] = editingVisitKey.split('|');
+            delete db.calendar[oldD][oldT];
+        }
+
+        if (!db.calendar[date]) db.calendar[date] = {};
+        db.calendar[date][time] = {
+            pid: pid,
+            status: document.getElementById('vStatus').value,
+            price: document.getElementById('vPrice').value,
+            paid: document.getElementById('vPaid').checked,
+            note: document.getElementById('vNote').value
+        };
+
+        closeModal('visitModal');
+        renderCalendar();
+        if (activeId === pid) updateBalanceDisplay(pid);
+        autoSaveTrigger();
+    }
+
+    function deleteVisit() {
+        if (!editingVisitKey) return;
+        const [d, t] = editingVisitKey.split('|');
+        delete db.calendar[d][t];
+        closeModal('visitModal');
+        renderCalendar();
+        autoSaveTrigger();
+    }
+
+    // --- SPEECH TO TEXT ---
+    function initSpeech() {
+        const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Speech) return;
+        recognition = new Speech();
+        recognition.lang = 'pl-PL';
+        recognition.onresult = (e) => {
+            const txt = e.results[0][0].transcript;
+            document.execCommand('insertText', false, txt + ' ');
+            autoSaveTrigger();
+        };
+        recognition.onend = () => document.getElementById('micBtn').classList.remove('mic-active');
+    }
+
+    function toggleDictation() {
+        if (!recognition) return alert("Twoja przeglądarka nie wspiera dyktowania.");
+        const btn = document.getElementById('micBtn');
+        if (btn.classList.contains('mic-active')) {
+            recognition.stop();
+        } else {
+            btn.classList.add('mic-active');
+            recognition.start();
+        }
+    }
+
+    // --- POMOCNICZE ---
+    function exec(c) { document.execCommand(c, false, null); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function openPatientModal() {
+        const p = db.patients[activeId];
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pPhone').value = p.phone || "";
+        document.getElementById('pEmail').value = p.email || "";
+        document.getElementById('pAddress').value = p.address || "";
+        document.getElementById('patientModal').style.display = 'flex';
+    }
+    function savePatient() {
+        const p = db.patients[activeId];
+        p.name = document.getElementById('pName').value;
+        p.phone = document.getElementById('pPhone').value;
+        p.email = document.getElementById('pEmail').value;
+        p.address = document.getElementById('pAddress').value;
+        document.getElementById('curPatientName').innerText = p.name;
+        closeModal('patientModal');
+        renderPatientList();
+        autoSaveTrigger();
+    }
+    function insertTemplate() {
+        const html = `<br><b>SESJA ${new Date().toLocaleDateString()}</b><br>• Cel: <br>• Przebieg: <br>• Zadanie domowe: <br><br>`;
+        document.execCommand('insertHTML', false, html);
+    }
+    function toggleTheme() {
+        const t = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', t);
+    }
+    function closeView() { document.body.classList.remove('view-active'); activeId = null; renderPatientList(); }
+
+    window.onload = initSpeech;
+</script>
+
+</body>
+</html>
