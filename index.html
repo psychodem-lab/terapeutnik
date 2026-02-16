@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik 3.0</title>
+    <meta name="theme-color" content="#059669">
+    <title>Terapeutnik 4.0 (Offline)</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
@@ -21,10 +22,11 @@
             --p: #059669;
             --p-hover: #047857;
             --p-light: #d1fae5;
-            --booked: #dcfce7; /* Pastelowa zieleń dla kalendarza */
+            --booked: #dcfce7; /* Pastelowa zieleń */
             --danger: #ef4444;
             --link: #2563eb;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            --warn: #f59e0b;
         }
 
         [data-theme="dark"] {
@@ -39,10 +41,11 @@
             --p: #10b981;
             --p-hover: #059669;
             --p-light: rgba(16, 185, 129, 0.15);
-            --booked: rgba(16, 185, 129, 0.2); /* Ciemniejsza zieleń dla trybu nocnego */
+            --booked: rgba(16, 185, 129, 0.2); /* Ciemna zieleń */
             --danger: #f87171;
             --link: #60a5fa;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            --warn: #fbbf24;
         }
 
         body { 
@@ -50,8 +53,11 @@
             background: var(--bg); color: var(--txt); 
             margin: 0; padding: 0; height: 100vh; overflow: hidden;
             transition: background 0.3s, color 0.3s;
-            overscroll-behavior-y: none; /* Zapobiega odświeżaniu przy pociągnięciu w dół */
+            overscroll-behavior-y: none;
+            user-select: none; /* Poprawia wrażenie native app */
         }
+        
+        * { -webkit-tap-highlight-color: transparent; }
 
         /* --- LAYOUT --- */
         #appLayout { display: none; height: 100vh; width: 100vw; display: flex; }
@@ -59,99 +65,113 @@
         .main-area { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; overflow: hidden; }
 
         /* --- UI ELEMENTS --- */
-        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .btn-icon:hover { background: var(--input-bg); color: var(--p); }
-        .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
+        .btn-icon svg { width: 22px; height: 22px; fill: currentColor; }
         
-        .btn-primary { background: var(--p); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: var(--p); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; display:flex; align-items:center; gap:8px; }
         .btn-primary:hover { background: var(--p-hover); }
 
-        input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); box-sizing: border-box; font-size: 14px; outline: none; transition: border 0.2s; }
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); box-sizing: border-box; font-size: 14px; outline: none; transition: border 0.2s; }
         input:focus, select:focus, textarea:focus { border-color: var(--p); }
+
+        /* --- STATUS BAR --- */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--txt-muted); display: inline-block; transition: 0.3s; }
+        .status-dot.unsaved { background: var(--warn); box-shadow: 0 0 5px var(--warn); }
+        .status-dot.saved { background: var(--p); }
 
         /* --- LOGIN --- */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .login-card { background: var(--card-bg); width: 100%; max-width: 380px; padding: 40px; border-radius: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
 
         /* --- PACJENCI --- */
-        .patient-item { padding: 12px 15px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; gap: 4px; color: var(--txt); border: 1px solid transparent; }
+        .patient-item { padding: 12px 15px; border-radius: 10px; margin-bottom: 6px; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; gap: 4px; color: var(--txt); border: 1px solid transparent; transition:0.2s; }
         .patient-item:hover { background: var(--input-bg); border-color: var(--border); }
         .patient-item.active { background: var(--p); color: white; }
         .patient-item.active .sub-info { color: rgba(255,255,255,0.8); }
         .sub-info { font-size: 11px; color: var(--txt-muted); display: flex; justify-content: space-between; }
         
         /* --- EDYTOR & TOOLBAR --- */
-        .editor-header { background: var(--sidebar-bg); border-bottom: 1px solid var(--border); padding: 10px 20px; }
-        .patient-meta-bar { display: flex; flex-wrap: wrap; gap: 15px; font-size: 12px; color: var(--txt-muted); margin-top: 5px; align-items: center; }
-        .meta-tag { background: var(--input-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        .editor-header { background: var(--sidebar-bg); border-bottom: 1px solid var(--border); padding: 10px 20px; height: auto; min-height:60px; display:flex; flex-direction:column; justify-content:center; }
+        .patient-meta-bar { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--txt-muted); margin-top: 5px; align-items: center; }
+        .meta-tag { background: var(--input-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); display:flex; align-items:center; gap:4px; }
         
-        .rich-toolbar { padding: 8px 20px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
-        .toolbar-btn { width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: serif; font-size: 16px; color: var(--txt); }
-        .toolbar-btn:hover { background: var(--input-bg); }
+        .rich-toolbar { padding: 8px 15px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; overflow-x: auto; }
+        .toolbar-btn { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: serif; font-size: 16px; color: var(--txt); flex-shrink:0; }
         
-        #content { flex-grow: 1; border: none; padding: 30px; font-size: 16px; line-height: 1.6; color: var(--txt); background: var(--bg); outline: none; overflow-y: auto; white-space: pre-wrap; font-family: inherit; }
+        #content { flex-grow: 1; border: none; padding: 20px 30px; font-size: 16px; line-height: 1.6; color: var(--txt); background: var(--bg); outline: none; overflow-y: auto; white-space: pre-wrap; font-family: inherit; user-select: text; -webkit-user-select: text; }
         #content a { color: var(--link); text-decoration: underline; cursor: pointer; }
         
-        /* --- MODAL EDYCJI --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-card { background: var(--card-bg); width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .modal-card { background: var(--card-bg); width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 16px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border); }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
         .form-full { grid-column: span 2; }
         .form-label { display: block; font-size: 11px; font-weight: bold; color: var(--txt-muted); margin-bottom: 5px; text-transform: uppercase; }
 
         /* --- GALERIA & KALENDARZ --- */
-        .gallery-bar { padding: 15px 20px; background: var(--sidebar-bg); border-top: 1px solid var(--border); display: flex; gap: 12px; overflow-x: auto; }
+        .gallery-bar { padding: 15px 20px; background: var(--sidebar-bg); border-top: 1px solid var(--border); display: flex; gap: 12px; overflow-x: auto; min-height: 90px; align-items:center; }
         .thumb-wrap { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
-        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
-        .thumb-del { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: var(--danger); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+        .thumb-del { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: var(--danger); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        .calendar-view { padding: 30px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
+        .calendar-view { padding: 20px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
         .calendar-view.active { display: block; }
-        .time-slot { display: flex; margin-bottom: 10px; align-items: center; gap: 15px; max-width: 600px; padding: 5px 10px; border-radius: 8px; transition: background 0.2s; }
+        .time-slot { display: flex; margin-bottom: 8px; align-items: center; gap: 10px; max-width: 600px; padding: 6px 10px; border-radius: 8px; transition: background 0.2s; border: 1px solid transparent; }
+        .time-slot.booked { background: var(--booked); border-color: var(--p-light); }
         
-        /* Styl dla zajętego terminu (pastelowy zielony) */
-        .time-slot.booked { background: var(--booked); border: 1px solid var(--p); }
-
-        /* --- RESPONSIVE & MOBILE GESTURES --- */
+        /* --- RESPONSIVE & ANIMATIONS --- */
         @media (max-width: 768px) {
-            .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); transition: 0.3s; }
-            .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); transition: 0.3s; z-index: 20; }
-            body.view-active .sidebar { transform: translateX(-20%); }
+            .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+            .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 20; background: var(--bg); }
+            
+            body.view-active .sidebar { transform: translateX(-30%); opacity: 0.5; }
             body.view-active .main-area { transform: translateX(0); }
+            
             .form-grid { grid-template-columns: 1fr; }
             .form-full { grid-column: span 1; }
+            .rich-toolbar { padding: 8px 10px; }
         }
 
         #imgModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center; }
-        #imgModal img { max-width: 90%; max-height: 90%; }
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
+        #imgModal img { max-width: 95%; max-height: 95%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.3); font-weight: 500; }
     </style>
 </head>
 <body data-theme="light">
 
 <div id="loginScreen">
     <div class="login-card">
-        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik 3.0</h2>
-        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Mobilne Gesty & Bezpieczeństwo</p>
+        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik 4.0</h2>
+        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">System Offline & Auto-Save</p>
+        
         <div style="text-align: left;">
             <label class="form-label">Użytkownik</label>
-            <input type="text" id="loginUser" placeholder="Wpisz nazwę..." style="margin-bottom:15px;">
+            <input type="text" id="loginUser" placeholder="Nazwa..." style="margin-bottom:15px;">
             <label class="form-label">Hasło / Klucz</label>
-            <input type="password" id="loginPass" placeholder="Wpisz hasło...">
+            <input type="password" id="loginPass" placeholder="Hasło...">
         </div>
+
         <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
-            <button class="btn-primary" style="justify-content: center;" onclick="handleLogin('open')">Otwórz bazę</button>
+            <button class="btn-primary" style="justify-content: center; width:100%;" onclick="handleLogin('open')">Otwórz bazę</button>
             <button class="btn-icon" style="border: 1px solid var(--border); color: var(--txt); width: 100%;" onclick="handleLogin('create')">Utwórz nową bazę</button>
         </div>
+        
+        <div id="recoveryBtn" style="display:none; margin-top:15px;">
+             <button class="btn-icon" style="width:100%; color:var(--warn); border:1px dashed var(--warn);" onclick="restoreSession()">⚠️ Przywróć niezapisaną sesję</button>
+        </div>
+
         <div id="loginError" style="color:var(--danger); font-size:12px; margin-top:15px;"></div>
     </div>
 </div>
 
 <div id="appLayout">
+    
     <div class="sidebar">
-        <div class="header-bar" style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <div class="header-bar" style="justify-content:space-between; flex-direction:row; align-items:center;">
             <div style="font-weight: 800; color: var(--p); display: flex; align-items: center; gap: 8px;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 Pacjenci
             </div>
             <button class="btn-icon" onclick="toggleTheme()" title="Zmień motyw">
@@ -163,18 +183,25 @@
             <button class="btn-primary" style="width:100%; justify-content:center;" onclick="addPatient()">+ Dodaj Pacjenta</button>
         </div>
         <div style="padding: 0 15px 10px 15px;">
-             <input type="text" id="patientSearch" placeholder="🔍 Szukaj (Nazwa, Miasto, Status)..." oninput="renderList()" style="margin-bottom: 0;">
+             <input type="text" id="patientSearch" placeholder="🔍 Szukaj..." oninput="renderList()" style="margin-bottom: 0;">
         </div>
         <div class="scroll-area" id="patientList" style="overflow-y: auto; flex-grow: 1; padding: 10px;"></div>
 
         <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--input-bg);">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 12px; font-weight: bold;" id="userDisplay">...</span>
+                <span style="font-size: 12px; font-weight: bold; display:flex; align-items:center; gap:6px;">
+                    <span id="saveStatus" class="status-dot"></span>
+                    <span id="userDisplay">...</span>
+                </span>
                 <button class="btn-icon" style="padding:5px; font-size:11px;" onclick="location.reload()">Wyloguj</button>
             </div>
             <div style="display:flex; gap:8px;">
-                <button class="btn-icon" style="flex:1; border:1px solid var(--border); font-size:12px;" onclick="saveToDisk()">💾 ZAPISZ</button>
-                <button class="btn-icon" style="flex:1; border:1px solid var(--border); font-size:12px;" onclick="switchTab('calendar')">📅 KALENDARZ</button>
+                <button class="btn-primary" id="btnSave" style="flex:1; justify-content:center; font-size:12px;" onclick="manualSave()">
+                    💾 ZAPISZ
+                </button>
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border); font-size:12px;" onclick="switchTab('calendar')">
+                    📅 KALENDARZ
+                </button>
             </div>
         </div>
     </div>
@@ -183,44 +210,43 @@
         
         <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
             <div class="editor-header">
-                <div style="display:flex; justify-content:space-between; align-items: flex-start;">
-                    <div style="display:flex; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items: flex-start; width:100%;">
+                    <div style="display:flex; align-items:center; flex:1; min-width:0;">
                         <button class="btn-icon back-btn" onclick="history.back()" title="Wróć" style="margin-right:10px; display:none;">
                             <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                         </button>
-                        <div>
-                            <div style="font-weight:800; font-size:20px; color:var(--txt-head);" id="activePatientName">Wybierz pacjenta</div>
-                            <div class="patient-meta-bar" id="patientMetaDisplay">
-                                </div>
+                        <div style="overflow:hidden;">
+                            <div style="font-weight:800; font-size:18px; color:var(--txt-head); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="activePatientName">Wybierz pacjenta</div>
                         </div>
                     </div>
                     
-                    <div style="display:flex; gap: 8px;">
-                        <button class="btn-icon" onclick="openEditModal()" title="Edytuj dane pacjenta">
+                    <div style="display:flex; gap: 4px;">
+                        <button class="btn-icon" onclick="openEditModal()">
                             <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                         </button>
-                        <button class="btn-icon" onclick="addVisitTemplate()" title="Dodaj notatkę wizyty">
+                        <button class="btn-icon" onclick="addVisitTemplate()">
                             <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                         </button>
-                        <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()" title="Usuń pacjenta">
+                        <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()">
                             <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                         </button>
                     </div>
                 </div>
+                <div class="patient-meta-bar" id="patientMetaDisplay"></div>
             </div>
 
             <div class="rich-toolbar" id="richToolbar" style="display:none;">
                 <button class="toolbar-btn" onclick="fmt('bold')" title="Pogrubienie">B</button>
                 <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
-                <button class="toolbar-btn" onclick="fmt('foreColor', 'var(--txt)')" style="color:var(--txt)">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#ef4444')" style="color:#ef4444">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#10b981')" style="color:#10b981">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#3b82f6')" style="color:#3b82f6">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', 'var(--txt)')" style="color:var(--txt)">●</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#ef4444')" style="color:#ef4444">●</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#10b981')" style="color:#10b981">●</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#3b82f6')" style="color:#3b82f6">●</button>
                 <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
                 <button class="toolbar-btn" onclick="addLink()">🔗</button>
             </div>
 
-            <div id="content" contenteditable="false" placeholder="Wybierz pacjenta..." oninput="updateNotes()"></div>
+            <div id="content" contenteditable="false" oninput="triggerAutoSave()"></div>
 
             <div class="gallery-bar" id="galleryContainer" style="display:none;">
                 <div class="thumb-wrap" style="display:flex; align-items:center; justify-content:center; background:var(--input-bg); border:2px dashed var(--border); border-radius:8px; cursor:pointer;" onclick="document.getElementById('imgInp').click()">
@@ -232,13 +258,12 @@
         </div>
 
         <div id="viewCalendar" class="calendar-view">
-            <div style="display:flex; align-items:center; gap:15px; margin-bottom:25px;">
-                <button class="btn-icon" onclick="switchTab('editor')">
-                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+                <button class="btn-icon back-btn" onclick="history.back()"> <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 </button>
-                <h2 style="margin:0;">Terminarz wizyt</h2>
+                <h2 style="margin:0;">Terminarz</h2>
             </div>
-            <div style="max-width:300px; margin-bottom:30px;">
+            <div style="max-width:300px; margin-bottom:20px;">
                 <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">WYBIERZ DATĘ:</label>
                 <input type="date" id="calDate" onchange="renderCalendar()">
             </div>
@@ -249,14 +274,11 @@
 
 <div id="editModal" class="modal-overlay">
     <div class="modal-card">
-        <h3 style="margin-top:0;">Dane Pacjenta</h3>
+        <h3 style="margin-top:0;">Edycja Pacjenta</h3>
         <label class="form-label">Imię i Nazwisko</label>
         <input type="text" id="editName">
         <div class="form-grid">
-            <div>
-                <label class="form-label">Data Urodzenia</label>
-                <input type="date" id="editDob">
-            </div>
+            <div><label class="form-label">Data Urodzenia</label><input type="date" id="editDob"></div>
             <div>
                 <label class="form-label">Status</label>
                 <select id="editStatus">
@@ -266,32 +288,19 @@
                     <option value="Konsultacja">Konsultacja</option>
                 </select>
             </div>
-            <div class="form-full">
-                <label class="form-label">Miejsce Zamieszkania (Adres)</label>
-                <input type="text" id="editAddress">
-            </div>
-            <div>
-                <label class="form-label">Telefon</label>
-                <input type="text" id="editPhone">
-            </div>
-            <div>
-                <label class="form-label">Email</label>
-                <input type="email" id="editEmail">
-            </div>
-            <div>
-                <label class="form-label">Miejsce Wizyt</label>
-                <input type="text" id="editLocation">
-            </div>
-            <div style="display:flex; align-items:center; height:100%;">
+            <div class="form-full"><label class="form-label">Adres</label><input type="text" id="editAddress"></div>
+            <div><label class="form-label">Telefon</label><input type="text" id="editPhone"></div>
+            <div><label class="form-label">Email</label><input type="email" id="editEmail"></div>
+            <div><label class="form-label">Miejsce Wizyt</label><input type="text" id="editLocation"></div>
+            <div style="display:flex; align-items:center;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" id="editOnline" style="width:auto;">
-                    <span style="font-size:14px;">Wizyta Online</span>
+                    <input type="checkbox" id="editOnline"> Wizyta Online
                 </label>
             </div>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
             <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeEditModal()">Anuluj</button>
-            <button class="btn-primary" onclick="savePatientDetails()">Zapisz zmiany</button>
+            <button class="btn-primary" onclick="savePatientDetails()">Zapisz</button>
         </div>
     </div>
 </div>
@@ -307,8 +316,10 @@
     let fileHandle = null;
     let authUser = "";
     let authPass = "";
+    let isDirty = false;
+    let autoSaveTimer = null;
     
-    // Zmienne do obsługi gestów
+    // Gesty
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -317,427 +328,371 @@
         document.body.setAttribute('data-theme', theme);
         document.getElementById('calDate').valueAsDate = new Date();
         setupGestures();
+        
+        // Sprawdź czy jest "BackUp" w LocalStorage
+        if(localStorage.getItem('terapeutnik_backup')) {
+            document.getElementById('recoveryBtn').style.display = 'block';
+        }
     };
     
-    // --- OBSŁUGA GESTÓW I PRZYCISKU WSTECZ (ANDROID) ---
-    
-    // Nasłuchiwanie systemowego przycisku wstecz
+    // --- SYSTEM HISTORII I GESTÓW ---
     window.onpopstate = function(event) {
-        if (activeId) {
-            // Jeżeli jesteśmy w pacjencie, wywołujemy funkcję wyjścia
-            // Przekazujemy 'false' aby nie modyfikować już historii (bo właśnie z niej wróciliśmy)
-            exitView(false);
+        // Jeśli jesteśmy w widoku pacjenta LUB kalendarza
+        const isCal = document.getElementById('viewCalendar').classList.contains('active');
+        if (activeId || isCal) {
+            exitView(false); // false = nie dotykaj już historii
         }
     };
 
     function setupGestures() {
         const mainArea = document.getElementById('mainArea');
-        
-        mainArea.addEventListener('touchstart', (e) => {
+        mainArea.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
         }, {passive: true});
 
-        mainArea.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
-            handleSwipeGesture(touchEndX, touchEndY);
+        mainArea.addEventListener('touchend', e => {
+            const endX = e.changedTouches[0].screenX;
+            const endY = e.changedTouches[0].screenY;
+            handleSwipeGesture(endX, endY);
         }, {passive: true});
     }
 
     function handleSwipeGesture(endX, endY) {
-        // Sprawdź czy jesteśmy w trybie pacjenta
-        if (!activeId) return;
+        // Sprawdź czy jesteśmy w trybie edycji LUB kalendarza
+        const isEditor = !!activeId;
+        const isCalendar = document.getElementById('viewCalendar').classList.contains('active');
+        
+        if (!isEditor && !isCalendar) return;
 
-        // Warunki gestu "Wstecz" (Swipe w prawo):
-        // 1. Ruch w poziomie min. 60px
-        // 2. Ruch w pionie max. 50px (żeby nie mylić ze scrollowaniem)
+        // Gest Wstecz (Swipe w prawo > 60px)
         if (endX - touchStartX > 60 && Math.abs(endY - touchStartY) < 50) {
-            // Wywołaj history.back() - to samo co przycisk trójkąta
             history.back();
         }
     }
 
     function toggleTheme() {
-        const current = document.body.getAttribute('data-theme');
-        const next = current === 'light' ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
+        const c = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', c); localStorage.setItem('theme', c);
     }
+    function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
 
-    function showToast(m) {
-        const t = document.getElementById('toast');
-        t.innerText = m;
-        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
-    }
-
-    // --- LOGOWANIE I PLIKI ---
+    // --- LOGOWANIE ---
     async function handleLogin(mode) {
         const u = document.getElementById('loginUser').value.trim();
         const p = document.getElementById('loginPass').value;
         if(!u || !p) return document.getElementById('loginError').innerText = "Wypełnij oba pola.";
-        
         authUser = u; authPass = p;
         try {
             if(mode === 'create') {
                 db = { patients: {}, calendar: {} };
                 if(window.showSaveFilePicker) {
-                    fileHandle = await window.showSaveFilePicker({
-                        suggestedName: `${u}.json`,
-                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
-                    });
+                    try {
+                        fileHandle = await window.showSaveFilePicker({ suggestedName: `${u}.json`, types: [{ accept: {'application/json': ['.json']} }] });
+                    } catch(e) { console.log("Anulowano wybór pliku"); }
                 }
-                await saveToDisk();
+                manualSave();
                 enterApp();
             } else {
                 let text;
                 if(window.showOpenFilePicker) {
-                    [fileHandle] = await window.showOpenFilePicker({
-                        types: [{ description: 'Baza JSON', accept: {'application/json': ['.json']} }]
-                    });
-                    const file = await fileHandle.getFile();
-                    text = await file.text();
+                    try {
+                        [fileHandle] = await window.showOpenFilePicker({ types: [{ accept: {'application/json': ['.json']} }] });
+                        const file = await fileHandle.getFile();
+                        text = await file.text();
+                    } catch(e) { return; }
                 } else {
-                    const input = document.createElement('input');
-                    input.type = 'file'; input.accept = '.json';
+                    // Fallback dla Androida (Input File)
+                    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
                     input.onchange = async e => {
-                        const f = e.target.files[0];
-                        if(f) {
-                            const raw = await f.text();
-                            await decryptAndLoad(raw);
-                        }
+                        if(e.target.files[0]) decryptAndLoad(await e.target.files[0].text());
                     };
                     input.click(); return;
                 }
                 if(text) await decryptAndLoad(text);
             }
-        } catch(e) { if(e.name !== 'AbortError') alert(e.message); }
+        } catch(e) { alert(e.message); }
+    }
+    
+    // Przywracanie sesji z LocalStorage
+    function restoreSession() {
+        const encrypted = localStorage.getItem('terapeutnik_backup');
+        if(encrypted) {
+            const u = prompt("Podaj nazwę użytkownika dla kopii zapasowej:");
+            const p = prompt("Podaj hasło do kopii zapasowej:");
+            authUser = u; authPass = p; // Ustawiamy tymczasowo do odszyfrowania
+            decryptAndLoad(encrypted, true);
+        }
     }
 
-    async function decryptAndLoad(raw) {
+    async function decryptAndLoad(raw, isRecovery=false) {
         try {
             const wrapper = JSON.parse(raw);
+            // Jeśli to recovery, upewnij się że user się zgadza
+            if(!isRecovery && wrapper.user !== authUser) throw new Error("Zły użytkownik!");
+            
             const decrypted = await decryptData(wrapper, authPass);
             db = JSON.parse(decrypted);
             enterApp();
-        } catch(e) { document.getElementById('loginError').innerText = "Błędne hasło lub plik."; }
+            if(isRecovery) showToast("Przywrócono sesję! Zapisz teraz do pliku.");
+        } catch(e) { 
+            document.getElementById('loginError').innerText = "Błędne hasło lub plik."; 
+            console.error(e);
+        }
     }
 
     function enterApp() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appLayout').style.display = 'flex';
-        document.getElementById('userDisplay').innerText = "Użytkownik: " + authUser;
+        document.getElementById('userDisplay').innerText = authUser;
         renderList();
     }
 
     // --- KRYPTOGRAFIA ---
-    function b64ToBuf(b) { return Uint8Array.from(atob(b), c => c.charCodeAt(0)); }
-    function bufToB64(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
-
-    async function deriveKey(pw, salt) {
-        const enc = new TextEncoder();
-        const keyMat = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
-        return crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITER, hash: 'SHA-256' },
-            keyMat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-        );
+    function b64ToBuf(b){return Uint8Array.from(atob(b),c=>c.charCodeAt(0))}
+    function bufToB64(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b)))}
+    async function deriveKey(pw,salt){
+        const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+        return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:PBKDF2_ITER,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
     }
-
-    async function encryptData(str, pw) {
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await deriveKey(pw, salt);
-        const encoded = new TextEncoder().encode(str);
-        const encrypted = await crypto.subtle.encrypt({name:'AES-GCM', iv: iv}, key, encoded);
-        return { salt: bufToB64(salt), iv: bufToB64(iv), data: bufToB64(encrypted), user: authUser };
+    async function encryptData(str,pw){
+        const salt=crypto.getRandomValues(new Uint8Array(16)); const iv=crypto.getRandomValues(new Uint8Array(12));
+        const key=await deriveKey(pw,salt);
+        const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(str));
+        return {salt:bufToB64(salt),iv:bufToB64(iv),data:bufToB64(enc),user:authUser};
     }
-
-    async function decryptData(w, pw) {
-        const salt = b64ToBuf(w.salt);
-        const iv = b64ToBuf(w.iv);
-        const data = b64ToBuf(w.data);
-        const key = await deriveKey(pw, salt);
-        const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv: iv}, key, data);
+    async function decryptData(w,pw){
+        const key=await deriveKey(pw,b64ToBuf(w.salt));
+        const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBuf(w.iv)},key,b64ToBuf(w.data));
         return new TextDecoder().decode(dec);
     }
 
-    async function saveToDisk() {
+    // --- SAVE SYSTEM (SMART) ---
+    function triggerAutoSave() {
+        isDirty = true;
+        updateSaveStatus();
+        if(activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML;
+        
+        // Zapisz do LocalStorage natychmiast (Backup)
+        encryptData(JSON.stringify(db), authPass).then(enc => {
+            localStorage.setItem('terapeutnik_backup', JSON.stringify(enc));
+        });
+
+        // Debounce zapisu do pliku (tylko jeśli mamy uchwyt)
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            if(fileHandle) saveToDisk(true);
+        }, 2000); // Spróbuj zapisać po 2 sek bezczynności
+    }
+
+    async function saveToDisk(silent = false) {
         try {
             const encrypted = await encryptData(JSON.stringify(db), authPass);
-            const blob = new Blob([JSON.stringify(encrypted, null, 2)], {type:'application/json'});
+            const blob = new Blob([JSON.stringify(encrypted,null,2)], {type:'application/json'});
+            
             if(fileHandle) {
+                // Próba zapisu bezpośredniego
                 const w = await fileHandle.createWritable();
                 await w.write(blob); await w.close();
-                showToast("Zapisano zmiany.");
+                isDirty = false;
+                updateSaveStatus();
+                if(!silent) showToast("Zapisano zmiany.");
+                // Po udanym zapisie do pliku, czyścimy backup, żeby nie śmiecić
+                localStorage.removeItem('terapeutnik_backup');
             } else {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${authUser}_baza.json`; a.click();
-                showToast("Pobrano plik bazy.");
+                if(!silent) {
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                    a.download = `${authUser}_baza.json`; a.click();
+                    isDirty = false; updateSaveStatus();
+                    showToast("Pobrano plik.");
+                }
             }
-        } catch(e) { alert("Błąd zapisu: " + e.message); }
+        } catch(e) {
+            if(!silent) alert("Błąd zapisu: " + e.message);
+            isDirty = true; updateSaveStatus();
+        }
     }
-
-    // --- PACJENCI ---
-    function addPatient() {
-        const n = prompt("Nazwisko i Imię (lub Inicjały):");
-        if(n) {
-            const id = 'p' + Date.now();
-            db.patients[id] = { 
-                name: n, notes: "", images: [],
-                dob: "", email: "", phone: "", address: "", location: "", isOnline: false, status: "Aktywny"
-            };
-            renderList();
-            selectPatient(id);
-            openEditModal();
+    
+    function manualSave() { saveToDisk(false); }
+    
+    function updateSaveStatus() {
+        const dot = document.getElementById('saveStatus');
+        const btn = document.getElementById('btnSave');
+        if(isDirty) {
+            dot.className = "status-dot unsaved";
+            btn.style.background = "var(--warn)";
+            btn.innerText = "💾 ZAPISZ *";
+        } else {
+            dot.className = "status-dot saved";
+            btn.style.background = "var(--p)";
+            btn.innerText = "💾 ZAPISZ";
         }
     }
 
+    // --- LOGIKA UI ---
+    function addPatient() {
+        const n=prompt("Imię i Nazwisko:");
+        if(n) {
+            const id='p'+Date.now();
+            db.patients[id]={name:n,notes:"",images:[],dob:"",email:"",phone:"",address:"",location:"",isOnline:false,status:"Aktywny"};
+            renderList(); selectPatient(id); openEditModal(); triggerAutoSave();
+        }
+    }
     function deletePatient() {
         if(!activeId) return;
-        if(confirm(`Usunąć trwale pacjenta: ${db.patients[activeId].name}?`)) {
+        if(confirm(`Usunąć: ${db.patients[activeId].name}?`)) {
             delete db.patients[activeId];
-            for(let d in db.calendar) { for(let h in db.calendar[d]) if(db.calendar[d][h] === activeId) delete db.calendar[d][h]; }
-            activeId = null;
-            exitView(true); // Użyj true aby wymusić powrót w historii
-            renderList();
-            saveToDisk();
+            for(let d in db.calendar) for(let h in db.calendar[d]) if(db.calendar[d][h]===activeId) delete db.calendar[d][h];
+            activeId=null; exitView(true); renderList(); triggerAutoSave();
         }
     }
-
     function renderList() {
-        const container = document.getElementById('patientList');
-        const query = document.getElementById('patientSearch').value.toLowerCase();
-        container.innerHTML = "";
-        
-        Object.keys(db.patients)
-        .filter(id => {
-            const p = db.patients[id];
-            const text = `${p.name} ${p.location||''} ${p.status||''}`.toLowerCase();
-            return text.includes(query);
-        })
-        .sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name))
-        .forEach(id => {
-            const p = db.patients[id];
-            const div = document.createElement('div');
-            div.className = `patient-item ${id === activeId ? 'active' : ''}`;
-            let sub = [];
-            if(p.status) sub.push(p.status);
-            if(p.location) sub.push(p.location);
-            if(p.isOnline) sub.push("Online");
-            
-            div.innerHTML = `<div style="font-weight:600;">${p.name}</div>
-                <div class="sub-info"><span>${sub.join(' • ')}</span></div>`;
-            div.onclick = () => selectPatient(id);
-            container.appendChild(div);
+        const c=document.getElementById('patientList'); const q=document.getElementById('patientSearch').value.toLowerCase();
+        c.innerHTML="";
+        Object.keys(db.patients).filter(id=>{
+            const p=db.patients[id]; return (p.name+p.location+p.status).toLowerCase().includes(q);
+        }).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id=>{
+            const p=db.patients[id]; const d=document.createElement('div');
+            d.className=`patient-item ${id===activeId?'active':''}`;
+            let sub=[p.status,p.location,p.isOnline?"Online":""].filter(Boolean).join(" • ");
+            d.innerHTML=`<div style="font-weight:600">${p.name}</div><div class="sub-info"><span>${sub}</span></div>`;
+            d.onclick=()=>selectPatient(id); c.appendChild(d);
         });
     }
 
     function selectPatient(id) {
-        activeId = id;
-        const p = db.patients[id];
+        activeId=id; const p=db.patients[id];
+        history.pushState({view:'patient',id:id}, "", "#patient"); // Historia
         
-        // --- DODAJEMY STAN DO HISTORII ---
-        // Dzięki temu przycisk "Wstecz" zadziała
-        history.pushState({view: 'patient', id: id}, "", "#patient");
-
-        document.getElementById('activePatientName').innerText = p.name;
-        
+        document.getElementById('activePatientName').innerText=p.name;
         // Oblicz wiek
-        let ageInfo = "";
-        if(p.dob) {
-            const birth = new Date(p.dob);
-            const today = new Date();
-            let age = today.getFullYear() - birth.getFullYear();
-            const m = today.getMonth() - birth.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-            ageInfo = `${age} lat`;
-        }
+        let age=""; if(p.dob){const b=new Date(p.dob),t=new Date(); let a=t.getFullYear()-b.getFullYear(); 
+        if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--; age=a+" lat";}
 
-        const metaContainer = document.getElementById('patientMetaDisplay');
-        metaContainer.innerHTML = "";
-        const tags = [];
-        if(ageInfo) tags.push(`🎂 ${ageInfo}`);
-        if(p.phone) tags.push(`📞 ${p.phone}`);
-        if(p.status) tags.push(`🏷️ ${p.status}`);
-        if(p.location) tags.push(`📍 ${p.location}`);
-        
-        tags.forEach(t => {
-            const span = document.createElement('span'); span.className = 'meta-tag'; span.innerText = t;
-            metaContainer.appendChild(span);
+        const meta=document.getElementById('patientMetaDisplay'); meta.innerHTML="";
+        [age?`🎂 ${age}`:'', p.phone?`📞 ${p.phone}`:'', p.status, p.location?`📍 ${p.location}`:''].filter(Boolean).forEach(t=>{
+            meta.innerHTML+=`<span class="meta-tag">${t}</span>`;
         });
 
-        const contentDiv = document.getElementById('content');
-        contentDiv.innerHTML = p.notes || "";
-        contentDiv.contentEditable = "true";
-        
-        document.getElementById('richToolbar').style.display = "flex";
-        document.querySelector('.back-btn').style.display = 'flex';
-        document.getElementById('galleryContainer').style.display = "flex";
-        
+        const con=document.getElementById('content'); con.innerHTML=p.notes||""; con.contentEditable="true";
+        document.getElementById('richToolbar').style.display="flex";
+        document.querySelector('.back-btn').style.display='flex';
+        document.getElementById('galleryContainer').style.display="flex";
         document.body.classList.add('view-active');
+        renderList(); renderGallery();
+    }
+
+    function exitView(updHist=false) {
+        document.body.classList.remove('view-active'); activeId=null;
+        const c=document.getElementById('content'); c.contentEditable="false"; c.innerHTML="";
+        document.getElementById('activePatientName').innerText="Wybierz pacjenta";
+        document.getElementById('patientMetaDisplay').innerHTML="";
+        document.getElementById('richToolbar').style.display="none";
+        document.querySelector('.back-btn').style.display='none';
+        document.getElementById('galleryContainer').style.display="none";
+        document.getElementById('viewCalendar').classList.remove('active'); // Ważne dla Swipe
+        document.getElementById('viewEditor').style.display="flex";
         renderList();
-        renderGallery();
+        if(updHist) history.back();
     }
 
-    // --- RICH TEXT ---
-    function updateNotes() { if(activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML; }
-    function fmt(cmd, val=null) { document.execCommand(cmd, false, val); document.getElementById('content').focus(); }
-    function addLink() { const url = prompt("URL:"); if(url) fmt('createLink', url); }
-    function addVisitTemplate() {
-        if(!activeId) return;
-        const dateStr = new Date().toLocaleString('pl-PL');
-        document.getElementById('content').innerHTML += `<br><hr><b>SESJA: ${dateStr}</b><br><span style="color:var(--txt-muted)">Stan:</span><br><br><span style="color:var(--txt-muted)">Działania:</span><br><br>`;
-        updateNotes();
-        const div = document.getElementById('content'); div.scrollTop = div.scrollHeight;
+    // Rich Text & Modal
+    function fmt(c,v=null){document.execCommand(c,false,v); document.getElementById('content').focus(); triggerAutoSave();}
+    function addLink(){const u=prompt("URL:"); if(u) fmt('createLink',u);}
+    function addVisitTemplate(){
+        if(!activeId)return; 
+        document.getElementById('content').innerHTML+=`<br><hr><b>WIZYTA: ${new Date().toLocaleString()}</b><br><span style="color:#64748b">Objawy:</span><br><br><span style="color:#64748b">Plan:</span><br><br>`;
+        triggerAutoSave();
+        const d=document.getElementById('content'); d.scrollTop=d.scrollHeight;
+    }
+    
+    function openEditModal(){
+        if(!activeId)return; const p=db.patients[activeId];
+        document.getElementById('editName').value=p.name;
+        document.getElementById('editDob').value=p.dob||"";
+        document.getElementById('editStatus').value=p.status||"Aktywny";
+        document.getElementById('editAddress').value=p.address||"";
+        document.getElementById('editPhone').value=p.phone||"";
+        document.getElementById('editEmail').value=p.email||"";
+        document.getElementById('editLocation').value=p.location||"";
+        document.getElementById('editOnline').checked=p.isOnline||false;
+        document.getElementById('editModal').style.display='flex';
+    }
+    function closeEditModal(){document.getElementById('editModal').style.display='none';}
+    function savePatientDetails(){
+        if(!activeId)return; const p=db.patients[activeId];
+        p.name=document.getElementById('editName').value;
+        p.dob=document.getElementById('editDob').value;
+        p.status=document.getElementById('editStatus').value;
+        p.address=document.getElementById('editAddress').value;
+        p.phone=document.getElementById('editPhone').value;
+        p.email=document.getElementById('editEmail').value;
+        p.location=document.getElementById('editLocation').value;
+        p.isOnline=document.getElementById('editOnline').checked;
+        closeEditModal(); document.getElementById('activePatientName').innerText=p.name;
+        renderList(); triggerAutoSave();
     }
 
-    // --- EDYCJA MODAL ---
-    function openEditModal() {
-        if(!activeId) return;
-        const p = db.patients[activeId];
-        document.getElementById('editName').value = p.name;
-        document.getElementById('editDob').value = p.dob || "";
-        document.getElementById('editStatus').value = p.status || "Aktywny";
-        document.getElementById('editAddress').value = p.address || "";
-        document.getElementById('editPhone').value = p.phone || "";
-        document.getElementById('editEmail').value = p.email || "";
-        document.getElementById('editLocation').value = p.location || "";
-        document.getElementById('editOnline').checked = p.isOnline || false;
-        document.getElementById('editModal').style.display = 'flex';
-    }
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-    function savePatientDetails() {
-        if(!activeId) return;
-        const p = db.patients[activeId];
-        p.name = document.getElementById('editName').value;
-        p.dob = document.getElementById('editDob').value;
-        p.status = document.getElementById('editStatus').value;
-        p.address = document.getElementById('editAddress').value;
-        p.phone = document.getElementById('editPhone').value;
-        p.email = document.getElementById('editEmail').value;
-        p.location = document.getElementById('editLocation').value;
-        p.isOnline = document.getElementById('editOnline').checked;
-        closeEditModal();
-        // Odśwież widok bez zmiany historii
-        document.getElementById('activePatientName').innerText = p.name;
-        renderList();
-        saveToDisk();
-    }
-
-    function exitView(updateHistory = false) {
-        document.body.classList.remove('view-active');
-        activeId = null;
-        
-        const contentDiv = document.getElementById('content');
-        contentDiv.contentEditable = "false";
-        contentDiv.innerHTML = "";
-        
-        document.getElementById('activePatientName').innerText = "Wybierz pacjenta";
-        document.getElementById('patientMetaDisplay').innerHTML = "";
-        
-        document.getElementById('richToolbar').style.display = "none";
-        document.querySelector('.back-btn').style.display = 'none';
-        document.getElementById('galleryContainer').style.display = "none";
-        document.getElementById('viewCalendar').classList.remove('active');
-        document.getElementById('viewEditor').style.display = "flex";
-        renderList();
-        
-        // Jeśli funkcja wywołana ręcznie (nie przez przycisk wstecz),
-        // musimy cofnąć się w historii, aby usunąć stan #patient
-        if(updateHistory) {
-             history.back();
-        }
-    }
-
-    // --- ZDJĘCIA (Z POPRAWKĄ KOMPRESJI) ---
+    // --- ZDJĘCIA (SAFE MODE) ---
     function uploadImg(e) {
         if(!activeId || !e.target.files[0]) return;
         const reader = new FileReader();
         reader.onload = evt => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                // Silna kompresja rozmiaru
-                const MAX_DIM = 800; 
-                let w = img.width, h = img.height;
-                if (w > h) { if (w > MAX_DIM) { h *= MAX_DIM / w; w = MAX_DIM; } } 
-                else { if (h > MAX_DIM) { w *= MAX_DIM / h; h = MAX_DIM; } }
-
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                
-                // Silna kompresja jakości (JPEG 0.5)
-                const data = canvas.toDataURL('image/jpeg', 0.5);
-                db.patients[activeId].images.push(data);
-                renderGallery();
-                saveToDisk();
+                const cvs = document.createElement('canvas');
+                const MAX = 800; let w=img.width, h=img.height;
+                if(w>h){if(w>MAX){h*=MAX/w; w=MAX;}} else{if(h>MAX){w*=MAX/h; h=MAX;}}
+                cvs.width=w; cvs.height=h; cvs.getContext('2d').drawImage(img,0,0,w,h);
+                db.patients[activeId].images.push(cvs.toDataURL('image/jpeg', 0.5));
+                renderGallery(); triggerAutoSave();
             };
             img.src = evt.target.result;
         };
         reader.readAsDataURL(e.target.files[0]);
     }
-
     function renderGallery() {
-        const list = document.getElementById('galleryList');
-        list.innerHTML = "";
-        if(!activeId) return;
-        db.patients[activeId].images.forEach((src, i) => {
-            const wrap = document.createElement('div'); wrap.className = 'thumb-wrap';
-            const img = document.createElement('img'); img.className = 'thumb'; img.src = src;
-            img.onclick = () => { document.getElementById('imgFull').src = src; document.getElementById('imgModal').style.display = 'flex'; };
-            const del = document.createElement('div'); del.className = 'thumb-del'; del.innerText = '×';
-            del.onclick = (e) => { e.stopPropagation(); if(confirm("Usunąć obraz?")) { db.patients[activeId].images.splice(i, 1); renderGallery(); saveToDisk(); }};
-            wrap.append(img, del); list.appendChild(wrap);
+        const l=document.getElementById('galleryList'); l.innerHTML=""; if(!activeId)return;
+        db.patients[activeId].images.forEach((s,i)=>{
+            const w=document.createElement('div'); w.className='thumb-wrap';
+            w.innerHTML=`<img class="thumb" src="${s}" onclick="document.getElementById('imgFull').src='${s}';document.getElementById('imgModal').style.display='flex'">
+            <div class="thumb-del" onclick="event.stopPropagation();if(confirm('Usunąć?')){db.patients['${activeId}'].images.splice(${i},1);renderGallery();triggerAutoSave();}">×</div>`;
+            l.appendChild(w);
         });
     }
 
-    // --- KALENDARZ (Z KOLOREM) ---
+    // --- KALENDARZ ---
     function switchTab(t) {
-        if(t === 'calendar') {
-            document.getElementById('viewEditor').style.display = 'none';
+        if(t==='calendar'){
+            history.pushState({view:'calendar'}, "", "#calendar");
+            document.getElementById('viewEditor').style.display='none';
             document.getElementById('viewCalendar').classList.add('active');
             document.body.classList.add('view-active');
             renderCalendar();
         } else {
-            document.getElementById('viewCalendar').classList.remove('active');
-            document.getElementById('viewEditor').style.display = 'flex';
-            if(!activeId) document.body.classList.remove('view-active');
+            // Wstecz
+            history.back();
         }
     }
-
     function renderCalendar() {
-        const date = document.getElementById('calDate').value;
-        const con = document.getElementById('timeSlots');
-        con.innerHTML = "";
-        if(!db.calendar[date]) db.calendar[date] = {};
-        
-        for(let h=8; h<=20; h++) {
-            const t = (h<10?'0'+h:h)+":00";
-            const row = document.createElement('div'); 
-            row.className = 'time-slot';
+        const d=document.getElementById('calDate').value; const c=document.getElementById('timeSlots'); c.innerHTML="";
+        if(!db.calendar[d]) db.calendar[d]={};
+        for(let h=8;h<=20;h++){
+            const t=(h<10?'0'+h:h)+":00"; 
+            const pid = db.calendar[d][t];
+            const row=document.createElement('div'); row.className=`time-slot ${pid ? 'booked' : ''}`;
             
-            // Sprawdź czy termin jest zajęty
-            const isBooked = !!db.calendar[date][t];
-            if(isBooked) {
-                row.classList.add('booked'); // Dodaj klasę CSS (zielone tło)
-            }
-
-            const sel = document.createElement('select'); 
-            sel.innerHTML = `<option value="">-- WOLNE --</option>`;
-            // Jeśli zajęte, tło selecta przezroczyste by było widać kolor wiersza
-            if(isBooked) sel.style.backgroundColor = 'transparent';
-
-            Object.keys(db.patients).forEach(pid => {
-                const o = document.createElement('option'); o.value = pid; o.innerText = db.patients[pid].name;
-                if(db.calendar[date][t] === pid) o.selected = true;
-                sel.appendChild(o);
+            const sel=document.createElement('select'); 
+            sel.innerHTML=`<option value="">-- WOLNE --</option>`;
+            if(pid) sel.style.background='transparent';
+            
+            Object.keys(db.patients).forEach(id=>{
+                const o=document.createElement('option'); o.value=id; o.innerText=db.patients[id].name;
+                if(pid===id) o.selected=true; sel.appendChild(o);
             });
-            sel.onchange = e => { db.calendar[date][t] = e.target.value; saveToDisk(); renderCalendar(); }; // Re-render dla koloru
-            
-            row.innerHTML = `<div class="time-label" style="width:70px; font-weight:bold;">${t}</div>`; 
-            row.appendChild(sel);
-            con.appendChild(row);
+            sel.onchange=e=>{ db.calendar[d][t]=e.target.value; renderCalendar(); triggerAutoSave(); };
+            row.innerHTML=`<div style="width:50px;font-weight:bold;">${t}</div>`; row.appendChild(sel);
+            c.appendChild(row);
         }
     }
 </script>
