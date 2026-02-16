@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik</title>
+    <title>Terapeutnik 2.0</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
     <style>
-        /* --- MOTYWY (Dzień / Noc) --- */
+        /* --- MOTYWY --- */
         [data-theme="light"] {
             --bg: #f1f5f9;
             --sidebar-bg: #ffffff;
@@ -18,10 +18,11 @@
             --txt-muted: #64748b;
             --border: #e2e8f0;
             --input-bg: #f8fafc;
-            --p: #059669; 
+            --p: #059669;
             --p-hover: #047857;
             --p-light: #d1fae5;
             --danger: #ef4444;
+            --link: #2563eb;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
@@ -38,6 +39,7 @@
             --p-hover: #059669;
             --p-light: rgba(16, 185, 129, 0.15);
             --danger: #f87171;
+            --link: #60a5fa;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
         }
 
@@ -49,156 +51,100 @@
         }
 
         /* --- LAYOUT --- */
-        #appLayout {
-            display: none; 
-            height: 100vh; width: 100vw; display: flex;
-        }
+        #appLayout { display: none; height: 100vh; width: 100vw; display: flex; }
+        .sidebar { width: 320px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
+        .main-area { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; overflow: hidden; }
 
-        .sidebar {
-            width: 320px; background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;
-        }
-
-        .main-area {
-            flex-grow: 1; display: flex; flex-direction: column;
-            background: var(--bg); position: relative; overflow: hidden;
-        }
-
-        /* --- LOGOWANIE --- */
-        #loginScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 5000;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .login-card {
-            background: var(--card-bg); width: 100%; max-width: 380px;
-            padding: 40px; border-radius: 20px; box-shadow: var(--shadow);
-            border: 1px solid var(--border); text-align: center;
-        }
-
-        /* --- UI --- */
-        .header-bar {
-            padding: 15px 20px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-            background: var(--sidebar-bg);
-        }
-        .app-title { font-weight: 800; font-size: 18px; color: var(--p); display: flex; align-items: center; gap: 8px; }
-
-        .btn-icon {
-            background: transparent; border: none; color: var(--txt-muted);
-            padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
+        /* --- UI ELEMENTS --- */
+        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .btn-icon:hover { background: var(--input-bg); color: var(--p); }
-        .btn-icon svg { width: 22px; height: 22px; fill: currentColor; }
-
-        .btn-primary {
-            background: var(--p); color: white; border: none; padding: 12px 16px; border-radius: 8px;
-            font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;
-        }
+        .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
+        
+        .btn-primary { background: var(--p); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
         .btn-primary:hover { background: var(--p-hover); }
 
-        input, select, textarea {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
-            background: var(--input-bg); color: var(--txt); box-sizing: border-box;
-            font-size: 15px; outline: none; transition: border 0.2s;
-        }
-        input:focus, textarea:focus { border-color: var(--p); }
+        input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); box-sizing: border-box; font-size: 14px; outline: none; transition: border 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--p); }
 
-        /* Lista Pacjentów */
-        .scroll-area { overflow-y: auto; flex-grow: 1; padding: 10px; }
-        .patient-item {
-            padding: 12px 15px; border-radius: 10px; margin-bottom: 6px;
-            cursor: pointer; font-weight: 600; font-size: 14px;
-            display: flex; justify-content: space-between; align-items: center;
-            color: var(--txt); transition: 0.2s; border: 1px solid transparent;
-        }
+        /* --- LOGIN --- */
+        #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--card-bg); width: 100%; max-width: 380px; padding: 40px; border-radius: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
+
+        /* --- PACJENCI --- */
+        .patient-item { padding: 12px 15px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; gap: 4px; color: var(--txt); border: 1px solid transparent; }
         .patient-item:hover { background: var(--input-bg); border-color: var(--border); }
         .patient-item.active { background: var(--p); color: white; }
+        .patient-item.active .sub-info { color: rgba(255,255,255,0.8); }
+        .sub-info { font-size: 11px; color: var(--txt-muted); display: flex; justify-content: space-between; }
+        
+        /* --- EDYTOR & TOOLBAR --- */
+        .editor-header { background: var(--sidebar-bg); border-bottom: 1px solid var(--border); padding: 10px 20px; }
+        .patient-meta-bar { display: flex; flex-wrap: wrap; gap: 15px; font-size: 12px; color: var(--txt-muted); margin-top: 5px; align-items: center; }
+        .meta-tag { background: var(--input-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        
+        .rich-toolbar { padding: 8px 20px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+        .toolbar-btn { width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: serif; font-size: 16px; color: var(--txt); }
+        .toolbar-btn:hover { background: var(--input-bg); }
+        
+        #content { flex-grow: 1; border: none; padding: 30px; font-size: 16px; line-height: 1.6; color: var(--txt); background: var(--bg); outline: none; overflow-y: auto; white-space: pre-wrap; font-family: inherit; }
+        #content a { color: var(--link); text-decoration: underline; cursor: pointer; }
+        
+        /* --- MODAL EDYCJI --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-card { background: var(--card-bg); width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+        .form-full { grid-column: span 2; }
+        .form-label { display: block; font-size: 11px; font-weight: bold; color: var(--txt-muted); margin-bottom: 5px; text-transform: uppercase; }
 
-        /* Edytor */
-        .editor-toolbar {
-            padding: 10px 20px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center; min-height: 60px;
-        }
-        #content {
-            flex-grow: 1; border: none; resize: none; padding: 30px;
-            font-size: 16px; line-height: 1.7; color: var(--txt);
-            background: var(--bg); outline: none; font-family: inherit;
-            user-select: text !important; -webkit-user-select: text !important;
-        }
+        /* --- GALERIA & KALENDARZ --- */
+        .gallery-bar { padding: 15px 20px; background: var(--sidebar-bg); border-top: 1px solid var(--border); display: flex; gap: 12px; overflow-x: auto; }
+        .thumb-wrap { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
+        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+        .thumb-del { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: var(--danger); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
 
-        /* Galeria */
-        .gallery-bar {
-            padding: 15px 20px; background: var(--sidebar-bg); border-top: 1px solid var(--border);
-            display: flex; gap: 12px; overflow-x: auto; align-items: center;
-        }
-        .thumb-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; }
-        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
-        .thumb-del { 
-            position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; 
-            background: var(--danger); color: white; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* Kalendarz */
         .calendar-view { padding: 30px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
         .calendar-view.active { display: block; }
         .time-slot { display: flex; margin-bottom: 10px; align-items: center; gap: 15px; max-width: 600px; }
-        .time-label { width: 70px; font-weight: bold; color: var(--txt-muted); font-size: 14px; }
 
-        /* --- RESPONSYWNOŚĆ --- */
-        .back-btn { display: flex; margin-right: 12px; } /* Widoczny wszędzie dla ułatwienia nawigacji */
-
+        /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
             .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); transition: 0.3s; }
             .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); transition: 0.3s; z-index: 20; }
             body.view-active .sidebar { transform: translateX(-20%); }
             body.view-active .main-area { transform: translateX(0); }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-full { grid-column: span 1; }
         }
 
-        #imgModal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center;
-        }
+        #imgModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center; }
         #imgModal img { max-width: 90%; max-height: 90%; }
-        
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px;
-            font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2);
-        }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body data-theme="light">
 
 <div id="loginScreen">
     <div class="login-card">
-        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik</h2>
-        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Bezpieczna Dokumentacja Pacjentów</p>
-        
+        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik 2.0</h2>
+        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Bezpieczna Dokumentacja + Metadane</p>
         <div style="text-align: left;">
-            <label style="font-size:11px; font-weight:800; color:var(--txt-muted); text-transform:uppercase;">Użytkownik</label>
+            <label class="form-label">Użytkownik</label>
             <input type="text" id="loginUser" placeholder="Wpisz nazwę..." style="margin-bottom:15px;">
-            
-            <label style="font-size:11px; font-weight:800; color:var(--txt-muted); text-transform:uppercase;">Hasło / Klucz Szyfrujący</label>
+            <label class="form-label">Hasło / Klucz</label>
             <input type="password" id="loginPass" placeholder="Wpisz hasło...">
         </div>
-
         <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
-            <button class="btn-primary" style="justify-content: center;" onclick="handleLogin('open')">Otwórz istniejącą bazę</button>
-            <button class="btn-icon" style="border: 1px solid var(--border); color: var(--txt);" onclick="handleLogin('create')">Utwórz nową bazę</button>
+            <button class="btn-primary" style="justify-content: center;" onclick="handleLogin('open')">Otwórz bazę</button>
+            <button class="btn-icon" style="border: 1px solid var(--border); color: var(--txt); width: 100%;" onclick="handleLogin('create')">Utwórz nową bazę</button>
         </div>
         <div id="loginError" style="color:var(--danger); font-size:12px; margin-top:15px;"></div>
     </div>
 </div>
 
 <div id="appLayout">
-    
     <div class="sidebar">
-        <div class="header-bar">
-            <div class="app-title">
+        <div class="header-bar" style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 800; color: var(--p); display: flex; align-items: center; gap: 8px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 Pacjenci
             </div>
@@ -211,9 +157,9 @@
             <button class="btn-primary" style="width:100%; justify-content:center;" onclick="addPatient()">+ Dodaj Pacjenta</button>
         </div>
         <div style="padding: 0 15px 10px 15px;">
-             <input type="text" id="patientSearch" placeholder="🔍 Szukaj..." oninput="renderList()" style="margin-bottom: 0;">
+             <input type="text" id="patientSearch" placeholder="🔍 Szukaj (Nazwa, Miasto, Status)..." oninput="renderList()" style="margin-bottom: 0;">
         </div>
-        <div class="scroll-area" id="patientList"></div>
+        <div class="scroll-area" id="patientList" style="overflow-y: auto; flex-grow: 1; padding: 10px;"></div>
 
         <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--input-bg);">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -230,25 +176,45 @@
     <div class="main-area">
         
         <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
-            <div class="editor-toolbar">
-                <div style="display:flex; align-items:center;">
-                    <button class="btn-icon back-btn" onclick="exitView()" title="Wróć do listy">
-                        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-                    </button>
-                    <div style="font-weight:800; font-size:18px; color:var(--txt-head);" id="activePatientName">Wybierz pacjenta</div>
-                </div>
-                
-                <div style="display:flex; gap: 8px;">
-                    <button class="btn-icon" onclick="addVisitTemplate()" title="Dodaj notatkę wizyty">
-                        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                    </button>
-                    <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()" title="Usuń pacjenta">
-                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                    </button>
+            <div class="editor-header">
+                <div style="display:flex; justify-content:space-between; align-items: flex-start;">
+                    <div style="display:flex; align-items:center;">
+                        <button class="btn-icon back-btn" onclick="exitView()" title="Wróć" style="margin-right:10px; display:none;">
+                            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                        </button>
+                        <div>
+                            <div style="font-weight:800; font-size:20px; color:var(--txt-head);" id="activePatientName">Wybierz pacjenta</div>
+                            <div class="patient-meta-bar" id="patientMetaDisplay">
+                                </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-icon" onclick="openEditModal()" title="Edytuj dane pacjenta">
+                            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick="addVisitTemplate()" title="Dodaj notatkę wizyty">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                        </button>
+                        <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()" title="Usuń pacjenta">
+                            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <textarea id="content" placeholder="Tutaj wpisz swoje notatki..." disabled oninput="updateNotes()"></textarea>
+            <div class="rich-toolbar" id="richToolbar" style="display:none;">
+                <button class="toolbar-btn" onclick="fmt('bold')" title="Pogrubienie (Ctrl+B)">B</button>
+                <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
+                <button class="toolbar-btn" onclick="fmt('foreColor', 'var(--txt)')" title="Kolor: Domyślny" style="color:var(--txt)">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#ef4444')" title="Kolor: Czerwony" style="color:#ef4444">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#10b981')" title="Kolor: Zielony" style="color:#10b981">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#3b82f6')" title="Kolor: Niebieski" style="color:#3b82f6">A</button>
+                <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
+                <button class="toolbar-btn" onclick="addLink()" title="Wstaw Link">🔗</button>
+            </div>
+
+            <div id="content" contenteditable="false" placeholder="Wybierz pacjenta..." oninput="updateNotes()"></div>
 
             <div class="gallery-bar" id="galleryContainer" style="display:none;">
                 <div class="thumb-wrap" style="display:flex; align-items:center; justify-content:center; background:var(--input-bg); border:2px dashed var(--border); border-radius:8px; cursor:pointer;" onclick="document.getElementById('imgInp').click()">
@@ -261,7 +227,7 @@
 
         <div id="viewCalendar" class="calendar-view">
             <div style="display:flex; align-items:center; gap:15px; margin-bottom:25px;">
-                <button class="btn-icon back-btn" onclick="switchTab('editor')">
+                <button class="btn-icon" onclick="switchTab('editor')">
                     <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 </button>
                 <h2 style="margin:0;">Terminarz wizyt</h2>
@@ -275,11 +241,66 @@
     </div>
 </div>
 
+<div id="editModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-top:0;">Dane Pacjenta</h3>
+        
+        <label class="form-label">Imię i Nazwisko</label>
+        <input type="text" id="editName">
+
+        <div class="form-grid">
+            <div>
+                <label class="form-label">Data Urodzenia</label>
+                <input type="date" id="editDob">
+            </div>
+            <div>
+                <label class="form-label">Status</label>
+                <select id="editStatus">
+                    <option value="Aktywny">Aktywny</option>
+                    <option value="Zakończony">Zakończony</option>
+                    <option value="Wstrzymany">Wstrzymany</option>
+                    <option value="Konsultacja">Konsultacja</option>
+                </select>
+            </div>
+            
+            <div class="form-full">
+                <label class="form-label">Miejsce Zamieszkania (Adres)</label>
+                <input type="text" id="editAddress" placeholder="Ulica, Miasto...">
+            </div>
+
+            <div>
+                <label class="form-label">Telefon</label>
+                <input type="text" id="editPhone">
+            </div>
+            <div>
+                <label class="form-label">Email</label>
+                <input type="email" id="editEmail">
+            </div>
+
+            <div>
+                <label class="form-label">Miejsce Wizyt (Gabinet/Miasto)</label>
+                <input type="text" id="editLocation">
+            </div>
+            <div style="display:flex; align-items:center; height:100%;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="editOnline" style="width:auto;">
+                    <span style="font-size:14px;">Wizyta Online</span>
+                </label>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeEditModal()">Anuluj</button>
+            <button class="btn-primary" onclick="savePatientDetails()">Zapisz zmiany</button>
+        </div>
+    </div>
+</div>
+
 <div id="imgModal" onclick="this.style.display='none'"><img id="imgFull" src=""></div>
 <div id="toast" class="toast"></div>
 
 <script>
-    // --- KONFIGURACJA SZYFROWANIA ---
+    // --- KONFIGURACJA ---
     const PBKDF2_ITER = 100000;
     let db = { patients: {}, calendar: {} };
     let activeId = null;
@@ -301,7 +322,8 @@
     }
 
     function showToast(m) {
-        const t = document.getElementById('toast'); t.innerText = m;
+        const t = document.getElementById('toast');
+        t.innerText = m;
         t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
     }
 
@@ -312,7 +334,6 @@
         if(!u || !p) return document.getElementById('loginError').innerText = "Wypełnij oba pola.";
         
         authUser = u; authPass = p;
-
         try {
             if(mode === 'create') {
                 db = { patients: {}, calendar: {} };
@@ -333,7 +354,8 @@
                     const file = await fileHandle.getFile();
                     text = await file.text();
                 } else {
-                    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+                    const input = document.createElement('input');
+                    input.type = 'file'; input.accept = '.json';
                     input.onchange = async e => {
                         const f = e.target.files[0];
                         if(f) {
@@ -364,7 +386,7 @@
         renderList();
     }
 
-    // --- KRYPTOGRAFIA ---
+    // --- KRYPTOGRAFIA (AES-GCM) ---
     function b64ToBuf(b) { return Uint8Array.from(atob(b), c => c.charCodeAt(0)); }
     function bufToB64(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
 
@@ -404,7 +426,8 @@
                 await w.write(blob); await w.close();
                 showToast("Zapisano zmiany.");
             } else {
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
                 a.download = `${authUser}_baza.json`; a.click();
                 showToast("Pobrano plik bazy.");
             }
@@ -416,9 +439,17 @@
         const n = prompt("Nazwisko i Imię (lub Inicjały):");
         if(n) {
             const id = 'p' + Date.now();
-            db.patients[id] = { name: n, notes: "", images: [] };
+            // Inicjalizacja z nowymi polami
+            db.patients[id] = { 
+                name: n, 
+                notes: "", 
+                images: [],
+                dob: "", email: "", phone: "", address: "", location: "", isOnline: false, status: "Aktywny"
+            };
             renderList();
             selectPatient(id);
+            // Opcjonalnie od razu otwórz edycję
+            openEditModal();
         }
     }
 
@@ -434,53 +465,177 @@
         }
     }
 
-function renderList() {
-    const container = document.getElementById('patientList');
-    const query = document.getElementById('patientSearch').value.toLowerCase(); // Pobierz frazę
-    container.innerHTML = "";
-    
-    Object.keys(db.patients)
-    .filter(id => db.patients[id].name.toLowerCase().includes(query)) // Filtrowanie
-    .sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name))
-    .forEach(id => {
-        const div = document.createElement('div');
-        div.className = `patient-item ${id === activeId ? 'active' : ''}`;
-        div.innerText = db.patients[id].name;
-        div.onclick = () => selectPatient(id);
-        container.appendChild(div);
-    });
-}
+    function renderList() {
+        const container = document.getElementById('patientList');
+        const query = document.getElementById('patientSearch').value.toLowerCase();
+        container.innerHTML = "";
+        
+        Object.keys(db.patients)
+        .filter(id => {
+            const p = db.patients[id];
+            // Szukanie w nazwie, lokalizacji i statusie
+            const text = `${p.name} ${p.location||''} ${p.status||''}`.toLowerCase();
+            return text.includes(query);
+        })
+        .sort((a,b) => db.patients[a].name.localeCompare(db.patients[b].name))
+        .forEach(id => {
+            const p = db.patients[id];
+            const div = document.createElement('div');
+            div.className = `patient-item ${id === activeId ? 'active' : ''}`;
+            
+            // Budowanie podtytułu
+            let sub = [];
+            if(p.status) sub.push(p.status);
+            if(p.location) sub.push(p.location);
+            if(p.isOnline) sub.push("Online");
+            
+            div.innerHTML = `
+                <div style="font-weight:600;">${p.name}</div>
+                <div class="sub-info">
+                    <span>${sub.join(' • ')}</span>
+                </div>
+            `;
+            div.onclick = () => selectPatient(id);
+            container.appendChild(div);
+        });
+    }
 
     function selectPatient(id) {
         activeId = id;
         const p = db.patients[id];
+        
+        // Wypełnij nagłówek
         document.getElementById('activePatientName').innerText = p.name;
-        document.getElementById('content').value = p.notes;
-        document.getElementById('content').disabled = false;
+        
+        // Oblicz wiek
+        let ageInfo = "";
+        if(p.dob) {
+            const birth = new Date(p.dob);
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            ageInfo = `${age} lat`;
+        }
+
+        // Meta dane w nagłówku
+        const metaContainer = document.getElementById('patientMetaDisplay');
+        metaContainer.innerHTML = "";
+        
+        const tags = [];
+        if(ageInfo) tags.push(`🎂 ${ageInfo} (${p.dob})`);
+        if(p.phone) tags.push(`📞 ${p.phone}`);
+        if(p.email) tags.push(`✉️ ${p.email}`);
+        if(p.status) tags.push(`🏷️ ${p.status}`);
+        if(p.location) tags.push(`📍 ${p.location}`);
+        if(p.isOnline) tags.push(`🌐 Online`);
+        if(p.address) tags.push(`🏠 ${p.address}`);
+
+        tags.forEach(t => {
+            const span = document.createElement('span');
+            span.className = 'meta-tag';
+            span.innerText = t;
+            metaContainer.appendChild(span);
+        });
+
+        // Wypełnij edytor (Rich Text)
+        const contentDiv = document.getElementById('content');
+        contentDiv.innerHTML = p.notes || ""; // Używamy innerHTML dla formatowania
+        contentDiv.contentEditable = "true";
+        
+        document.getElementById('richToolbar').style.display = "flex";
+        document.querySelector('.back-btn').style.display = 'flex';
         document.getElementById('galleryContainer').style.display = "flex";
+        
         document.body.classList.add('view-active');
         renderList();
         renderGallery();
     }
 
-    function updateNotes() { if(activeId) db.patients[activeId].notes = document.getElementById('content').value; }
+    // --- RICH TEXT ---
+    function updateNotes() { 
+        if(activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML; 
+    }
+
+    function fmt(command, value = null) {
+        document.execCommand(command, false, value);
+        document.getElementById('content').focus();
+    }
+
+    function addLink() {
+        const url = prompt("Wpisz adres URL:", "http://");
+        if(url) fmt('createLink', url);
+    }
 
     function addVisitTemplate() {
         if(!activeId) return;
-        const ta = document.getElementById('content');
-        const header = `\n\n--- SESJA: ${new Date().toLocaleString('pl-PL')} ---\n> stan psychiczny:\n> podjęte działania:\n`;
-        ta.value += header;
+        const dateStr = new Date().toLocaleString('pl-PL');
+        const template = `<br><hr><b>SESJA: ${dateStr}</b><br>
+        <span style="color:var(--txt-muted)">Stan psychiczny:</span><br><br>
+        <span style="color:var(--txt-muted)">Podjęte działania:</span><br><br>`;
+        
+        // Wstaw na końcu
+        const div = document.getElementById('content');
+        div.innerHTML += template;
         updateNotes();
-        ta.focus();
-        ta.scrollTop = ta.scrollHeight;
+        
+        // Scroll to bottom
+        div.scrollTop = div.scrollHeight;
+    }
+
+    // --- EDYCJA METADANYCH (MODAL) ---
+    function openEditModal() {
+        if(!activeId) return;
+        const p = db.patients[activeId];
+        
+        document.getElementById('editName').value = p.name;
+        document.getElementById('editDob').value = p.dob || "";
+        document.getElementById('editStatus').value = p.status || "Aktywny";
+        document.getElementById('editAddress').value = p.address || "";
+        document.getElementById('editPhone').value = p.phone || "";
+        document.getElementById('editEmail').value = p.email || "";
+        document.getElementById('editLocation').value = p.location || "";
+        document.getElementById('editOnline').checked = p.isOnline || false;
+
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function savePatientDetails() {
+        if(!activeId) return;
+        const p = db.patients[activeId];
+        
+        p.name = document.getElementById('editName').value;
+        p.dob = document.getElementById('editDob').value;
+        p.status = document.getElementById('editStatus').value;
+        p.address = document.getElementById('editAddress').value;
+        p.phone = document.getElementById('editPhone').value;
+        p.email = document.getElementById('editEmail').value;
+        p.location = document.getElementById('editLocation').value;
+        p.isOnline = document.getElementById('editOnline').checked;
+
+        closeEditModal();
+        selectPatient(activeId); // odśwież widok
+        renderList(); // odśwież listę (dla wyszukiwania)
+        saveToDisk();
     }
 
     function exitView() {
         document.body.classList.remove('view-active');
         activeId = null;
-        document.getElementById('content').disabled = true;
-        document.getElementById('content').value = "";
+        
+        const contentDiv = document.getElementById('content');
+        contentDiv.contentEditable = "false";
+        contentDiv.innerHTML = "";
+        
         document.getElementById('activePatientName').innerText = "Wybierz pacjenta";
+        document.getElementById('patientMetaDisplay').innerHTML = "";
+        
+        document.getElementById('richToolbar').style.display = "none";
+        document.querySelector('.back-btn').style.display = 'none';
         document.getElementById('galleryContainer').style.display = "none";
         document.getElementById('viewCalendar').classList.remove('active');
         document.getElementById('viewEditor').style.display = "flex";
@@ -551,7 +706,7 @@ function renderList() {
                 sel.appendChild(o);
             });
             sel.onchange = e => { db.calendar[date][t] = e.target.value; saveToDisk(); };
-            row.innerHTML = `<div class="time-label">${t}</div>`; row.appendChild(sel);
+            row.innerHTML = `<div class="time-label" style="width:70px; font-weight:bold;">${t}</div>`; row.appendChild(sel);
             con.appendChild(row);
         }
     }
