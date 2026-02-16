@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terapeutnik 2.0</title>
+    <title>Terapeutnik 3.0</title>
     
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
 
@@ -21,6 +21,7 @@
             --p: #059669;
             --p-hover: #047857;
             --p-light: #d1fae5;
+            --booked: #dcfce7; /* Pastelowa zieleń dla kalendarza */
             --danger: #ef4444;
             --link: #2563eb;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -38,6 +39,7 @@
             --p: #10b981;
             --p-hover: #059669;
             --p-light: rgba(16, 185, 129, 0.15);
+            --booked: rgba(16, 185, 129, 0.2); /* Ciemniejsza zieleń dla trybu nocnego */
             --danger: #f87171;
             --link: #60a5fa;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
@@ -48,6 +50,7 @@
             background: var(--bg); color: var(--txt); 
             margin: 0; padding: 0; height: 100vh; overflow: hidden;
             transition: background 0.3s, color 0.3s;
+            overscroll-behavior-y: none; /* Zapobiega odświeżaniu przy pociągnięciu w dół */
         }
 
         /* --- LAYOUT --- */
@@ -104,9 +107,12 @@
 
         .calendar-view { padding: 30px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
         .calendar-view.active { display: block; }
-        .time-slot { display: flex; margin-bottom: 10px; align-items: center; gap: 15px; max-width: 600px; }
+        .time-slot { display: flex; margin-bottom: 10px; align-items: center; gap: 15px; max-width: 600px; padding: 5px 10px; border-radius: 8px; transition: background 0.2s; }
+        
+        /* Styl dla zajętego terminu (pastelowy zielony) */
+        .time-slot.booked { background: var(--booked); border: 1px solid var(--p); }
 
-        /* --- RESPONSIVE --- */
+        /* --- RESPONSIVE & MOBILE GESTURES --- */
         @media (max-width: 768px) {
             .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); transition: 0.3s; }
             .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); transition: 0.3s; z-index: 20; }
@@ -125,8 +131,8 @@
 
 <div id="loginScreen">
     <div class="login-card">
-        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik 2.0</h2>
-        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Bezpieczna Dokumentacja + Metadane</p>
+        <h2 style="margin: 0 0 5px 0; color: var(--txt-head);">Terapeutnik 3.0</h2>
+        <p style="color: var(--txt-muted); font-size: 14px; margin-bottom: 30px;">Mobilne Gesty & Bezpieczeństwo</p>
         <div style="text-align: left;">
             <label class="form-label">Użytkownik</label>
             <input type="text" id="loginUser" placeholder="Wpisz nazwę..." style="margin-bottom:15px;">
@@ -173,13 +179,13 @@
         </div>
     </div>
 
-    <div class="main-area">
+    <div class="main-area" id="mainArea">
         
         <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
             <div class="editor-header">
                 <div style="display:flex; justify-content:space-between; align-items: flex-start;">
                     <div style="display:flex; align-items:center;">
-                        <button class="btn-icon back-btn" onclick="exitView()" title="Wróć" style="margin-right:10px; display:none;">
+                        <button class="btn-icon back-btn" onclick="history.back()" title="Wróć" style="margin-right:10px; display:none;">
                             <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                         </button>
                         <div>
@@ -204,14 +210,14 @@
             </div>
 
             <div class="rich-toolbar" id="richToolbar" style="display:none;">
-                <button class="toolbar-btn" onclick="fmt('bold')" title="Pogrubienie (Ctrl+B)">B</button>
+                <button class="toolbar-btn" onclick="fmt('bold')" title="Pogrubienie">B</button>
                 <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
-                <button class="toolbar-btn" onclick="fmt('foreColor', 'var(--txt)')" title="Kolor: Domyślny" style="color:var(--txt)">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#ef4444')" title="Kolor: Czerwony" style="color:#ef4444">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#10b981')" title="Kolor: Zielony" style="color:#10b981">A</button>
-                <button class="toolbar-btn" onclick="fmt('foreColor', '#3b82f6')" title="Kolor: Niebieski" style="color:#3b82f6">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', 'var(--txt)')" style="color:var(--txt)">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#ef4444')" style="color:#ef4444">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#10b981')" style="color:#10b981">A</button>
+                <button class="toolbar-btn" onclick="fmt('foreColor', '#3b82f6')" style="color:#3b82f6">A</button>
                 <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
-                <button class="toolbar-btn" onclick="addLink()" title="Wstaw Link">🔗</button>
+                <button class="toolbar-btn" onclick="addLink()">🔗</button>
             </div>
 
             <div id="content" contenteditable="false" placeholder="Wybierz pacjenta..." oninput="updateNotes()"></div>
@@ -244,10 +250,8 @@
 <div id="editModal" class="modal-overlay">
     <div class="modal-card">
         <h3 style="margin-top:0;">Dane Pacjenta</h3>
-        
         <label class="form-label">Imię i Nazwisko</label>
         <input type="text" id="editName">
-
         <div class="form-grid">
             <div>
                 <label class="form-label">Data Urodzenia</label>
@@ -262,12 +266,10 @@
                     <option value="Konsultacja">Konsultacja</option>
                 </select>
             </div>
-            
             <div class="form-full">
                 <label class="form-label">Miejsce Zamieszkania (Adres)</label>
-                <input type="text" id="editAddress" placeholder="Ulica, Miasto...">
+                <input type="text" id="editAddress">
             </div>
-
             <div>
                 <label class="form-label">Telefon</label>
                 <input type="text" id="editPhone">
@@ -276,9 +278,8 @@
                 <label class="form-label">Email</label>
                 <input type="email" id="editEmail">
             </div>
-
             <div>
-                <label class="form-label">Miejsce Wizyt (Gabinet/Miasto)</label>
+                <label class="form-label">Miejsce Wizyt</label>
                 <input type="text" id="editLocation">
             </div>
             <div style="display:flex; align-items:center; height:100%;">
@@ -288,7 +289,6 @@
                 </label>
             </div>
         </div>
-
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
             <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeEditModal()">Anuluj</button>
             <button class="btn-primary" onclick="savePatientDetails()">Zapisz zmiany</button>
@@ -307,12 +307,56 @@
     let fileHandle = null;
     let authUser = "";
     let authPass = "";
+    
+    // Zmienne do obsługi gestów
+    let touchStartX = 0;
+    let touchStartY = 0;
 
     window.onload = () => {
         const theme = localStorage.getItem('theme') || 'light';
         document.body.setAttribute('data-theme', theme);
         document.getElementById('calDate').valueAsDate = new Date();
+        setupGestures();
     };
+    
+    // --- OBSŁUGA GESTÓW I PRZYCISKU WSTECZ (ANDROID) ---
+    
+    // Nasłuchiwanie systemowego przycisku wstecz
+    window.onpopstate = function(event) {
+        if (activeId) {
+            // Jeżeli jesteśmy w pacjencie, wywołujemy funkcję wyjścia
+            // Przekazujemy 'false' aby nie modyfikować już historii (bo właśnie z niej wróciliśmy)
+            exitView(false);
+        }
+    };
+
+    function setupGestures() {
+        const mainArea = document.getElementById('mainArea');
+        
+        mainArea.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+
+        mainArea.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            handleSwipeGesture(touchEndX, touchEndY);
+        }, {passive: true});
+    }
+
+    function handleSwipeGesture(endX, endY) {
+        // Sprawdź czy jesteśmy w trybie pacjenta
+        if (!activeId) return;
+
+        // Warunki gestu "Wstecz" (Swipe w prawo):
+        // 1. Ruch w poziomie min. 60px
+        // 2. Ruch w pionie max. 50px (żeby nie mylić ze scrollowaniem)
+        if (endX - touchStartX > 60 && Math.abs(endY - touchStartY) < 50) {
+            // Wywołaj history.back() - to samo co przycisk trójkąta
+            history.back();
+        }
+    }
 
     function toggleTheme() {
         const current = document.body.getAttribute('data-theme');
@@ -386,7 +430,7 @@
         renderList();
     }
 
-    // --- KRYPTOGRAFIA (AES-GCM) ---
+    // --- KRYPTOGRAFIA ---
     function b64ToBuf(b) { return Uint8Array.from(atob(b), c => c.charCodeAt(0)); }
     function bufToB64(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
 
@@ -434,21 +478,17 @@
         } catch(e) { alert("Błąd zapisu: " + e.message); }
     }
 
-    // --- LOGIKA PACJENTÓW ---
+    // --- PACJENCI ---
     function addPatient() {
         const n = prompt("Nazwisko i Imię (lub Inicjały):");
         if(n) {
             const id = 'p' + Date.now();
-            // Inicjalizacja z nowymi polami
             db.patients[id] = { 
-                name: n, 
-                notes: "", 
-                images: [],
+                name: n, notes: "", images: [],
                 dob: "", email: "", phone: "", address: "", location: "", isOnline: false, status: "Aktywny"
             };
             renderList();
             selectPatient(id);
-            // Opcjonalnie od razu otwórz edycję
             openEditModal();
         }
     }
@@ -459,7 +499,7 @@
             delete db.patients[activeId];
             for(let d in db.calendar) { for(let h in db.calendar[d]) if(db.calendar[d][h] === activeId) delete db.calendar[d][h]; }
             activeId = null;
-            exitView();
+            exitView(true); // Użyj true aby wymusić powrót w historii
             renderList();
             saveToDisk();
         }
@@ -473,7 +513,6 @@
         Object.keys(db.patients)
         .filter(id => {
             const p = db.patients[id];
-            // Szukanie w nazwie, lokalizacji i statusie
             const text = `${p.name} ${p.location||''} ${p.status||''}`.toLowerCase();
             return text.includes(query);
         })
@@ -482,19 +521,13 @@
             const p = db.patients[id];
             const div = document.createElement('div');
             div.className = `patient-item ${id === activeId ? 'active' : ''}`;
-            
-            // Budowanie podtytułu
             let sub = [];
             if(p.status) sub.push(p.status);
             if(p.location) sub.push(p.location);
             if(p.isOnline) sub.push("Online");
             
-            div.innerHTML = `
-                <div style="font-weight:600;">${p.name}</div>
-                <div class="sub-info">
-                    <span>${sub.join(' • ')}</span>
-                </div>
-            `;
+            div.innerHTML = `<div style="font-weight:600;">${p.name}</div>
+                <div class="sub-info"><span>${sub.join(' • ')}</span></div>`;
             div.onclick = () => selectPatient(id);
             container.appendChild(div);
         });
@@ -504,7 +537,10 @@
         activeId = id;
         const p = db.patients[id];
         
-        // Wypełnij nagłówek
+        // --- DODAJEMY STAN DO HISTORII ---
+        // Dzięki temu przycisk "Wstecz" zadziała
+        history.pushState({view: 'patient', id: id}, "", "#patient");
+
         document.getElementById('activePatientName').innerText = p.name;
         
         // Oblicz wiek
@@ -518,29 +554,21 @@
             ageInfo = `${age} lat`;
         }
 
-        // Meta dane w nagłówku
         const metaContainer = document.getElementById('patientMetaDisplay');
         metaContainer.innerHTML = "";
-        
         const tags = [];
-        if(ageInfo) tags.push(`🎂 ${ageInfo} (${p.dob})`);
+        if(ageInfo) tags.push(`🎂 ${ageInfo}`);
         if(p.phone) tags.push(`📞 ${p.phone}`);
-        if(p.email) tags.push(`✉️ ${p.email}`);
         if(p.status) tags.push(`🏷️ ${p.status}`);
         if(p.location) tags.push(`📍 ${p.location}`);
-        if(p.isOnline) tags.push(`🌐 Online`);
-        if(p.address) tags.push(`🏠 ${p.address}`);
-
+        
         tags.forEach(t => {
-            const span = document.createElement('span');
-            span.className = 'meta-tag';
-            span.innerText = t;
+            const span = document.createElement('span'); span.className = 'meta-tag'; span.innerText = t;
             metaContainer.appendChild(span);
         });
 
-        // Wypełnij edytor (Rich Text)
         const contentDiv = document.getElementById('content');
-        contentDiv.innerHTML = p.notes || ""; // Używamy innerHTML dla formatowania
+        contentDiv.innerHTML = p.notes || "";
         contentDiv.contentEditable = "true";
         
         document.getElementById('richToolbar').style.display = "flex";
@@ -553,41 +581,21 @@
     }
 
     // --- RICH TEXT ---
-    function updateNotes() { 
-        if(activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML; 
-    }
-
-    function fmt(command, value = null) {
-        document.execCommand(command, false, value);
-        document.getElementById('content').focus();
-    }
-
-    function addLink() {
-        const url = prompt("Wpisz adres URL:", "http://");
-        if(url) fmt('createLink', url);
-    }
-
+    function updateNotes() { if(activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML; }
+    function fmt(cmd, val=null) { document.execCommand(cmd, false, val); document.getElementById('content').focus(); }
+    function addLink() { const url = prompt("URL:"); if(url) fmt('createLink', url); }
     function addVisitTemplate() {
         if(!activeId) return;
         const dateStr = new Date().toLocaleString('pl-PL');
-        const template = `<br><hr><b>SESJA: ${dateStr}</b><br>
-        <span style="color:var(--txt-muted)">Stan psychiczny:</span><br><br>
-        <span style="color:var(--txt-muted)">Podjęte działania:</span><br><br>`;
-        
-        // Wstaw na końcu
-        const div = document.getElementById('content');
-        div.innerHTML += template;
+        document.getElementById('content').innerHTML += `<br><hr><b>SESJA: ${dateStr}</b><br><span style="color:var(--txt-muted)">Stan:</span><br><br><span style="color:var(--txt-muted)">Działania:</span><br><br>`;
         updateNotes();
-        
-        // Scroll to bottom
-        div.scrollTop = div.scrollHeight;
+        const div = document.getElementById('content'); div.scrollTop = div.scrollHeight;
     }
 
-    // --- EDYCJA METADANYCH (MODAL) ---
+    // --- EDYCJA MODAL ---
     function openEditModal() {
         if(!activeId) return;
         const p = db.patients[activeId];
-        
         document.getElementById('editName').value = p.name;
         document.getElementById('editDob').value = p.dob || "";
         document.getElementById('editStatus').value = p.status || "Aktywny";
@@ -596,18 +604,12 @@
         document.getElementById('editEmail').value = p.email || "";
         document.getElementById('editLocation').value = p.location || "";
         document.getElementById('editOnline').checked = p.isOnline || false;
-
         document.getElementById('editModal').style.display = 'flex';
     }
-
-    function closeEditModal() {
-        document.getElementById('editModal').style.display = 'none';
-    }
-
+    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
     function savePatientDetails() {
         if(!activeId) return;
         const p = db.patients[activeId];
-        
         p.name = document.getElementById('editName').value;
         p.dob = document.getElementById('editDob').value;
         p.status = document.getElementById('editStatus').value;
@@ -616,14 +618,14 @@
         p.email = document.getElementById('editEmail').value;
         p.location = document.getElementById('editLocation').value;
         p.isOnline = document.getElementById('editOnline').checked;
-
         closeEditModal();
-        selectPatient(activeId); // odśwież widok
-        renderList(); // odśwież listę (dla wyszukiwania)
+        // Odśwież widok bez zmiany historii
+        document.getElementById('activePatientName').innerText = p.name;
+        renderList();
         saveToDisk();
     }
 
-    function exitView() {
+    function exitView(updateHistory = false) {
         document.body.classList.remove('view-active');
         activeId = null;
         
@@ -640,9 +642,15 @@
         document.getElementById('viewCalendar').classList.remove('active');
         document.getElementById('viewEditor').style.display = "flex";
         renderList();
+        
+        // Jeśli funkcja wywołana ręcznie (nie przez przycisk wstecz),
+        // musimy cofnąć się w historii, aby usunąć stan #patient
+        if(updateHistory) {
+             history.back();
+        }
     }
 
-    // --- ZDJĘCIA ---
+    // --- ZDJĘCIA (Z POPRAWKĄ KOMPRESJI) ---
     function uploadImg(e) {
         if(!activeId || !e.target.files[0]) return;
         const reader = new FileReader();
@@ -650,11 +658,18 @@
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const max = 1000; let s = 1;
-                if(img.width > max) s = max/img.width;
-                canvas.width = img.width*s; canvas.height = img.height*s;
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                db.patients[activeId].images.push(canvas.toDataURL('image/jpeg', 0.7));
+                // Silna kompresja rozmiaru
+                const MAX_DIM = 800; 
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > MAX_DIM) { h *= MAX_DIM / w; w = MAX_DIM; } } 
+                else { if (h > MAX_DIM) { w *= MAX_DIM / h; h = MAX_DIM; } }
+
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                
+                // Silna kompresja jakości (JPEG 0.5)
+                const data = canvas.toDataURL('image/jpeg', 0.5);
+                db.patients[activeId].images.push(data);
                 renderGallery();
                 saveToDisk();
             };
@@ -677,7 +692,7 @@
         });
     }
 
-    // --- KALENDARZ ---
+    // --- KALENDARZ (Z KOLOREM) ---
     function switchTab(t) {
         if(t === 'calendar') {
             document.getElementById('viewEditor').style.display = 'none';
@@ -696,17 +711,32 @@
         const con = document.getElementById('timeSlots');
         con.innerHTML = "";
         if(!db.calendar[date]) db.calendar[date] = {};
+        
         for(let h=8; h<=20; h++) {
             const t = (h<10?'0'+h:h)+":00";
-            const row = document.createElement('div'); row.className = 'time-slot';
-            const sel = document.createElement('select'); sel.innerHTML = `<option value="">-- WOLNE --</option>`;
+            const row = document.createElement('div'); 
+            row.className = 'time-slot';
+            
+            // Sprawdź czy termin jest zajęty
+            const isBooked = !!db.calendar[date][t];
+            if(isBooked) {
+                row.classList.add('booked'); // Dodaj klasę CSS (zielone tło)
+            }
+
+            const sel = document.createElement('select'); 
+            sel.innerHTML = `<option value="">-- WOLNE --</option>`;
+            // Jeśli zajęte, tło selecta przezroczyste by było widać kolor wiersza
+            if(isBooked) sel.style.backgroundColor = 'transparent';
+
             Object.keys(db.patients).forEach(pid => {
                 const o = document.createElement('option'); o.value = pid; o.innerText = db.patients[pid].name;
                 if(db.calendar[date][t] === pid) o.selected = true;
                 sel.appendChild(o);
             });
-            sel.onchange = e => { db.calendar[date][t] = e.target.value; saveToDisk(); };
-            row.innerHTML = `<div class="time-label" style="width:70px; font-weight:bold;">${t}</div>`; row.appendChild(sel);
+            sel.onchange = e => { db.calendar[date][t] = e.target.value; saveToDisk(); renderCalendar(); }; // Re-render dla koloru
+            
+            row.innerHTML = `<div class="time-label" style="width:70px; font-weight:bold;">${t}</div>`; 
+            row.appendChild(sel);
             con.appendChild(row);
         }
     }
