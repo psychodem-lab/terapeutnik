@@ -189,6 +189,13 @@
     </main>
 
     <script>
+        if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker zarejestrowany!', reg))
+            .catch(err => console.log('Błąd rejestracji SW:', err));
+    });
+    }
         let db = { patients: [], appointments: [] };
         let selectedPatientId = null;
         let sessionKey = null; 
