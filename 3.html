@@ -14,7 +14,6 @@
         .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         
-        /* Styl dla wyszukiwarki pacjentów w wizytach */
         #patientSearchResults {
             max-height: 200px;
             overflow-y: auto;
@@ -192,7 +191,7 @@
     <script>
         let db = { patients: [], appointments: [] };
         let selectedPatientId = null;
-        let sessionKey = null; // Klucz szyfrujący przechowywany tylko w pamięci sesji
+        let sessionKey = null; 
         
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
         if (recognition) { recognition.continuous = false; recognition.lang = 'pl-PL'; }
@@ -238,7 +237,7 @@
                     if (!decryptedText) throw new Error();
                     db = JSON.parse(decryptedText);
                 } catch(e) {
-                    alert("Błędne hasło! Nie można odszyfrować bazy.");
+                    alert("Błędne hasło! Nie można odszyfrować bazy lokalnej.");
                     lockApp();
                     return;
                 }
@@ -260,6 +259,8 @@
         }
 
         function normalizeData() {
+            if (!db.patients) db.patients = [];
+            if (!db.appointments) db.appointments = [];
             db.patients.forEach(p => {
                 if (!p.id) p.id = generateId('p-');
                 if (!p.notatki_z_data) p.notatki_z_data = [];
@@ -391,7 +392,6 @@
             renderNotes(p.notatki_z_data);
         }
 
-        // --- STT ---
         function startSTT(textareaId, btnId) {
             if(!recognition) return alert("System nie wspiera rozpoznawania mowy.");
             const btn = document.getElementById(btnId);
@@ -405,7 +405,7 @@
             recognition.onend = () => btn.classList.remove('recording');
         }
 
-        // --- WIZYTY - LOGIKA WYSZUKIWANIA ---
+        // --- WIZYTY ---
         const searchAppInput = document.getElementById('search-app-patient');
         const searchResultsDiv = document.getElementById('patientSearchResults');
         const selectedPatientIdInput = document.getElementById('new-app-patient-id');
@@ -413,7 +413,6 @@
         searchAppInput.oninput = function() {
             const val = this.value.toLowerCase();
             if (!val) { searchResultsDiv.classList.add('hidden'); return; }
-            
             const matches = db.patients.filter(p => `${p.imie} ${p.nazwisko}`.toLowerCase().includes(val));
             if (matches.length > 0) {
                 searchResultsDiv.innerHTML = matches.map(p => `
@@ -423,7 +422,7 @@
                 `).join('');
                 searchResultsDiv.classList.remove('hidden');
             } else {
-                searchResultsDiv.innerHTML = `<div class="p-3 text-slate-400">Nie znaleziono pacjenta</div>`;
+                searchResultsDiv.innerHTML = `<div class="p-3 text-slate-400">Nie znaleziono...</div>`;
                 searchResultsDiv.classList.remove('hidden');
             }
         };
@@ -434,7 +433,6 @@
             searchResultsDiv.classList.add('hidden');
         }
 
-        // --- WIZYTY - CRUD ---
         function saveAppointment() {
             const id = document.getElementById('edit-app-id').value;
             const pId = selectedPatientIdInput.value;
@@ -442,27 +440,13 @@
             const date = document.getElementById('new-app-date').value;
             const notes = document.getElementById('new-app-notes').value;
 
-            if (!pName || !date) return alert("Uzupełnij dane wizyty!");
+            if (!pName || !date) return alert("Uzupełnij dane!");
 
             if (id) {
-                // Edycja
                 const app = db.appointments.find(a => a.id === id);
-                if (app) {
-                    app.patient_name = pName;
-                    app.patient_id = pId;
-                    app.start_time = new Date(date).toISOString();
-                    app.notes = notes;
-                }
+                if (app) { Object.assign(app, { patient_name: pName, patient_id: pId, start_time: new Date(date).toISOString(), notes: notes }); }
             } else {
-                // Nowa
-                db.appointments.push({
-                    id: generateId('a-'),
-                    patient_name: pName,
-                    patient_id: pId,
-                    start_time: new Date(date).toISOString(),
-                    notes: notes,
-                    paid: false
-                });
+                db.appointments.push({ id: generateId('a-'), patient_name: pName, patient_id: pId, start_time: new Date(date).toISOString(), notes: notes, paid: false });
             }
 
             saveToDisk();
@@ -483,13 +467,11 @@
         function editAppointment(id) {
             const app = db.appointments.find(a => a.id === id);
             if (!app) return;
-
             document.getElementById('edit-app-id').value = app.id;
             selectedPatientIdInput.value = app.patient_id || "";
             searchAppInput.value = app.patient_name;
             document.getElementById('new-app-date').value = app.start_time.substring(0, 16);
             document.getElementById('new-app-notes').value = app.notes || "";
-            
             document.getElementById('app-form-title').innerText = "Edytuj wizytę";
             document.getElementById('btn-cancel-app').classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -497,11 +479,7 @@
 
         function togglePaid(id) {
             const app = db.appointments.find(a => a.id === id);
-            if (app) {
-                app.paid = !app.paid;
-                saveToDisk();
-                renderAppointments();
-            }
+            if (app) { app.paid = !app.paid; saveToDisk(); renderAppointments(); }
         }
 
         function renderAppointments() {
@@ -511,7 +489,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="p-6">
-                        <button onclick="togglePaid('${a.id}')" class="text-xl transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}" title="${a.paid ? 'Zapłacono' : 'Nieopłacone'}">
+                        <button onclick="togglePaid('${a.id}')" class="text-xl transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}">
                             <i class="fas ${a.paid ? 'fa-check-circle' : 'fa-wallet'}"></i>
                         </button>
                     </td>
@@ -520,8 +498,8 @@
                     <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
                     <td class="p-6">
                         <div class="flex gap-4">
-                            <button onclick="editAppointment('${a.id}')" class="text-indigo-400 hover:text-indigo-600" title="Edytuj"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteApp('${a.id}')" class="text-slate-300 hover:text-red-500" title="Usuń"><i class="fas fa-trash"></i></button>
+                            <button onclick="editAppointment('${a.id}')" class="text-indigo-400 hover:text-indigo-600"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteApp('${a.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 `;
@@ -530,44 +508,57 @@
         }
 
         function deleteApp(id) {
-            if(confirm("Usunąć wizytę z historii?")) {
-                db.appointments = db.appointments.filter(x => x.id !== id);
-                saveToDisk();
-                renderAppointments();
-            }
+            if(confirm("Usunąć wizytę?")) { db.appointments = db.appointments.filter(x => x.id !== id); saveToDisk(); renderAppointments(); }
         }
 
-        // --- IMPORT / EXPORT (Z HASŁEM) ---
+        // --- IMPORT / EXPORT (KOMPATYBILNOŚĆ WSTECZNA) ---
         function exportJSON() {
             const pass = prompt("Podaj hasło do zaszyfrowania kopii zapasowej:");
             if (pass === null) return;
-
             const data = JSON.stringify(db);
-            const encrypted = CryptoJS.AES.encrypt(data, pass).toString();
-            
-            const blob = new Blob([encrypted], { type: 'text/plain' });
+            const finalData = pass.trim() !== "" ? CryptoJS.AES.encrypt(data, pass).toString() : data;
+            const blob = new Blob([finalData], { type: 'text/plain' });
             const url = window.URL.createObjectURL(blob);
             const dl = document.createElement('a');
             dl.href = url;
-            dl.download = `backup_therapy_${new Date().toISOString().split('T')[0]}.json`;
+            dl.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
             dl.click();
         }
 
         document.getElementById('jsonInput').onchange = function(e) {
             const file = e.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const pass = prompt("Podaj hasło do odszyfrowania pliku:");
-                if (pass === null) return;
+                const content = ev.target.result;
+                let dataToImport = null;
+
                 try {
-                    const bytes = CryptoJS.AES.decrypt(ev.target.result, pass);
-                    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-                    db = JSON.parse(decrypted);
-                    normalizeData();
+                    // PRÓBA 1: Sprawdź czy to zwykły JSON (niezaszyfrowany)
+                    dataToImport = JSON.parse(content);
+                } catch (err) {
+                    // PRÓBA 2: Jeśli błąd, spróbuj odszyfrować hasłem
+                    const pass = prompt("Plik może być zaszyfrowany. Podaj hasło:");
+                    if (pass === null) return;
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(content, pass);
+                        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                        if (!decrypted) throw new Error();
+                        dataToImport = JSON.parse(decrypted);
+                    } catch (decryptErr) {
+                        alert("Nie udało się otworzyć pliku. Błędne hasło lub format.");
+                        return;
+                    }
+                }
+
+                if (dataToImport) {
+                    db = dataToImport;
+                    normalizeData(); // To doda brakujące ID i tablice do starych plików
                     renderPatientList();
                     renderAppointments();
-                    alert("Baza zaimportowana!");
-                } catch(err) { alert("Błędne hasło lub plik!"); }
+                    saveToDisk(); // Zapisze jako zaszyfrowane w localStorage
+                    alert("Import zakończony!");
+                }
             };
             reader.readAsText(file);
         };
