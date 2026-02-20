@@ -4,769 +4,442 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#059669">
-    <title>Terapeutnik 5.0 (CRM)</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z'/%3E%3C/svg%3E" type="image/svg+xml">
-
+    <title>Terapeutnik 5.2 PRO</title>
+    
     <style>
-        /* --- MOTYWY --- */
-        [data-theme="light"] {
-            --bg: #f1f5f9; --sidebar-bg: #ffffff; --card-bg: #ffffff;
-            --txt: #334155; --txt-head: #0f172a; --txt-muted: #64748b;
-            --border: #e2e8f0; --input-bg: #f8fafc;
+        :root {
             --p: #059669; --p-hover: #047857; --p-light: #d1fae5;
-            --danger: #ef4444; --warn: #f59e0b; --link: #2563eb;
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            
-            /* Statusy Kalendarza */
-            --st-done: #dcfce7; --st-done-txt: #166534;
-            --st-plan: #e0f2fe; --st-plan-txt: #075985;
-            --st-cancel: #f1f5f9; --st-cancel-txt: #94a3b8;
-            --st-noshow: #fee2e2; --st-noshow-txt: #991b1b;
+            --danger: #ef4444; --warn: #f59e0b; --border: #e2e8f0;
+            --bg: #f1f5f9; --sidebar: #ffffff; --card: #ffffff;
+            --txt: #334155; --txt-muted: #64748b; --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
         [data-theme="dark"] {
-            --bg: #020617; --sidebar-bg: #0f172a; --card-bg: #1e293b;
-            --txt: #cbd5e1; --txt-head: #f8fafc; --txt-muted: #94a3b8;
-            --border: #334155; --input-bg: #020617;
-            --p: #10b981; --p-hover: #059669; --p-light: rgba(16, 185, 129, 0.15);
-            --danger: #f87171; --warn: #fbbf24; --link: #60a5fa;
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
-
-            --st-done: rgba(22, 163, 74, 0.2); --st-done-txt: #4ade80;
-            --st-plan: rgba(2, 132, 199, 0.2); --st-plan-txt: #38bdf8;
-            --st-cancel: rgba(148, 163, 184, 0.1); --st-cancel-txt: #94a3b8;
-            --st-noshow: rgba(220, 38, 38, 0.2); --st-noshow-txt: #f87171;
+            --bg: #020617; --sidebar: #0f172a; --card: #1e293b;
+            --txt: #cbd5e1; --txt-muted: #94a3b8; --border: #334155;
+            --p-light: rgba(16, 185, 129, 0.15); --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 0; height: 100vh; overflow: hidden; overscroll-behavior-y: none; user-select: none; transition: 0.3s; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--txt); margin: 0; height: 100vh; display: flex; overflow: hidden; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* --- LAYOUT --- */
-        #appLayout { display: none; height: 100vh; width: 100vw; display: flex; }
-        .sidebar { width: 320px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; transition: transform 0.3s; }
-        .main-area { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; overflow: hidden; transition: transform 0.3s; z-index: 5; }
+        /* --- SIDEBAR (NAPRAWIONY DÓŁ) --- */
+        .sidebar { 
+            width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; z-index: 100; transition: transform 0.3s;
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .patient-list-area { flex: 1; overflow-y: auto; padding: 10px; }
+        .sidebar-bottom { 
+            padding: 15px; background: var(--sidebar); border-top: 1px solid var(--border); 
+            display: flex; gap: 10px; flex-shrink: 0;
+        }
+
+        /* --- MAIN AREA --- */
+        .main-area { flex: 1; position: relative; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
 
         /* --- UI COMPONENTS --- */
-        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .btn-icon:hover { background: var(--input-bg); color: var(--p); }
+        .btn-primary { background: var(--p); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
+        .btn-icon { background: transparent; border: none; color: var(--txt-muted); padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-icon svg { width: 20px; height: 20px; fill: currentColor; }
-        
-        .btn-primary { background: var(--p); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; display:flex; align-items:center; gap:8px; justify-content:center;}
-        .btn-primary:hover { background: var(--p-hover); }
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--txt); font-size: 14px; }
 
-        input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--txt); font-size: 14px; transition: border 0.2s; }
-        input:focus, select:focus, textarea:focus { border-color: var(--p); }
+        /* --- TABS --- */
+        .tabs { display: flex; background: var(--sidebar); border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--txt-muted); border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--p); border-bottom-color: var(--p); }
 
-        /* --- LOGOWANIE --- */
-        #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: var(--card-bg); width: 100%; max-width: 380px; padding: 40px; border-radius: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
+        /* --- CALENDAR --- */
+        .time-slot { background: var(--card); margin-bottom: 10px; padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; }
+        .slot-time { font-weight: 800; font-size: 16px; color: var(--p); min-width: 60px; }
+        .st-plan { border-left: 5px solid #0ea5e9; }
+        .st-done { border-left: 5px solid #22c55e; }
+        .st-noshow { border-left: 5px solid #ef4444; }
 
-        /* --- SIDEBAR --- */
-        .patient-item { padding: 10px 15px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; gap: 3px; border: 1px solid transparent; }
-        .patient-item:hover { background: var(--input-bg); border-color: var(--border); }
-        .patient-item.active { background: var(--p); color: white; }
-        .patient-item.active .sub-info { color: rgba(255,255,255,0.8); }
-        .sub-info { font-size: 11px; color: var(--txt-muted); display: flex; justify-content: space-between; }
+        /* --- EDITOR --- */
+        #content { flex: 1; padding: 25px; overflow-y: auto; outline: none; line-height: 1.7; font-size: 16px; background: var(--card); margin: 15px; border-radius: 15px; border: 1px solid var(--border); white-space: pre-wrap; }
+        .mic-active { color: var(--danger) !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
 
-        /* --- EDYTOR --- */
-        .editor-header { background: var(--sidebar-bg); border-bottom: 1px solid var(--border); padding: 10px 15px; }
-        .rich-toolbar { padding: 8px 15px; background: var(--sidebar-bg); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; overflow-x: auto; }
-        .toolbar-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--txt); flex-shrink:0; }
-        .mic-active { animation: pulse 1.5s infinite; background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        /* --- TABLES --- */
+        .fin-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+        .fin-table th { text-align: left; padding: 10px; border-bottom: 2px solid var(--border); color: var(--txt-muted); }
+        .fin-table td { padding: 10px; border-bottom: 1px solid var(--border); }
 
-        #content { flex-grow: 1; border: none; padding: 20px 30px; font-size: 16px; line-height: 1.6; color: var(--txt); background: var(--bg); outline: none; overflow-y: auto; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
-        
-        /* --- TABELA FINANSOWA --- */
-        .fin-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
-        .fin-table th { text-align: left; color: var(--txt-muted); padding: 5px; border-bottom: 1px solid var(--border); }
-        .fin-table td { padding: 5px; border-bottom: 1px solid var(--border); color: var(--txt); }
-        .balance-card { background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; font-size: 13px; display:flex; justify-content: space-between; font-weight: 600; }
-
-        /* --- KALENDARZ & WIZYTY --- */
-        .calendar-view { padding: 20px; overflow-y: auto; height: 100%; display: none; background: var(--bg); }
-        .calendar-view.active { display: block; }
-        .calendar-summary { background: var(--card-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; font-size: 13px; display:flex; gap: 20px; box-shadow: var(--shadow); }
-        
-        .time-slot { display: flex; margin-bottom: 6px; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; min-height: 40px; }
-        .time-slot:hover { border-color: var(--p); }
-        .slot-time { font-weight: bold; font-size: 12px; width: 45px; color: var(--txt-muted); }
-        .slot-content { flex: 1; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* Kolory slotów */
-        .slot-planned { background: var(--st-plan); color: var(--st-plan-txt); border-color: transparent; }
-        .slot-done { background: var(--st-done); color: var(--st-done-txt); border-color: transparent; }
-        .slot-done-unpaid { border-left: 4px solid var(--warn); } /* Pasek ostrzegawczy */
-        .slot-cancel { background: var(--st-cancel); color: var(--st-cancel-txt); text-decoration: line-through; }
-        .slot-noshow { background: var(--st-noshow); color: var(--st-noshow-txt); }
-
-        /* --- MODAL WIZYTY --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
-        .modal-card { background: var(--card-bg); width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .full-width { grid-column: span 2; }
-        .label-sm { font-size: 11px; font-weight: bold; color: var(--txt-muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .tag-contact { padding: 8px; border-radius: 6px; background: var(--input-bg); border: 1px solid var(--border); text-align: center; text-decoration: none; color: var(--txt); font-size: 12px; display:block; }
-
-        /* --- RESPONSYWNOŚĆ --- */
+        /* --- MOBILE --- */
         @media (max-width: 768px) {
-            .sidebar { position: absolute; width: 100%; height: 100%; transform: translateX(0); }
-            .main-area { position: absolute; width: 100%; height: 100%; transform: translateX(100%); }
-            body.view-active .sidebar { transform: translateX(-30%); opacity: 0.5; }
-            body.view-active .main-area { transform: translateX(0); }
+            .sidebar { position: fixed; left: 0; top: 0; width: 85%; transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.1); }
+            body.view-active .sidebar { transform: translateX(-100%); }
+            .back-btn { display: flex !important; }
         }
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 9999; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+        #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal { background: var(--card); width: 95%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body data-theme="light">
 
 <div id="loginScreen">
-    <div class="login-card">
-        <h2 style="margin:0 0 5px 0; color:var(--txt-head);">Terapeutnik 5.0</h2>
-        <p style="color:var(--txt-muted); font-size:13px; margin-bottom:25px;">CRM & Speech-to-Text</p>
-        <div style="text-align:left;">
-            <label class="label-sm">Użytkownik</label>
-            <input type="text" id="loginUser" style="margin-bottom:10px;">
-            <label class="label-sm">Hasło</label>
-            <input type="password" id="loginPass">
+    <div style="background:var(--card); padding:40px; border-radius:20px; box-shadow:var(--shadow); width:100%; max-width:400px; text-align:center; border:1px solid var(--border);">
+        <h2 style="margin:0; color:var(--p);">Terapeutnik 5.2 PRO</h2>
+        <p style="color:var(--txt-muted); font-size:14px; margin-bottom:30px;">CRM & Notatki Głosowe</p>
+        <div style="text-align:left; display:flex; flex-direction:column; gap:15px;">
+            <input type="text" id="loginUser" placeholder="Użytkownik">
+            <input type="password" id="loginPass" placeholder="Hasło klucz">
         </div>
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-            <button class="btn-primary" style="width:100%;" onclick="handleLogin('open')">Otwórz bazę</button>
-            <button class="btn-icon" style="width:100%; border:1px solid var(--border);" onclick="handleLogin('create')">Utwórz nową</button>
+        <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-primary" onclick="initDB('open')">📂 Otwórz plik bazy</button>
+            <button class="btn-icon" style="border:1px solid var(--border);" onclick="initDB('create')">🆕 Utwórz nową bazę</button>
         </div>
-        <div id="loginError" style="color:var(--danger); font-size:12px; margin-top:15px;"></div>
+        <p id="loginErr" style="color:var(--danger); font-size:12px; margin-top:15px;"></p>
     </div>
 </div>
 
-<div id="appLayout">
-    <div class="sidebar">
-        <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
-             <div style="font-weight:800; font-size:16px; color:var(--p); display:flex; align-items:center; gap:8px;">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--p)"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-                Pacjenci
+<div id="appLayout" style="display:none; width: 100%;">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="font-weight:800; color:var(--p); font-size:18px;">Pacjenci</span>
+                <button class="btn-icon" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M20 15.31L23.31 12 20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg></button>
             </div>
-            <button class="btn-icon" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M20 15.31L23.31 12 20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg></button>
+            <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="addPatient()">+ Nowy Pacjent</button>
+            <input type="text" id="searchInp" placeholder="🔍 Szukaj..." oninput="renderPatientList()">
         </div>
-        <div style="padding:15px;"><button class="btn-primary" style="width:100%;" onclick="addPatient()">+ Pacjent</button></div>
-        <div style="padding:0 15px;"><input type="text" id="patientSearch" placeholder="🔍 Szukaj..." oninput="renderList()"></div>
-        <div class="scroll-area" id="patientList" style="overflow-y:auto; flex-grow:1; padding:10px;"></div>
-        <div style="padding:15px; border-top:1px solid var(--border); background:var(--input-bg);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; font-weight:bold;">
-                <span id="userDisplay">...</span>
-                <span onclick="location.reload()" style="cursor:pointer;">Wyloguj</span>
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-primary" id="btnSave" style="flex:1;" onclick="saveToDisk()">💾 ZAPISZ</button>
-                <button class="btn-icon" style="flex:1; border:1px solid var(--border);" onclick="switchTab('calendar')">📅 KALENDARZ</button>
-            </div>
+
+        <div class="patient-list-area" id="patientList"></div>
+
+        <div class="sidebar-bottom">
+            <button class="btn-primary" style="flex:1;" id="saveBtn" onclick="saveToDisk()">💾 ZAPISZ</button>
+            <button class="btn-icon" style="border:1px solid var(--border); flex:1;" onclick="openCalendar()">📅 KALENDARZ</button>
         </div>
     </div>
 
-    <div class="main-area" id="mainArea">
-        
+    <div class="main-area">
         <div id="viewEditor" style="display:flex; flex-direction:column; height:100%;">
-            <div class="editor-header">
-                <div style="display:flex; justify-content:space-between;">
-                    <button class="btn-icon back-btn" onclick="history.back()" style="display:none; margin-right:10px;"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-                    <div style="flex:1; overflow:hidden;">
-                        <div id="activePatientName" style="font-weight:800; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Wybierz pacjenta</div>
-                        <div id="patientMetaDisplay" style="font-size:12px; color:var(--txt-muted); margin-top:4px;"></div>
-                    </div>
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn-icon" onclick="openEditModal()"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-                        <button class="btn-icon" style="color:var(--danger);" onclick="deletePatient()"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
-                    </div>
+            <div style="padding:15px 20px; background:var(--sidebar); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:15px;">
+                <button class="btn-icon back-btn" onclick="closeView()" style="display:none;"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                <div style="flex:1;">
+                    <div id="curName" style="font-weight:800; font-size:18px;">Wybierz pacjenta</div>
+                    <div id="curMeta" style="font-size:11px; color:var(--txt-muted);"></div>
                 </div>
+                <button class="btn-icon" onclick="openPatientModal()"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
             </div>
 
-            <div class="rich-toolbar" id="richToolbar" style="display:none;">
-                <button class="toolbar-btn" onclick="fmt('bold')">B</button>
-                <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
-                <button class="toolbar-btn" style="color:var(--danger)" onclick="fmt('foreColor','#ef4444')">●</button>
-                <button class="toolbar-btn" style="color:var(--p)" onclick="fmt('foreColor','#10b981')">●</button>
-                <button class="toolbar-btn" style="color:var(--link)" onclick="fmt('foreColor','#3b82f6')">●</button>
-                <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
-                <button class="toolbar-btn" onclick="toggleDictation()" id="btnMic" title="Dyktuj"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-                <button class="toolbar-btn" onclick="addTemplate()">📋</button>
+            <div class="tabs">
+                <div class="tab active" id="tabLinkNotes" onclick="switchSubTab('notes')">NOTATKI</div>
+                <div class="tab" id="tabLinkFin" onclick="switchSubTab('fin')">FINANSE</div>
             </div>
 
-            <div style="display:flex; background:var(--sidebar-bg); border-bottom:1px solid var(--border); font-size:13px; font-weight:600;">
-                <div style="flex:1; padding:10px; text-align:center; cursor:pointer; border-bottom:2px solid var(--p);" onclick="showSubTab('notes')">Notatki</div>
-                <div style="flex:1; padding:10px; text-align:center; cursor:pointer; color:var(--txt-muted);" onclick="showSubTab('finance')">Finanse</div>
+            <div id="editorTools" style="display:none; gap:10px; padding:10px 20px; background:var(--sidebar); border-bottom:1px solid var(--border);">
+                <button class="btn-icon" onclick="exec('bold')"><b>B</b></button>
+                <button class="btn-icon" onclick="toggleDictation()" id="micBtn"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                <button class="btn-icon" onclick="insertTemplate()">📋 Szablon</button>
             </div>
 
-            <div id="tabNotes" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
-                <div id="content" contenteditable="false" oninput="triggerAutoSave()"></div>
-                <div class="gallery-bar" id="galleryContainer" style="display:none; align-items:center;">
-                    <div class="thumb-wrap" style="background:var(--input-bg); border:2px dashed var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="document.getElementById('imgInp').click()"><span>+</span></div>
-                    <input type="file" id="imgInp" accept="image/*" style="display:none;" onchange="uploadImg(event)">
-                    <div id="galleryList" style="display:contents;"></div>
-                </div>
+            <div id="tabNotes" style="display:flex; flex:1; flex-direction:column; overflow:hidden;">
+                <div id="content" contenteditable="false" oninput="autoSaveTrigger()"></div>
             </div>
 
-            <div id="tabFinance" style="display:none; flex:1; overflow-y:auto; padding:20px;">
-                <div class="balance-card">
-                    <div>Wartość wizyt: <span id="finTotalCost">0 zł</span></div>
-                    <div>Wpłacono: <span id="finTotalPaid">0 zł</span></div>
-                    <div>Saldo: <span id="finBalance" style="color:var(--txt)">0 zł</span></div>
+            <div id="tabFin" style="display:none; flex:1; padding:20px; overflow-y:auto;">
+                <div style="background:var(--p-light); padding:15px; border-radius:12px; margin-bottom:20px; display:flex; justify-content:space-between;">
+                    <b>Saldo końcowe:</b> <span id="finBalance" style="font-weight:800;">0 zł</span>
                 </div>
                 <table class="fin-table">
-                    <thead><tr><th>Data</th><th>Usługa</th><th>Kwota</th><th>Opłacono</th></tr></thead>
-                    <tbody id="finHistoryBody"></tbody>
+                    <thead><tr><th>Data</th><th>Status</th><th>Kwota</th><th>Opłacono</th></tr></thead>
+                    <tbody id="finBody"></tbody>
                 </table>
             </div>
         </div>
-                <div id="viewCalendar" class="calendar-view">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+
+        <div id="viewCalendar" style="display:none; flex-direction:column; height:100%; padding:20px; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <button class="btn-icon back-btn" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                    <button class="btn-icon" onclick="closeCalendar()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
                     <h2 style="margin:0;">Terminarz</h2>
                 </div>
-                <button class="btn-primary" onclick="openVisitModal(document.getElementById('calDate').value, '12:00', null)">+ Dodaj wizytę</button>
+                <button class="btn-primary" onclick="openVisitModal(null)">+ Dodaj wizytę</button>
             </div>
-            
-            <div class="calendar-summary">
-                <div>📅 Zaplanowane: <b id="calCount">0</b></div>
-                <div>💰 Przychód: <b id="calIncome">0 zł</b></div>
-            </div>
-        
-            <div style="margin-bottom:20px;">
-                <label class="label-sm">WYBIERZ DZIEŃ:</label>
-                <input type="date" id="calDate" onchange="renderCalendar()">
-            </div>
-        
-            <div id="timeSlots" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
-        
-        <div id="visitModal" class="modal-overlay">
-            <div class="modal-card">
-                <h3 style="margin-top:0;">Szczegóły Wizyty</h3>
-                
-                <div class="form-grid">
-                    <div class="full-width">
-                        <label class="label-sm">Pacjent</label>
-                        <select id="visitPatient"></select>
-                    </div>
-                    <div>
-                        <label class="label-sm">Data</label>
-                        <input type="date" id="visitDateInput">
-                    </div>
-                    <div>
-                        <label class="label-sm">Godzina</label>
-                        <input type="time" id="visitTime">
-                    </div>
-                </div>
-                
-                <div class="form-grid">
-                    <div>
-                        <label class="label-sm">Status</label>
-                        <select id="visitStatus">
-                            <option value="plan">📅 Zaplanowana</option>
-                            <option value="done">✅ Odbyta</option>
-                            <option value="cancel">❌ Odwołana</option>
-                            <option value="noshow">⛔ Nieobecność</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="label-sm">Cena (zł)</label>
-                        <input type="number" id="visitPrice" value="150">
-                    </div>
-                </div>
-        
-                <div style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <label style="font-size:13px; font-weight:bold; display:flex; gap:8px; align-items:center; cursor:pointer;">
-                            <input type="checkbox" id="visitPaid"> Opłacona
-                        </label>
-                        <select id="visitMethod" style="width:100px; padding:4px; font-size:12px;">
-                            <option value="Gotówka">Gotówka</option>
-                            <option value="Przelew">Przelew</option>
-                            <option value="BLIK">BLIK</option>
-                            <option value="Karta">Karta</option>
-                        </select>
-                    </div>
-                </div>
-        
-                <label class="label-sm">Notatka techniczna</label>
-                <textarea id="visitNote" rows="2"></textarea>
-                
-                <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button id="btnDeleteVisit" class="btn-icon" style="color:var(--danger); border:1px solid var(--border);" onclick="deleteVisit()">Usuń</button>
-                    <div style="flex:1"></div>
-                    <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeVisitModal()">Anuluj</button>
-                    <button class="btn-primary" onclick="saveVisit()">Zapisz wizytę</button>
-                </div>
-            </div>
+            <input type="date" id="calDate" onchange="renderCalendar()" style="margin-bottom:20px;">
+            <div id="calList"></div>
         </div>
     </div>
 </div>
 
-<div id="editModal" class="modal-overlay">
-    <div class="modal-card">
-        <h3>Dane Pacjenta</h3>
-        <label class="label-sm">Imię i Nazwisko</label><input type="text" id="editName">
-        <div class="form-grid">
-            <div><label class="label-sm">Telefon</label><input type="text" id="editPhone"></div>
-            <div><label class="label-sm">Email</label><input type="email" id="editEmail"></div>
-            <div class="full-width"><label class="label-sm">Adres</label><input type="text" id="editAddress"></div>
-            <div><label class="label-sm">Status</label><select id="editStatus"><option>Aktywny</option><option>Zakończony</option></select></div>
-            <div><label class="label-sm">Urodzony</label><input type="date" id="editDob"></div>
-        </div>
-        <div style="text-align:right; margin-top:20px;">
-            <button class="btn-icon" style="display:inline-flex; border:1px solid var(--border);" onclick="closeEditModal()">Anuluj</button>
-            <button class="btn-primary" style="display:inline-flex;" onclick="savePatientDetails()">Zapisz</button>
+<div id="patientModal" class="modal-overlay">
+    <div class="modal">
+        <h3>Edytuj Dane Pacjenta</h3>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <label class="label-sm">Imię i Nazwisko</label><input type="text" id="pName">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label class="label-sm">Telefon</label><input type="text" id="pPhone"></div>
+                <div style="flex:1;"><label class="label-sm">Data ur.</label><input type="date" id="pDob"></div>
+            </div>
+            <label class="label-sm">Email</label><input type="email" id="pEmail">
+            <label class="label-sm">Adres</label><textarea id="pAddress" rows="2"></textarea>
+            <label class="label-sm">Status</label>
+            <select id="pStatus"><option>Aktywny</option><option>Oczekujący</option><option>Zakończony</option></select>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border);" onclick="closeModal('patientModal')">Anuluj</button>
+                <button class="btn-primary" style="flex:2;" onclick="savePatient()">Zapisz zmiany</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div id="visitModal" class="modal-overlay">
-    <div class="modal-card">
-        <h3 style="margin-top:0;">Szczegóły Wizyty</h3>
-        <input type="hidden" id="visitTime"> <label class="label-sm">Pacjent</label>
-        <select id="visitPatient" style="margin-bottom:10px;"></select>
-        
-        <div class="form-grid">
-            <div>
-                <label class="label-sm">Status</label>
-                <select id="visitStatus">
-                    <option value="plan">📅 Zaplanowana</option>
-                    <option value="done">✅ Odbyta</option>
-                    <option value="cancel">❌ Odwołana</option>
-                    <option value="noshow">⛔ Nieobecność</option>
-                </select>
+    <div class="modal">
+        <h3 id="visitTitle">Wizyta</h3>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <label class="label-sm">Pacjent</label><select id="vPatient"></select>
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label class="label-sm">Data</label><input type="date" id="vDate"></div>
+                <div style="flex:1;"><label class="label-sm">Godzina</label><input type="time" id="vTime"></div>
             </div>
-            <div>
-                <label class="label-sm">Cena (zł)</label>
-                <input type="number" id="visitPrice" value="150">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label class="label-sm">Status</label>
+                    <select id="vStatus">
+                        <option value="plan">Planowana</option>
+                        <option value="done">Odbyta</option>
+                        <option value="noshow">Nieobecność</option>
+                        <option value="cancel">Odwołana</option>
+                    </select>
+                </div>
+                <div style="flex:1;"><label class="label-sm">Cena (zł)</label><input type="number" id="vPrice"></div>
             </div>
-        </div>
-
-        <div style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <label style="font-size:13px; font-weight:bold; display:flex; gap:8px; align-items:center; cursor:pointer;">
-                    <input type="checkbox" id="visitPaid"> Opłacona
-                </label>
-                <select id="visitMethod" style="width:100px; padding:4px; font-size:12px;">
-                    <option value="Gotówka">Gotówka</option>
-                    <option value="Przelew">Przelew</option>
-                    <option value="BLIK">BLIK</option>
-                    <option value="Karta">Karta</option>
-                </select>
+            <label style="display:flex; align-items:center; gap:10px; font-weight:bold; cursor:pointer; margin:5px 0;">
+                <input type="checkbox" id="vPaid" style="width:auto;"> Czy wizyta opłacona?
+            </label>
+            <label class="label-sm">Notatka techniczna</label><textarea id="vNote" rows="2"></textarea>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button id="delVisitBtn" class="btn-icon" style="color:var(--danger); border:1px solid var(--border);" onclick="deleteVisit()">Usuń</button>
+                <button class="btn-icon" style="flex:1; border:1px solid var(--border);" onclick="closeModal('visitModal')">Anuluj</button>
+                <button class="btn-primary" style="flex:2;" onclick="saveVisit()">Zapisz wizytę</button>
             </div>
-        </div>
-
-        <label class="label-sm">Notatka techniczna (ukryta w karcie)</label>
-        <textarea id="visitNote" rows="2" placeholder="Napisz np. że przełożono..."></textarea>
-        
-        <div class="form-grid">
-            <a id="linkCall" class="tag-contact" href="#">📞 Zadzwoń</a>
-            <a id="linkSms" class="tag-contact" href="#">💬 SMS</a>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button class="btn-icon" style="color:var(--danger); border:1px solid var(--border);" onclick="deleteVisit()">Usuń</button>
-            <div style="flex:1"></div>
-            <button class="btn-icon" style="border:1px solid var(--border);" onclick="closeVisitModal()">Anuluj</button>
-            <button class="btn-primary" onclick="saveVisit()">Zapisz</button>
         </div>
     </div>
 </div>
 
-<div id="imgModal" onclick="this.style.display='none'"><img id="imgFull" src=""></div>
-<div id="toast" class="toast"></div>
-
 <script>
-    const PBKDF2_ITER = 100000;
+    const ITER = 100000;
     let db = { patients: {}, calendar: {} };
-    let activeId = null, fileHandle = null, authUser = "", authPass = "";
-    let isDirty = false, autoSaveTimer = null;
-    let recognition = null;
-    let touchStartX = 0, touchStartY = 0;
+    let activeId = null, fileHandle = null, user = "", pass = "";
+    let autoSaveTimer = null, recognition = null, editingVisitKey = null;
 
-    window.onload = () => {
-        document.body.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-        document.getElementById('calDate').valueAsDate = new Date();
-        setupGestures();
-        initSpeech();
-    };
+    // --- SYSTEM PLIKÓW ---
+    async function initDB(mode) {
+        user = document.getElementById('loginUser').value;
+        pass = document.getElementById('loginPass').value;
+        if (!user || !pass) return alert("Podaj dane logowania!");
 
-    // --- SYSTEM HISTORII & GESTÓW ---
-    window.onpopstate = () => {
-        if(activeId || document.getElementById('viewCalendar').classList.contains('active')) exitView(false);
-    };
-    function setupGestures() {
-        const m = document.getElementById('mainArea');
-        m.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, {passive:true});
-        m.addEventListener('touchend', e => {
-            if((!activeId && !document.getElementById('viewCalendar').classList.contains('active'))) return;
-            if(e.changedTouches[0].screenX - touchStartX > 60 && Math.abs(e.changedTouches[0].screenY - touchStartY) < 50) history.back();
-        }, {passive:true});
-    }
-
-    // --- MOWA (Speech API) ---
-    function initSpeech() {
-        if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'pl-PL'; recognition.continuous = false; recognition.interimResults = false;
-            recognition.onresult = (e) => {
-                const txt = e.results[0][0].transcript;
-                document.execCommand('insertText', false, txt + ' ');
-                document.getElementById('btnMic').classList.remove('mic-active');
-                triggerAutoSave();
-            };
-            recognition.onerror = () => document.getElementById('btnMic').classList.remove('mic-active');
-            recognition.onend = () => document.getElementById('btnMic').classList.remove('mic-active');
-        } else { document.getElementById('btnMic').style.display = 'none'; }
-    }
-    function toggleDictation() {
-        if(!recognition) return;
-        const btn = document.getElementById('btnMic');
-        if(btn.classList.contains('mic-active')) recognition.stop();
-        else { btn.classList.add('mic-active'); recognition.start(); }
-    }
-
-    // --- LOGIKA ---
-    async function handleLogin(m) {
-        authUser = document.getElementById('loginUser').value; authPass = document.getElementById('loginPass').value;
-        if(!authUser || !authPass) return;
         try {
-            if(m==='create') { db={patients:{},calendar:{}}; manualSave(); enterApp(); }
-            else {
-                // ... (Load logic simplified for brevity, same as prev version)
-                 const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
-                 input.onchange = async e => { if(e.target.files[0]) decryptAndLoad(await e.target.files[0].text()); };
-                 input.click();
+            if (mode === 'create') {
+                db = { patients: {}, calendar: {} };
+                fileHandle = await window.showSaveFilePicker({ suggestedName: `${user}_baza.json` });
+                await saveToDisk();
+            } else {
+                [fileHandle] = await window.showOpenFilePicker();
+                const content = await (await fileHandle.getFile()).text();
+                await decryptData(content);
             }
-        } catch(e) { alert("Błąd"); }
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appLayout').style.display = 'flex';
+            document.getElementById('calDate').valueAsDate = new Date();
+            renderPatientList();
+        } catch (e) { document.getElementById('loginErr').innerText = "Błąd dostępu do pliku."; }
     }
-    
-    // --- KRYPTOGRAFIA (skrócona) ---
-    async function decryptAndLoad(raw) {
+
+    async function saveToDisk() {
+        if (!fileHandle) return;
         try {
-            const w = JSON.parse(raw);
-            const k = await crypto.subtle.importKey('raw',new TextEncoder().encode(authPass),'PBKDF2',false,['deriveKey']);
-            const key = await crypto.subtle.deriveKey({name:'PBKDF2',salt:Uint8Array.from(atob(w.salt),c=>c.charCodeAt(0)),iterations:PBKDF2_ITER,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['decrypt','encrypt']);
-            const dec = await crypto.subtle.decrypt({name:'AES-GCM',iv:Uint8Array.from(atob(w.iv),c=>c.charCodeAt(0))},key,Uint8Array.from(atob(w.data),c=>c.charCodeAt(0)));
+            const encrypted = await encryptData(JSON.stringify(db));
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(encrypted, null, 2));
+            await writable.close();
+            document.getElementById('saveBtn').style.background = "var(--p)";
+            document.getElementById('saveBtn').innerText = "💾 ZAPISZ";
+        } catch (e) { alert("Błąd nadpisywania pliku!"); }
+    }
+
+    function autoSaveTrigger() {
+        if (activeId) db.patients[activeId].notes = document.getElementById('content').innerHTML;
+        document.getElementById('saveBtn').style.background = "var(--warn)";
+        document.getElementById('saveBtn').innerText = "⏳ Czekam...";
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(saveToDisk, 3000);
+    }
+
+    // --- KRYPTOGRAFIA ---
+    async function encryptData(text) {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveKey(pass, salt);
+        const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
+        return { salt: btoa(String.fromCharCode(...salt)), iv: btoa(String.fromCharCode(...iv)), data: btoa(String.fromCharCode(...new Uint8Array(enc))), user: user };
+    }
+    async function decryptData(raw) {
+        try {
+            const j = JSON.parse(raw);
+            const key = await deriveKey(pass, Uint8Array.from(atob(j.salt), c => c.charCodeAt(0)));
+            const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: Uint8Array.from(atob(j.iv), c => c.charCodeAt(0)) }, key, Uint8Array.from(atob(j.data), c => c.charCodeAt(0)));
             db = JSON.parse(new TextDecoder().decode(dec));
-            enterApp();
-        } catch(e) { document.getElementById('loginError').innerText="Błędne hasło"; }
+        } catch (e) { throw new Error("Hasło błędne"); }
     }
-    async function encryptData(str) {
-        const s=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
-        const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(authPass),'PBKDF2',false,['deriveKey']);
-        const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:PBKDF2_ITER,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt']);
-        const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(str));
-        return {salt:btoa(String.fromCharCode(...s)), iv:btoa(String.fromCharCode(...iv)), data:btoa(String.fromCharCode(...new Uint8Array(enc))), user:authUser};
+    async function deriveKey(p, s) {
+        const b = await crypto.subtle.importKey('raw', new TextEncoder().encode(p), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: s, iterations: ITER, hash: 'SHA-256' }, b, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
     }
 
-    function enterApp() { document.getElementById('loginScreen').style.display='none'; document.getElementById('appLayout').style.display='flex'; document.getElementById('userDisplay').innerText=authUser; renderList(); }
-    
-    // --- SAVE ---
-    function triggerAutoSave() { isDirty=true; document.getElementById('btnSave').style.background='var(--warn)'; clearTimeout(autoSaveTimer); autoSaveTimer=setTimeout(()=>saveToDisk(true),2000); }
-    async function saveToDisk(silent=false) {
-        try {
-            const blob = new Blob([JSON.stringify(await encryptData(JSON.stringify(db)),null,2)],{type:'application/json'});
-            if(fileHandle) { const w=await fileHandle.createWritable(); await w.write(blob); await w.close(); isDirty=false; }
-            else if(!silent) { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${authUser}.json`; a.click(); isDirty=false; }
-            document.getElementById('btnSave').style.background='var(--p)';
-        } catch(e) {}
-    }
-    function manualSave() { saveToDisk(false); }
-
-    // --- PACJENT ---
-    function addPatient() {
-        const n=prompt("Imię i Nazwisko:"); if(!n) return;
-        const id='p'+Date.now(); db.patients[id]={name:n,notes:"",images:[],dob:"",email:"",phone:"",address:"",status:"Aktywny"};
-        renderList(); selectPatient(id); openEditModal();
-    }
-    function renderList() {
-        const c=document.getElementById('patientList'), q=document.getElementById('patientSearch').value.toLowerCase(); c.innerHTML="";
-        Object.keys(db.patients).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id=>{
-            const p=db.patients[id]; if(!p.name.toLowerCase().includes(q)) return;
-            const d=document.createElement('div'); d.className=`patient-item ${id===activeId?'active':''}`;
-            d.innerHTML=`<b>${p.name}</b><div class="sub-info"><span>${p.status}</span></div>`;
-            d.onclick=()=>selectPatient(id); c.appendChild(d);
+    // --- PACJENCI ---
+    function renderPatientList() {
+        const container = document.getElementById('patientList');
+        const search = document.getElementById('searchInp').value.toLowerCase();
+        container.innerHTML = "";
+        Object.keys(db.patients).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id => {
+            const p = db.patients[id];
+            if (!p.name.toLowerCase().includes(search)) return;
+            const div = document.createElement('div');
+            div.style = `padding:12px; margin-bottom:5px; border-radius:10px; cursor:pointer; background:${id===activeId?'var(--p-light)':'transparent'}; border:1px solid ${id===activeId?'var(--p)':'transparent'}`;
+            div.innerHTML = `<div style="font-weight:bold; color:${id===activeId?'var(--p)':'var(--txt)'}">${p.name}</div><div style="font-size:10px; color:var(--txt-muted)">${p.phone || ''}</div>`;
+            div.onclick = () => selectPatient(id);
+            container.appendChild(div);
         });
     }
+
     function selectPatient(id) {
-        activeId=id; const p=db.patients[id];
-        history.pushState({v:'p'},"","#p");
-        document.getElementById('activePatientName').innerText=p.name;
-        document.getElementById('content').innerHTML=p.notes;
-        document.getElementById('content').contentEditable="true";
-        document.getElementById('richToolbar').style.display="flex";
-        document.querySelector('.back-btn').style.display='flex';
-        document.getElementById('galleryContainer').style.display='flex';
+        activeId = id; const p = db.patients[id];
+        document.getElementById('curName').innerText = p.name;
+        document.getElementById('curMeta').innerText = `${p.phone || ''} | ${p.status || 'Aktywny'}`;
+        document.getElementById('content').innerHTML = p.notes;
+        document.getElementById('content').contentEditable = "true";
+        document.getElementById('editorTools').style.display = "flex";
         document.body.classList.add('view-active');
-        
-        // Oblicz finanse
-        calculateFinances(id);
-        renderList(); renderGallery(); showSubTab('notes');
+        switchSubTab('notes');
+        renderPatientList();
     }
 
-    function calculateFinances(pid) {
-        let totalCost=0, totalPaid=0;
-        const tbody = document.getElementById('finHistoryBody'); tbody.innerHTML="";
-        
-        // Iteruj po kalendarzu
-        Object.keys(db.calendar).sort().forEach(date => {
-            Object.keys(db.calendar[date]).sort().forEach(time => {
-                const slot = db.calendar[date][time];
-                // Wsteczna kompatybilność (jeśli slot to string ID)
-                const isObj = typeof slot === 'object';
-                const pId = isObj ? slot.pid : slot;
-                
-                if(pId === pid) {
-                    const price = (isObj && slot.price) ? parseInt(slot.price) : 0;
-                    const paid = (isObj && slot.paid);
-                    if(isObj && slot.status === 'done') {
-                        totalCost += price;
-                        if(paid) totalPaid += price;
-                    }
-                    // Wiersz tabeli
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${date}</td><td>${(isObj?slot.status:'wizyta')}</td><td>${price}</td><td>${paid?'✅':''}</td>`;
-                    tbody.appendChild(tr);
+    function switchSubTab(t) {
+        document.getElementById('tabNotes').style.display = t==='notes'?'flex':'none';
+        document.getElementById('tabFin').style.display = t==='fin'?'block':'none';
+        document.getElementById('tabLinkNotes').className = `tab ${t==='notes'?'active':''}`;
+        document.getElementById('tabLinkFin').className = `tab ${t==='fin'?'active':''}`;
+        if(t==='fin') renderFinance();
+    }
+
+    function renderFinance() {
+        let bal = 0; const body = document.getElementById('finBody'); body.innerHTML = "";
+        Object.keys(db.calendar).forEach(d => {
+            Object.keys(db.calendar[d]).forEach(t => {
+                const v = db.calendar[d][t];
+                if(v.pid === activeId) {
+                    const price = parseInt(v.price || 0);
+                    if(v.status === 'done') bal += v.paid ? 0 : -price;
+                    body.innerHTML += `<tr><td>${d}</td><td>${v.status}</td><td>${price} zł</td><td>${v.paid?'✅':'❌'}</td></tr>`;
                 }
             });
         });
-
-        document.getElementById('finTotalCost').innerText = totalCost + " zł";
-        document.getElementById('finTotalPaid').innerText = totalPaid + " zł";
-        const balance = totalPaid - totalCost;
-        const balEl = document.getElementById('finBalance');
-        balEl.innerText = (balance > 0 ? "+" : "") + balance + " zł";
-        balEl.style.color = balance < 0 ? "var(--danger)" : (balance > 0 ? "var(--p)" : "var(--txt)");
+        document.getElementById('finBalance').innerText = `${bal} zł`;
+        document.getElementById('finBalance').style.color = bal < 0 ? "var(--danger)" : "var(--p)";
     }
 
-    function showSubTab(t) {
-        document.getElementById('tabNotes').style.display = t==='notes'?'flex':'none';
-        document.getElementById('tabFinance').style.display = t==='finance'?'block':'none';
+    // --- KALENDARZ ---
+    function openCalendar() {
+        document.getElementById('viewEditor').style.display='none';
+        document.getElementById('viewCalendar').style.display='flex';
+        renderCalendar();
     }
-
-    // --- KALENDARZ & WIZYTY ---
-    function switchTab(t) {
-        if(t==='calendar'){
-            history.pushState({v:'c'},"","#c");
-            document.getElementById('viewEditor').style.display='none';
-            document.getElementById('viewCalendar').classList.add('active');
-            document.body.classList.add('view-active');
-            renderCalendar();
-        } else history.back();
+    function closeCalendar() {
+        document.getElementById('viewCalendar').style.display='none';
+        document.getElementById('viewEditor').style.display='flex';
     }
-    
     function renderCalendar() {
         const d = document.getElementById('calDate').value;
-        const c = document.getElementById('timeSlots');
-        c.innerHTML = "";
-        
-        if (!db.calendar[d] || Object.keys(db.calendar[d]).length === 0) {
-            c.innerHTML = `<div style="text-align:center; padding:40px; color:var(--txt-muted); border:2px dashed var(--border); border-radius:15px;">Brak wizyt na ten dzień.<br><br>Kliknij "+ Dodaj wizytę" powyżej.</div>`;
-            document.getElementById('calCount').innerText = "0";
-            document.getElementById('calIncome').innerText = "0 zł";
-            return;
-        }
-    
-        let dayIncome = 0;
-        let dayCount = 0;
-    
-        // Sortujemy wizyty wg godziny
-        const sortedTimes = Object.keys(db.calendar[d]).sort();
-    
-        sortedTimes.forEach(t => {
-            const entry = db.calendar[d][t];
-            const pid = typeof entry === 'object' ? entry.pid : entry;
-            const p = db.patients[pid];
-            if(!p) return;
-    
-            const div = document.createElement('div');
-            div.className = 'time-slot';
-            
-            // Logika kolorów i ikon (zostaje z v5.0)
-            if(typeof entry === 'object') {
-                div.classList.add('slot-' + entry.status);
-                if(entry.status === 'done' && !entry.paid) div.classList.add('slot-done-unpaid');
-                if(entry.status === 'done' || entry.status === 'plan') dayCount++;
-                if(entry.paid) dayIncome += parseInt(entry.price || 0);
-            }
-    
-            div.innerHTML = `
-                <div class="slot-time">${t}</div>
-                <div class="slot-content">
-                    <b>${p.name}</b>
-                    <span>${entry.price || 0} zł ${entry.paid ? '✅' : ''}</span>
-                </div>
-            `;
-            div.onclick = () => openVisitModal(d, t, entry);
-            c.appendChild(div);
+        const list = document.getElementById('calList'); list.innerHTML = "";
+        const dayData = db.calendar[d] || {};
+        const sorted = Object.keys(dayData).sort();
+        if(sorted.length === 0) list.innerHTML = `<div style="text-align:center; padding:40px; color:var(--txt-muted); border:2px dashed var(--border); border-radius:15px;">Brak zaplanowanych wizyt</div>`;
+        sorted.forEach(t => {
+            const v = dayData[t]; const p = db.patients[v.pid];
+            const div = document.createElement('div'); div.className = `time-slot st-${v.status}`;
+            div.innerHTML = `<div class="slot-time">${t}</div><div style="flex:1"><b>${p?p.name:'Usunięty'}</b><br><small>${v.status}</small></div><div><b>${v.price} zł</b><br>${v.paid?'✅':'❌'}</div>`;
+            div.onclick = () => openVisitModal(`${d}|${t}`);
+            list.appendChild(div);
         });
-    
-        document.getElementById('calCount').innerText = dayCount;
-        document.getElementById('calIncome').innerText = dayIncome + " zł";
     }
 
-function openVisitModal(date, time, entry) {
-    document.getElementById('visitDateInput').value = date;
-    document.getElementById('visitTime').value = time;
-    
-    // Wypełnij listę pacjentów
-    const sel = document.getElementById('visitPatient');
-    sel.innerHTML = `<option value="">-- Wybierz pacjenta --</option>`;
-    Object.keys(db.patients).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id => {
-        sel.innerHTML += `<option value="${id}">${db.patients[id].name}</option>`;
-    });
-
-    if (entry) {
-        document.getElementById('btnDeleteVisit').style.display = 'block';
-        const pid = typeof entry === 'object' ? entry.pid : entry;
-        sel.value = pid;
-        if(typeof entry === 'object') {
-            document.getElementById('visitStatus').value = entry.status;
-            document.getElementById('visitPrice').value = entry.price;
-            document.getElementById('visitPaid').checked = entry.paid;
-            document.getElementById('visitMethod').value = entry.method || 'Gotówka';
-            document.getElementById('visitNote').value = entry.note || "";
-        }
-    } else {
-        document.getElementById('btnDeleteVisit').style.display = 'none';
-        document.getElementById('visitStatus').value = 'plan';
-        document.getElementById('visitPaid').checked = false;
-        document.getElementById('visitNote').value = "";
-    }
-
-    document.getElementById('visitModal').style.display = 'flex';
-}
-
-    // --- MODAL WIZYTY ---
-    function openVisitModal(date, time, entry) {
-        document.getElementById('visitTime').value = time;
-        const sel = document.getElementById('visitPatient'); sel.innerHTML = `<option value="">-- Wybierz --</option>`;
-        Object.keys(db.patients).sort((a,b)=>db.patients[a].name.localeCompare(db.patients[b].name)).forEach(id => {
-            sel.innerHTML += `<option value="${id}">${db.patients[id].name}</option>`;
-        });
-
-        // Domyślne wartości
-        document.getElementById('visitStatus').value = 'plan';
-        document.getElementById('visitPrice').value = 150;
-        document.getElementById('visitPaid').checked = false;
-        document.getElementById('visitNote').value = "";
-        
-        if(entry) {
-            const isObj = typeof entry === 'object';
-            const pid = isObj ? entry.pid : entry;
-            sel.value = pid;
-            updateLinks(pid);
-            
-            if(isObj) {
-                document.getElementById('visitStatus').value = entry.status;
-                document.getElementById('visitPrice').value = entry.price || 0;
-                document.getElementById('visitPaid').checked = entry.paid || false;
-                document.getElementById('visitMethod').value = entry.method || 'Gotówka';
-                document.getElementById('visitNote').value = entry.note || "";
-            }
+    function openVisitModal(key) {
+        const sel = document.getElementById('vPatient'); sel.innerHTML = `<option value="">-- Wybierz --</option>`;
+        Object.keys(db.patients).forEach(id => sel.innerHTML += `<option value="${id}">${db.patients[id].name}</option>`);
+        editingVisitKey = key;
+        if(key) {
+            const [d, t] = key.split('|'); const v = db.calendar[d][t];
+            document.getElementById('vPatient').value = v.pid;
+            document.getElementById('vDate').value = d; document.getElementById('vTime').value = t;
+            document.getElementById('vStatus').value = v.status; document.getElementById('vPrice').value = v.price;
+            document.getElementById('vPaid').checked = v.paid; document.getElementById('vNote').value = v.note || "";
+            document.getElementById('delVisitBtn').style.display = "block";
         } else {
-            updateLinks(null);
+            document.getElementById('vDate').value = document.getElementById('calDate').value;
+            document.getElementById('vTime').value = "12:00"; document.getElementById('vPrice').value = 150;
+            document.getElementById('vPaid').checked = false; document.getElementById('delVisitBtn').style.display = "none";
         }
-
         document.getElementById('visitModal').style.display = 'flex';
-        // Listener zmiany pacjenta żeby zaktualizować linki
-        sel.onchange = () => updateLinks(sel.value);
-    }
-
-    function updateLinks(pid) {
-        const p = db.patients[pid];
-        const call = document.getElementById('linkCall');
-        const sms = document.getElementById('linkSms');
-        if(p && p.phone) {
-            call.href = `tel:${p.phone}`; call.style.opacity=1;
-            sms.href = `sms:${p.phone}`; sms.style.opacity=1;
-        } else {
-            call.href="#"; call.style.opacity=0.5;
-            sms.href="#"; sms.style.opacity=0.5;
-        }
     }
 
     function saveVisit() {
-        const oldDate = document.getElementById('calDate').value; // data z widoku kalendarza
-        const oldTime = document.getElementById('visitTime').defaultValue; // pomocnicze do edycji
-        
-        const newDate = document.getElementById('visitDateInput').value;
-        const newTime = document.getElementById('visitTime').value;
-        const pid = document.getElementById('visitPatient').value;
-    
-        if (!pid || !newDate || !newTime) return alert("Wypełnij dane!");
-    
-        // Jeśli zmieniliśmy datę lub godzinę podczas edycji, usuwamy stary wpis
-        // (uproszczone: zawsze czyścimy i nadpisujemy)
-        if (!db.calendar[newDate]) db.calendar[newDate] = {};
-    
-        db.calendar[newDate][newTime] = {
-            pid: pid,
-            status: document.getElementById('visitStatus').value,
-            price: document.getElementById('visitPrice').value,
-            paid: document.getElementById('visitPaid').checked,
-            method: document.getElementById('visitMethod').value,
-            note: document.getElementById('visitNote').value
-        };
-    
-        closeVisitModal();
-        renderCalendar();
-        triggerAutoSave();
+        const pid = document.getElementById('vPatient').value;
+        const d = document.getElementById('vDate').value;
+        const t = document.getElementById('vTime').value;
+        if(!pid || !d || !t) return alert("Wypełnij dane!");
+        if(editingVisitKey) { const [od, ot] = editingVisitKey.split('|'); delete db.calendar[od][ot]; }
+        if(!db.calendar[d]) db.calendar[d] = {};
+        db.calendar[d][t] = { pid, status: document.getElementById('vStatus').value, price: document.getElementById('vPrice').value, paid: document.getElementById('vPaid').checked, note: document.getElementById('vNote').value };
+        closeModal('visitModal'); renderCalendar(); autoSaveTrigger();
     }
 
     function deleteVisit() {
-        const d = document.getElementById('calDate').value;
-        const t = document.getElementById('visitTime').value;
-        delete db.calendar[d][t];
-        closeVisitModal();
-        renderCalendar();
-        triggerAutoSave();
+        const [d, t] = editingVisitKey.split('|'); delete db.calendar[d][t];
+        closeModal('visitModal'); renderCalendar(); autoSaveTrigger();
     }
 
-    function closeVisitModal() { document.getElementById('visitModal').style.display='none'; }
-
-    // --- UI HELPERS ---
-    function exitView(h=true) {
-        document.body.classList.remove('view-active'); activeId=null;
-        document.getElementById('content').contentEditable="false";
-        document.getElementById('richToolbar').style.display='none';
-        document.querySelector('.back-btn').style.display='none';
-        document.getElementById('viewCalendar').classList.remove('active');
-        document.getElementById('viewEditor').style.display='flex';
-        if(h) history.back();
+    // --- NARZĘDZIA ---
+    function openPatientModal() {
+        const p = db.patients[activeId];
+        document.getElementById('pName').value = p.name; document.getElementById('pPhone').value = p.phone || "";
+        document.getElementById('pEmail').value = p.email || ""; document.getElementById('pAddress').value = p.address || "";
+        document.getElementById('pDob').value = p.dob || ""; document.getElementById('pStatus').value = p.status || "Aktywny";
+        document.getElementById('patientModal').style.display = 'flex';
     }
-    function fmt(c,v){document.execCommand(c,false,v);}
-    function addTemplate(){
-        document.getElementById('content').innerHTML+=`<br><b>SESJA ${new Date().toLocaleDateString()}</b><br>Obszar:<br>Wnioski:`;
-        triggerAutoSave();
+    function savePatient() {
+        const p = db.patients[activeId];
+        p.name = document.getElementById('pName').value; p.phone = document.getElementById('pPhone').value;
+        p.email = document.getElementById('pEmail').value; p.address = document.getElementById('pAddress').value;
+        p.dob = document.getElementById('pDob').value; p.status = document.getElementById('pStatus').value;
+        selectPatient(activeId); closeModal('patientModal'); autoSaveTrigger();
     }
-    function openEditModal(){
-        const p=db.patients[activeId];
-        document.getElementById('editName').value=p.name;
-        document.getElementById('editPhone').value=p.phone||"";
-        document.getElementById('editEmail').value=p.email||"";
-        document.getElementById('editAddress').value=p.address||"";
-        document.getElementById('editModal').style.display='flex';
+    function addPatient() {
+        const n = prompt("Imię i Nazwisko:"); if(!n) return;
+        const id = 'p' + Date.now(); db.patients[id] = { name: n, notes: "", phone: "", status: "Aktywny" };
+        renderPatientList(); selectPatient(id);
     }
-    function closeEditModal(){document.getElementById('editModal').style.display='none';}
-    function savePatientDetails(){
-        const p=db.patients[activeId];
-        p.name=document.getElementById('editName').value;
-        p.phone=document.getElementById('editPhone').value;
-        p.email=document.getElementById('editEmail').value;
-        p.address=document.getElementById('editAddress').value;
-        closeEditModal(); 
-        document.getElementById('activePatientName').innerText=p.name;
-        triggerAutoSave();
+    function toggleDictation() {
+        if(!recognition) {
+            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!Speech) return alert("Brak wsparcia mowy");
+            recognition = new Speech(); recognition.lang = 'pl-PL';
+            recognition.onresult = (e) => { document.execCommand('insertText', false, e.results[0][0].transcript + ' '); autoSaveTrigger(); };
+            recognition.onend = () => document.getElementById('micBtn').classList.remove('mic-active');
+        }
+        if(document.getElementById('micBtn').classList.contains('mic-active')) recognition.stop();
+        else { document.getElementById('micBtn').classList.add('mic-active'); recognition.start(); }
     }
-    function uploadImg(e) { /* (Bez zmian z v4.0 - bezpieczny upload) */ }
-    function renderGallery() { /* (Bez zmian) */ }
-    function toggleTheme(){
-        const t=document.body.getAttribute('data-theme')==='light'?'dark':'light';
-        document.body.setAttribute('data-theme',t); localStorage.setItem('theme',t);
-    }
+    function exec(c) { document.execCommand(c, false, null); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function closeView() { document.body.classList.remove('view-active'); activeId = null; renderPatientList(); }
+    function toggleTheme() { const t = document.body.getAttribute('data-theme')==='light'?'dark':'light'; document.body.setAttribute('data-theme', t); }
+    function insertTemplate() { document.execCommand('insertHTML', false, `<br><b>SESJA ${new Date().toLocaleDateString()}</b><br>• Cel:<br>• Przebieg:<br>• Zadanie:<br><br>`); }
 </script>
 </body>
 </html>
