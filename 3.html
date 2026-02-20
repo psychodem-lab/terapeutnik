@@ -3,177 +3,338 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Psychoterapeuty - Notatki</title>
+    <title>TherapyNotes Pro - System Zarządzania</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .active-tab { border-bottom: 3px solid #4f46e5; color: #4f46e5; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .recording { animation: pulse 1.5s infinite; color: #ef4444; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans">
 
-    <nav class="bg-indigo-700 text-white p-4 shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold"><i class="fas fa-user-md mr-2"></i>TherapyNotes v1.2</h1>
-            <div class="flex gap-2">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-indigo-700 font-bold text-xl">
+                <i class="fas fa-brain"></i> <span>TherapyPro</span>
+            </div>
+            <div class="flex gap-3">
                 <input type="file" id="jsonInput" class="hidden" accept=".json">
-                <button onclick="document.getElementById('jsonInput').click()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg transition text-sm">
-                    <i class="fas fa-upload mr-1"></i> Wgraj JSON
+                <button onclick="document.getElementById('jsonInput').click()" class="text-sm bg-slate-200 hover:bg-slate-300 px-3 py-2 rounded-lg transition">
+                    <i class="fas fa-file-import"></i> <span class="hidden md:inline">Wgraj plik</span>
                 </button>
-                <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg transition text-sm">
-                    <i class="fas fa-save mr-1"></i> Pobierz JSON
+                <button onclick="exportJSON()" class="text-sm bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg shadow-sm transition">
+                    <i class="fas fa-download"></i> <span class="hidden md:inline">Pobierz aktualizację</span>
                 </button>
             </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 flex gap-6 text-sm font-medium text-slate-500">
+            <button onclick="switchView('patients')" id="tab-patients" class="py-3 active-tab transition">Pacjenci</button>
+            <button onclick="switchView('appointments')" id="tab-appointments" class="py-3 transition">Wizyty / Kalendarz</button>
         </div>
     </nav>
 
-    <main class="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
         
-        <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-140px)]">
-            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                <input type="text" id="search" placeholder="Szukaj pacjenta..." class="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition">
+        <div id="view-patients" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-4 space-y-4">
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2">
+                    <i class="fas fa-search text-slate-400 ml-2"></i>
+                    <input type="text" id="searchPatient" placeholder="Szukaj pacjenta..." class="w-full outline-none bg-transparent">
+                </div>
+                <div id="patientList" class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y overflow-hidden max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <p class="p-6 text-center text-slate-400">Wgraj plik JSON...</p>
+                </div>
             </div>
-            <div id="patientList" class="flex-1 overflow-y-auto custom-scrollbar">
-                <p class="p-8 text-center text-slate-400">Wgraj plik JSON, aby wyświetlić listę pacjentów.</p>
+
+            <div id="patientDetail" class="lg:col-span-8 hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex flex-wrap justify-between gap-4 mb-6">
+                        <div class="space-y-1">
+                            <input type="text" id="edit-imie" class="text-2xl font-bold border-b border-transparent focus:border-indigo-300 outline-none w-full" placeholder="Imię">
+                            <input type="text" id="edit-nazwisko" class="text-xl text-slate-500 border-b border-transparent focus:border-indigo-300 outline-none w-full" placeholder="Nazwisko">
+                        </div>
+                        <div class="flex flex-col gap-2 min-w-[150px]">
+                            <select id="edit-status" class="px-3 py-1 rounded-full text-xs font-bold uppercase border">
+                                <option value="aktywny">Aktywny</option>
+                                <option value="nieaktywny">Nieaktywny</option>
+                                <option value="zakończona_terapia">Zakończona</option>
+                                <option value="oczekujący">Oczekujący</option>
+                            </select>
+                            <input type="text" id="edit-miejsce" class="text-xs text-slate-500 p-1 border rounded" placeholder="Miejsce terapii (np. NZOZ)">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-indigo-500 w-5"></i>
+                            <label class="w-24 text-slate-400">Urodzony:</label>
+                            <input type="date" id="edit-urodzenie" class="bg-slate-50 rounded px-2 py-1 outline-none">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-phone text-indigo-500 w-5"></i>
+                            <label class="w-24 text-slate-400">Telefon:</label>
+                            <input type="text" id="edit-telefon" class="bg-slate-50 rounded px-2 py-1 outline-none" placeholder="+48...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fas fa-info-circle"></i> Informacje ogólne / Diagnoza</h3>
+                    <textarea id="edit-notatki-ogolne" class="w-full min-h-[100px] p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 outline-none focus:ring-2 focus:ring-indigo-300" placeholder="Stałe notatki o pacjencie..."></textarea>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-lg">Notatki z sesji</h3>
+                        <button onclick="addNewNote()" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-600 transition shadow-sm">
+                            <i class="fas fa-plus mr-1"></i> Dodaj sesję
+                        </button>
+                    </div>
+                    <div id="notesContainer" class="space-y-4"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-paperclip"></i> Załączniki</h3>
+                    <div id="attachmentsGallery" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                </div>
             </div>
         </div>
 
-        <div id="editPanel" class="lg:col-span-2 space-y-6 hidden">
+        <div id="view-appointments" class="hidden space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 id="currentPatientName" class="text-2xl font-bold text-slate-800">Imię Nazwisko</h2>
-                        <p id="currentPatientMeta" class="text-sm text-slate-500 mt-1"></p>
-                    </div>
-                    <span id="currentStatusBadge" class="px-3 py-1 rounded-full text-xs font-semibold"></span>
+                <h2 class="text-xl font-bold mb-6">Lista wszystkich wizyt</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="p-4 font-bold">Pacjent</th>
+                                <th class="p-4 font-bold">Data i Godzina</th>
+                                <th class="p-4 font-bold">Status</th>
+                                <th class="p-4 font-bold">Notatka finansowa/wizyta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsList" class="divide-y"></tbody>
+                    </table>
                 </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-700">Notatki z sesji</h3>
-                    <button onclick="addNewNote()" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
-                        <i class="fas fa-plus mr-1"></i> Nowa notatka
-                    </button>
-                </div>
-                <div id="notesContainer" class="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                    </div>
             </div>
         </div>
 
-        <div id="emptyState" class="lg:col-span-2 flex items-center justify-center bg-white rounded-2xl border-2 border-dashed border-slate-200 h-[calc(100vh-140px)]">
-            <div class="text-center text-slate-400">
-                <i class="fas fa-clipboard-list text-5xl mb-4"></i>
-                <p>Wybierz pacjenta z listy, aby zobaczyć szczegóły</p>
-            </div>
-        </div>
     </main>
 
     <script>
         let db = null;
-        let selectedPatientIndex = null;
+        let selectedIdx = null;
+        let recognition = null;
 
+        // Inicjalizacja Speech Recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'pl-PL';
+        }
+
+        // --- OBSŁUGA PLIKU ---
         document.getElementById('jsonInput').addEventListener('change', function(e) {
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = (event) => {
                 db = JSON.parse(event.target.result);
                 renderPatientList();
+                renderAppointments();
             };
             reader.readAsText(e.target.files[0]);
         });
 
+        // --- WIDOKI ---
+        function switchView(view) {
+            document.getElementById('view-patients').classList.toggle('hidden', view !== 'patients');
+            document.getElementById('view-appointments').classList.toggle('hidden', view !== 'appointments');
+            document.getElementById('tab-patients').classList.toggle('active-tab', view === 'patients');
+            document.getElementById('tab-appointments').classList.toggle('active-tab', view === 'appointments');
+        }
+
+        // --- RENDEROWANIE PACJENTÓW ---
         function renderPatientList(filter = '') {
             const list = document.getElementById('patientList');
             list.innerHTML = '';
-            
-            db.patients.forEach((p, index) => {
-                if (!(`${p.imie} ${p.nazwisko}`.toLowerCase().includes(filter.toLowerCase()))) return;
+            db.patients.forEach((p, i) => {
+                const fullName = `${p.imie} ${p.nazwisko}`.toLowerCase();
+                if (!fullName.includes(filter.toLowerCase())) return;
 
                 const div = document.createElement('div');
-                div.className = `p-4 border-b border-slate-50 cursor-pointer transition hover:bg-indigo-50 ${selectedPatientIndex === index ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : ''}`;
-                div.onclick = () => selectPatient(index);
+                div.className = `p-4 cursor-pointer hover:bg-slate-50 transition ${selectedIdx === i ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`;
+                div.onclick = () => selectPatient(i);
                 div.innerHTML = `
-                    <div class="font-bold text-slate-800">${p.imie} ${p.nazwisko}</div>
-                    <div class="text-xs text-slate-500 mt-1">Status: ${p.status || 'Nieokreślony'}</div>
+                    <div class="font-bold text-slate-900">${p.imie} ${p.nazwisko}</div>
+                    <div class="text-[10px] text-slate-400 uppercase mt-1 tracking-wider">${p.status} • ${p.miejsce_terapii || 'Brak miejsca'}</div>
                 `;
                 list.appendChild(div);
             });
         }
 
-        function selectPatient(index) {
-            selectedPatientIndex = index;
-            const p = db.patients[index];
+        function selectPatient(i) {
+            selectedIdx = i;
+            const p = db.patients[i];
+            document.getElementById('patientDetail').classList.remove('hidden');
             
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('editPanel').classList.remove('hidden');
-            
-            document.getElementById('currentPatientName').innerText = `${p.imie} ${p.nazwisko}`;
-            document.getElementById('currentPatientMeta').innerText = `Data ur: ${p.data_urodzenia || '-'} | Tel: ${p.telefon || '-'}`;
-            
-            const badge = document.getElementById('currentStatusBadge');
-            badge.innerText = p.status.toUpperCase();
-            badge.className = `px-3 py-1 rounded-full text-xs font-semibold ${p.status === 'aktywny' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`;
+            // Mapowanie pól
+            document.getElementById('edit-imie').value = p.imie;
+            document.getElementById('edit-nazwisko').value = p.nazwisko;
+            document.getElementById('edit-status').value = p.status;
+            document.getElementById('edit-miejsce').value = p.miejsce_terapii || '';
+            document.getElementById('edit-urodzenie').value = p.data_urodzenia || '';
+            document.getElementById('edit-telefon').value = p.telefon || '';
+            document.getElementById('edit-notatki-ogolne').value = p.notatki || '';
+
+            // Eventy zapisu pól podstawowych
+            ['imie', 'nazwisko', 'status', 'miejsce', 'urodzenie', 'telefon', 'notatki-ogolne'].forEach(id => {
+                const el = document.getElementById(`edit-${id}`);
+                el.onchange = () => {
+                    const field = id.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
+                    db.patients[selectedIdx][field] = el.value;
+                };
+            });
 
             renderNotes(p.notatki_z_data);
-            renderPatientList(document.getElementById('search').value);
+            renderAttachments(p.attachments);
+            renderPatientList(document.getElementById('searchPatient').value);
         }
 
+        // --- NOTATKI Z SESJI (Z DATA I STT) ---
         function renderNotes(notes) {
             const container = document.getElementById('notesContainer');
             container.innerHTML = '';
+            
+            // Sortowanie od najnowszej
+            const sorted = [...notes].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            const sortedNotes = [...notes].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            sortedNotes.forEach((note) => {
-                const date = new Date(note.date).toLocaleDateString('pl-PL');
-                const noteDiv = document.createElement('div');
-                noteDiv.className = "relative pl-6 border-l-2 border-indigo-200 pb-2";
-                noteDiv.innerHTML = `
-                    <div class="absolute -left-[9px] top-0 w-4 h-4 bg-indigo-600 rounded-full border-4 border-white"></div>
-                    <div class="text-xs font-bold text-indigo-600 mb-2">${date}</div>
-                    <textarea 
-                        onchange="updateNoteContent('${note.id}', this.value)"
-                        class="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm text-slate-700 min-h-[100px]"
+            sorted.forEach(note => {
+                const dateVal = note.date ? note.date.substring(0,16) : ''; // dla datetime-local
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center gap-4">
+                        <input type="datetime-local" value="${dateVal}" 
+                               onchange="updateNoteDate('${note.id}', this.value)"
+                               class="text-xs font-bold text-indigo-600 outline-none border-b border-dashed">
+                        <div class="flex gap-2">
+                             <button onclick="startSTT('${note.id}')" id="btn-stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-indigo-100 transition">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <textarea id="txt-${note.id}" onchange="updateNoteContent('${note.id}', this.value)"
+                              class="w-full min-h-[80px] text-sm text-slate-700 outline-none border-none resize-none bg-slate-50/30 p-2 rounded-lg"
                     >${note.content}</textarea>
                 `;
-                container.appendChild(noteDiv);
+                container.appendChild(card);
             });
         }
 
-        function updateNoteContent(noteId, newContent) {
-            const patient = db.patients[selectedPatientIndex];
-            const noteIndex = patient.notatki_z_data.findIndex(n => n.id === noteId);
-            if (noteIndex !== -1) {
-                patient.notatki_z_data[noteIndex].content = newContent;
-                db.updated_date = new Date().toISOString();
-            }
+        function updateNoteDate(id, val) {
+            const n = db.patients[selectedIdx].notatki_z_data.find(x => x.id === id);
+            if(n) n.date = new Date(val).toISOString();
+        }
+
+        function updateNoteContent(id, val) {
+            const n = db.patients[selectedIdx].notatki_z_data.find(x => x.id === id);
+            if(n) n.content = val;
         }
 
         function addNewNote() {
-            const newNote = {
-                id: "note-" + Date.now(),
+            const id = "note-" + Date.now();
+            db.patients[selectedIdx].notatki_z_data.unshift({
+                id: id,
                 date: new Date().toISOString(),
                 content: ""
+            });
+            renderNotes(db.patients[selectedIdx].notatki_z_data);
+        }
+
+        // --- SPEECH TO TEXT ---
+        function startSTT(noteId) {
+            if (!recognition) return alert("Twoja przeglądarka nie obsługuje rozpoznawania mowy.");
+            
+            const btn = document.getElementById(`btn-stt-${noteId}`);
+            const area = document.getElementById(`txt-${noteId}`);
+            
+            btn.classList.add('recording');
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                area.value += (area.value ? " " : "") + text;
+                updateNoteContent(noteId, area.value);
+                btn.classList.remove('recording');
             };
-            db.patients[selectedPatientIndex].notatki_z_data.unshift(newNote);
-            renderNotes(db.patients[selectedPatientIndex].notatki_z_data);
+
+            recognition.onerror = () => btn.classList.remove('recording');
+            recognition.onend = () => btn.classList.remove('recording');
         }
 
+        // --- WIZYTY / KALENDARZ ---
+        function renderAppointments() {
+            const tbody = document.getElementById('appointmentsList');
+            tbody.innerHTML = '';
+            
+            // Sortowanie od najnowszej
+            const sorted = [...db.appointments].sort((a,b) => new Date(b.start_time) - new Date(a.start_time));
+
+            sorted.forEach(app => {
+                const date = new Date(app.start_time).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-4 font-semibold text-indigo-700">${app.patient_name}</td>
+                    <td class="p-4 text-xs text-slate-500">${date}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${app.status === 'odbyta' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${app.status.toUpperCase()}</span></td>
+                    <td class="p-4 text-xs text-slate-600 italic">${app.notes || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- ZAŁĄCZNIKI ---
+        function renderAttachments(files) {
+            const gallery = document.getElementById('attachmentsGallery');
+            gallery.innerHTML = '';
+            if(!files || files.length === 0) {
+                gallery.innerHTML = '<p class="col-span-full text-xs text-slate-400">Brak plików.</p>';
+                return;
+            }
+            files.forEach(file => {
+                const div = document.createElement('a');
+                div.href = file.url;
+                div.target = "_blank";
+                div.className = "block p-2 border rounded-lg hover:bg-slate-50 text-center space-y-2";
+                const icon = file.type.includes('image') ? 'fa-image' : 'fa-file-pdf';
+                div.innerHTML = `
+                    <i class="fas ${icon} text-2xl text-slate-300"></i>
+                    <div class="text-[10px] truncate font-medium text-slate-600">${file.name}</div>
+                `;
+                gallery.appendChild(div);
+            });
+        }
+
+        // --- EKSPORT ---
         function exportJSON() {
-            if (!db) return alert("Brak danych do wyeksportowania!");
+            if (!db) return;
             db.exportDate = new Date().toISOString();
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `terapia_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `therapy_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
         }
 
-        document.getElementById('search').addEventListener('input', (e) => renderPatientList(e.target.value));
+        // Szukajka
+        document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
     </script>
 </body>
 </html>
