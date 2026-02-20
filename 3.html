@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TherapyManager Pro - System Notatek</title>
+    <title>TherapyManager Pro (Offline Mode)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -13,17 +13,15 @@
         .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Style do drukowania */
         @media print {
-            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash {
+            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash, .status-info {
                 display: none !important;
             }
-            body { background: white; }
+            body { background: white; padding: 0; }
             main { padding: 0; max-width: 100%; }
             .bg-white { box-shadow: none !important; border: none !important; }
             #section-details { display: block !important; }
-            textarea { border: none !important; resize: none !important; overflow: visible !important; }
-            #notesContainer div { page-break-inside: avoid; border-bottom: 1px solid #eee !important; margin-bottom: 20px; }
+            textarea { border: none !important; resize: none !important; height: auto !important; }
             .print-header { display: block !important; border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
         }
         .print-header { display: none; }
@@ -31,19 +29,22 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
 
-    <header class="bg-white shadow-sm sticky top-0 z-50">
+    <header class="bg-white shadow-sm sticky top-0 z-50 no-print">
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex justify-between items-center h-16 border-b border-slate-100">
                 <div class="flex items-center gap-2 text-indigo-700 font-black text-xl">
-                    <i class="fas fa-notes-medical"></i> <span>TherapyManager</span>
+                    <i class="fas fa-brain"></i> <span>TherapyManager</span>
                 </div>
                 <div class="flex gap-2">
+                    <span id="saveStatus" class="hidden items-center text-[10px] text-emerald-600 font-bold mr-2 uppercase tracking-widest">
+                        <i class="fas fa-check-circle mr-1"></i> Zapisano
+                    </span>
                     <input type="file" id="jsonInput" class="hidden" accept=".json">
-                    <button onclick="document.getElementById('jsonInput').click()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-upload"></i> <span class="hidden md:inline">Wgraj bazę</span>
+                    <button onclick="document.getElementById('jsonInput').click()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition" title="Wgraj bazę z pliku">
+                        <i class="fas fa-upload"></i>
                     </button>
-                    <button onclick="exportJSON()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm">
-                        <i class="fas fa-download"></i> <span class="hidden md:inline">Pobierz JSON</span>
+                    <button onclick="exportJSON()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm" title="Pobierz kopię zapasową JSON">
+                        <i class="fas fa-save mr-1"></i> Backup
                     </button>
                 </div>
             </div>
@@ -69,15 +70,11 @@
                     <input type="text" id="searchPatient" placeholder="Szukaj pacjenta..." class="w-full outline-none">
                 </div>
                 <button onclick="addNewPatient()" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-2">
-                    <i class="fas fa-user-plus"></i> Dodaj pacjenta
+                    <i class="fas fa-user-plus"></i> Nowy Pacjent
                 </button>
             </div>
             <div id="patientList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="col-span-full py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed">
-                    <i class="fas fa-file-upload text-5xl mb-4"></i>
-                    <p>Wczytaj plik JSON lub dodaj pierwszego pacjenta.</p>
                 </div>
-            </div>
         </section>
 
         <section id="section-details" class="hidden space-y-6">
@@ -89,7 +86,7 @@
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative">
                     <div class="absolute right-6 top-6 no-print flex gap-2">
                         <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition">
-                            <i class="fas fa-print mr-2"></i>Drukuj kartę
+                            <i class="fas fa-print mr-2"></i>Drukuj
                         </button>
                     </div>
 
@@ -108,7 +105,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-50">
                         <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Telefon</label>
-                            <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Brak numeru">
+                            <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none">
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data urodzenia</label>
@@ -116,7 +113,7 @@
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Miejsce terapii</label>
-                            <input type="text" id="edit-miejsce" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Np. Prywatne">
+                            <input type="text" id="edit-miejsce" class="w-full p-2 bg-slate-50 rounded-lg outline-none">
                         </div>
                     </div>
                 </div>
@@ -125,18 +122,18 @@
                     <div class="lg:col-span-1 space-y-6">
                         <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-bold flex items-center gap-2"><i class="fas fa-sticky-note text-indigo-500"></i> Diagnoza / Cel</h3>
+                                <h3 class="font-bold flex items-center gap-2"><i class="fas fa-id-badge text-indigo-500"></i> Diagnoza / Cel</h3>
                                 <button onclick="startSTT('edit-notatki-ogolne', 'btn-stt-diag')" id="btn-stt-diag" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 no-print transition">
                                     <i class="fas fa-microphone"></i>
                                 </button>
                             </div>
-                            <textarea id="edit-notatki-ogolne" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Stałe notatki i diagnoza..."></textarea>
+                            <textarea id="edit-notatki-ogolne" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Diagnoza..."></textarea>
                         </div>
                     </div>
                     
                     <div class="lg:col-span-2 space-y-4">
                         <div class="flex justify-between items-center no-print">
-                            <h3 class="font-black text-xl">Historia sesji</h3>
+                            <h3 class="font-black text-xl">Notatki z sesji</h3>
                             <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
                                 <i class="fas fa-plus mr-2"></i>Nowa sesja
                             </button>
@@ -149,12 +146,12 @@
 
         <section id="section-appointments" class="hidden space-y-8">
             <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100">
-                <h3 class="font-black text-lg mb-4 text-indigo-900">Dodaj nową wizytę</h3>
+                <h3 class="font-black text-lg mb-4 text-indigo-900">Planowanie wizyty</h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <select id="new-app-patient" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"></select>
                     <input type="datetime-local" id="new-app-date" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                    <input type="text" id="new-app-notes" placeholder="Kwota, finanse, uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                    <button onclick="saveNewAppointment()" class="bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg">Zapisz wizytę</button>
+                    <input type="text" id="new-app-notes" placeholder="Kwota / uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
+                    <button onclick="saveNewAppointment()" class="bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg">Dopiszesz wizytę</button>
                 </div>
             </div>
 
@@ -164,9 +161,9 @@
                         <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest">
                             <tr>
                                 <th class="p-6">Pacjent</th>
-                                <th class="p-6">Data sesji</th>
-                                <th class="p-6">Notatki</th>
-                                <th class="p-6">Status</th>
+                                <th class="p-6">Data</th>
+                                <th class="p-6">Notatki / Finanse</th>
+                                <th class="p-6">Akcje</th>
                             </tr>
                         </thead>
                         <tbody id="appointmentsList" class="divide-y divide-slate-50"></tbody>
@@ -174,18 +171,39 @@
                 </div>
             </div>
         </section>
-
     </main>
 
     <script>
+        // INICJALIZACJA BAZY (Z LOCALSTORAGE LUB PUSTA)
         let db = { patients: [], appointments: [] };
+        
+        // Funkcja ładująca przy starcie
+        window.onload = function() {
+            const savedData = localStorage.getItem('therapyData');
+            if (savedData) {
+                db = JSON.parse(savedData);
+                console.log("Dane załadowane z pamięci przeglądarki.");
+            }
+            renderPatientList();
+            updatePatientDropdown();
+            renderAppointments();
+        };
+
+        // Zapis do LocalStorage przy każdej zmianie
+        function saveToDisk() {
+            localStorage.setItem('therapyData', JSON.stringify(db));
+            const status = document.getElementById('saveStatus');
+            status.classList.remove('hidden');
+            status.classList.add('flex');
+            setTimeout(() => {
+                status.classList.remove('flex');
+                status.classList.add('hidden');
+            }, 1500);
+        }
+
         let selectedIdx = null;
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
-
-        if (recognition) {
-            recognition.continuous = false;
-            recognition.lang = 'pl-PL';
-        }
+        if (recognition) { recognition.continuous = false; recognition.lang = 'pl-PL'; }
 
         // --- NAWIGACJA ---
         function switchTab(tab) {
@@ -195,32 +213,31 @@
             });
             document.getElementById(`section-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-${tab}`).classList.add('tab-active');
-            
             if (tab === 'appointments') renderAppointments();
         }
 
-        // --- OBSŁUGA JSON ---
+        // --- OBSŁUGA PLIKU (OPCJONALNA) ---
         document.getElementById('jsonInput').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = (event) => {
                 db = JSON.parse(event.target.result);
+                saveToDisk();
                 renderPatientList();
                 updatePatientDropdown();
+                renderAppointments();
+                alert("Baza została zaktualizowana z pliku.");
             };
             reader.readAsText(e.target.files[0]);
         });
 
-        // --- PACJENCI (DODAWANIE / USUWANIE / LISTA) ---
+        // --- PACJENCI ---
         function addNewPatient() {
             const newP = {
-                imie: "Nowy",
-                nazwisko: "Pacjent",
-                status: "aktywny",
-                notatki_z_data: [],
-                attachments: [],
-                created_date: new Date().toISOString()
+                imie: "Nowy", nazwisko: "Pacjent", status: "aktywny",
+                notatki_z_data: [], attachments: [], created_date: new Date().toISOString()
             };
             db.patients.unshift(newP);
+            saveToDisk();
             renderPatientList();
             updatePatientDropdown();
             selectPatient(0);
@@ -228,11 +245,12 @@
 
         function deletePatient(idx, e) {
             e.stopPropagation();
-            if(confirm(`Czy na pewno chcesz trwale usunąć pacjenta ${db.patients[idx].imie} ${db.patients[idx].nazwisko} wraz z całą historią?`)) {
+            if(confirm(`Trwale usunąć pacjenta ${db.patients[idx].imie}?`)) {
                 db.patients.splice(idx, 1);
                 selectedIdx = null;
                 document.getElementById('patientDetailContent').classList.add('hidden');
                 document.getElementById('noPatientSelected').classList.remove('hidden');
+                saveToDisk();
                 renderPatientList();
                 updatePatientDropdown();
             }
@@ -243,20 +261,15 @@
             list.innerHTML = '';
             db.patients.forEach((p, i) => {
                 if (!`${p.imie} ${p.nazwisko}`.toLowerCase().includes(filter.toLowerCase())) return;
-                
                 const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative";
+                card.className = `bg-white p-6 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative ${selectedIdx === i ? 'ring-2 ring-indigo-500' : ''}`;
                 card.onclick = () => selectPatient(i);
                 card.innerHTML = `
-                    <div class="flex justify-between items-start pr-8">
-                        <div>
-                            <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${p.imie} ${p.nazwisko}</div>
-                            <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${p.status}</div>
-                        </div>
+                    <div class="pr-8">
+                        <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${p.imie} ${p.nazwisko}</div>
+                        <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${p.status}</div>
                     </div>
-                    <button onclick="deletePatient(${i}, event)" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-slate-200 hover:bg-red-50 hover:text-red-500 transition">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <button onclick="deletePatient(${i}, event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
                 `;
                 list.appendChild(card);
             });
@@ -265,38 +278,34 @@
         function selectPatient(i) {
             selectedIdx = i;
             const p = db.patients[i];
-            
             document.getElementById('noPatientSelected').classList.add('hidden');
             document.getElementById('patientDetailContent').classList.remove('hidden');
             
-            // Mapowanie danych
-            document.getElementById('edit-imie').value = p.imie;
-            document.getElementById('edit-nazwisko').value = p.nazwisko;
-            document.getElementById('edit-status').value = p.status;
+            document.getElementById('edit-imie').value = p.imie || '';
+            document.getElementById('edit-nazwisko').value = p.nazwisko || '';
+            document.getElementById('edit-status').value = p.status || 'aktywny';
             document.getElementById('edit-telefon').value = p.telefon || '';
             document.getElementById('edit-urodzenie').value = p.data_urodzenia || '';
             document.getElementById('edit-miejsce').value = p.miejsce_terapii || '';
             document.getElementById('edit-notatki-ogolne').value = p.notatki || '';
 
-            // Dane do wydruku
             document.getElementById('print-patient-name').innerText = `Karta Pacjenta: ${p.imie} ${p.nazwisko}`;
-            document.getElementById('print-patient-meta').innerText = `Data urodzenia: ${p.data_urodzenia || '-'} | Telefon: ${p.telefon || '-'}`;
+            document.getElementById('print-patient-meta').innerText = `Urodzony: ${p.data_urodzenia || '-'} | Telefon: ${p.telefon || '-'}`;
 
-            // Sync danych
             const fields = ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'];
             fields.forEach(id => {
                 document.getElementById(`edit-${id}`).oninput = (e) => {
                     const key = id.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                     db.patients[selectedIdx][key] = e.target.value;
+                    saveToDisk();
                     if(id === 'imie' || id === 'nazwisko') renderPatientList(document.getElementById('searchPatient').value);
                 };
             });
-
             renderNotes(p.notatki_z_data);
             switchTab('details');
         }
 
-        // --- SESJE ---
+        // --- NOTATKI ---
         function renderNotes(notes) {
             const container = document.getElementById('notesContainer');
             container.innerHTML = '';
@@ -320,17 +329,18 @@
 
         function updateNoteContent(id, val) {
             const n = db.patients[selectedIdx].notatki_z_data.find(x => x.id === id);
-            if(n) n.content = val;
+            if(n) { n.content = val; saveToDisk(); }
         }
 
         function updateNoteDate(id, val) {
             const n = db.patients[selectedIdx].notatki_z_data.find(x => x.id === id);
-            if(n) n.date = new Date(val).toISOString();
+            if(n) { n.date = new Date(val).toISOString(); saveToDisk(); }
         }
 
         function deleteNote(id) {
-            if(confirm("Usunąć tę notatkę?")) {
+            if(confirm("Usunąć notatkę?")) {
                 db.patients[selectedIdx].notatki_z_data = db.patients[selectedIdx].notatki_z_data.filter(n => n.id !== id);
+                saveToDisk();
                 renderNotes(db.patients[selectedIdx].notatki_z_data);
             }
         }
@@ -338,26 +348,22 @@
         function addNewNote() {
             const newId = "note-" + Date.now();
             db.patients[selectedIdx].notatki_z_data.unshift({ id: newId, date: new Date().toISOString(), content: "" });
+            saveToDisk();
             renderNotes(db.patients[selectedIdx].notatki_z_data);
         }
 
-        // --- SPEECH TO TEXT (UNIWERSALNY) ---
+        // --- STT ---
         function startSTT(textareaId, btnId) {
-            if(!recognition) return alert("Twoja przeglądarka nie wspiera rozpoznawania mowy.");
+            if(!recognition) return alert("STT nie działa w tej przeglądarce.");
             const btn = document.getElementById(btnId);
             const area = document.getElementById(textareaId);
-            
             btn.classList.add('recording');
             recognition.start();
-
             recognition.onresult = (e) => {
-                const transcript = e.results[0][0].transcript;
-                area.value += (area.value ? " " : "") + transcript;
-                // Wywołaj ręcznie event input, aby zapisać dane do bazy
+                area.value += (area.value ? " " : "") + e.results[0][0].transcript;
                 area.dispatchEvent(new Event('input'));
             };
             recognition.onend = () => btn.classList.remove('recording');
-            recognition.onerror = () => btn.classList.remove('recording');
         }
 
         // --- WIZYTY ---
@@ -376,17 +382,22 @@
             const patient = document.getElementById('new-app-patient').value;
             const date = document.getElementById('new-app-date').value;
             const notes = document.getElementById('new-app-notes').value;
-            if(!patient || !date) return alert("Podaj pacjenta i datę!");
-
+            if(!patient || !date) return alert("Wybierz pacjenta i datę!");
             db.appointments.push({
-                patient_name: patient,
-                start_time: new Date(date).toISOString(),
-                status: "odbyta",
-                notes: notes,
-                created_date: new Date().toISOString()
+                patient_name: patient, start_time: new Date(date).toISOString(),
+                status: "odbyta", notes: notes, id: Date.now()
             });
+            saveToDisk();
             renderAppointments();
             document.getElementById('new-app-notes').value = "";
+        }
+
+        function deleteAppointment(id) {
+            if(confirm("Usunąć wizytę z historii?")) {
+                db.appointments = db.appointments.filter(a => a.id !== id);
+                saveToDisk();
+                renderAppointments();
+            }
         }
 
         function renderAppointments() {
@@ -398,17 +409,20 @@
                     <td class="p-6 font-bold text-slate-800">${app.patient_name}</td>
                     <td class="p-6 text-sm text-slate-500">${new Date(app.start_time).toLocaleString('pl-PL')}</td>
                     <td class="p-6 text-sm text-slate-600">${app.notes || '-'}</td>
-                    <td class="p-6"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700">${app.status}</span></td>
+                    <td class="p-6">
+                        <button onclick="deleteAppointment(${app.id})" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
+        // --- BACKUP ---
         function exportJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `terapia_backup_${new Date().toISOString().slice(0,10)}.json`);
+            dl.setAttribute("download", `therapy_db_backup_${new Date().toISOString().slice(0,10)}.json`);
             dl.click();
         }
 
