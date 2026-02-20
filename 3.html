@@ -464,14 +464,26 @@
 
         // --- BACKUP ---
         function exportJSON() {
-    // Stała, minimalna nazwa pliku
-    const fileName = `b.json`; 
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+    const fileName = `b.json`;
+    const data = JSON.stringify(db, null, 2);
+    
+    // Tworzymy Blob zamiast prostego Stringa - to kluczowe dla poprawnego wykrywania pliku
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    
     const dl = document.createElement('a');
-    dl.setAttribute("href", dataStr);
-    dl.setAttribute("download", fileName);
+    dl.href = url;
+    dl.download = fileName;
+    
+    // Dodajemy do dokumentu, aby zadziałało na Safari/iOS
+    document.body.appendChild(dl);
     dl.click();
+    
+    // Sprzątamy pamięć
+    setTimeout(() => {
+        document.body.removeChild(dl);
+        window.URL.revokeObjectURL(url);
+    }, 100);
 }
 
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
