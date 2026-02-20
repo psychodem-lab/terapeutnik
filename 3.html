@@ -3,15 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TherapyManager - System Notatek i Wizyt</title>
+    <title>TherapyManager Pro - System Notatek</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .tab-active { border-bottom: 4px solid #4f46e5; color: #4f46e5; font-weight: 700; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .recording { animation: pulse 1.5s infinite; color: #ef4444; }
+        .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Style do drukowania */
+        @media print {
+            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash {
+                display: none !important;
+            }
+            body { background: white; }
+            main { padding: 0; max-width: 100%; }
+            .bg-white { box-shadow: none !important; border: none !important; }
+            #section-details { display: block !important; }
+            textarea { border: none !important; resize: none !important; overflow: visible !important; }
+            #notesContainer div { page-break-inside: avoid; border-bottom: 1px solid #eee !important; margin-bottom: 20px; }
+            .print-header { display: block !important; border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+        }
+        .print-header { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
@@ -25,10 +40,10 @@
                 <div class="flex gap-2">
                     <input type="file" id="jsonInput" class="hidden" accept=".json">
                     <button onclick="document.getElementById('jsonInput').click()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-upload mr-1"></i> Wgraj bazę
+                        <i class="fas fa-upload"></i> <span class="hidden md:inline">Wgraj bazę</span>
                     </button>
-                    <button onclick="exportJSON()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-download mr-1"></i> Pobierz JSON
+                    <button onclick="exportJSON()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm">
+                        <i class="fas fa-download"></i> <span class="hidden md:inline">Pobierz JSON</span>
                     </button>
                 </div>
             </div>
@@ -42,41 +57,58 @@
 
     <main class="max-w-6xl mx-auto p-4 md:p-8">
         
+        <div class="print-header">
+            <h1 id="print-patient-name" class="text-2xl font-bold">Karta Pacjenta</h1>
+            <p id="print-patient-meta"></p>
+        </div>
+
         <section id="section-list" class="space-y-6">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
-                <i class="fas fa-search text-slate-300 text-lg"></i>
-                <input type="text" id="searchPatient" placeholder="Szukaj po imieniu lub nazwisku..." class="w-full outline-none text-lg">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 flex-1">
+                    <i class="fas fa-search text-slate-300 text-lg"></i>
+                    <input type="text" id="searchPatient" placeholder="Szukaj pacjenta..." class="w-full outline-none">
+                </div>
+                <button onclick="addNewPatient()" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-user-plus"></i> Dodaj pacjenta
+                </button>
             </div>
             <div id="patientList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="col-span-full py-20 text-center text-slate-400">
+                <div class="col-span-full py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed">
                     <i class="fas fa-file-upload text-5xl mb-4"></i>
-                    <p>Wczytaj plik JSON, aby zarządzać bazą pacjentów.</p>
+                    <p>Wczytaj plik JSON lub dodaj pierwszego pacjenta.</p>
                 </div>
             </div>
         </section>
 
         <section id="section-details" class="hidden space-y-6">
             <div id="noPatientSelected" class="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-400">
-                Wybierz pacjenta z listy, aby edytować jego dane.
+                Wybierz pacjenta z listy, aby edytować dane.
             </div>
             
             <div id="patientDetailContent" class="hidden space-y-6">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative">
+                    <div class="absolute right-6 top-6 no-print flex gap-2">
+                        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition">
+                            <i class="fas fa-print mr-2"></i>Drukuj kartę
+                        </button>
+                    </div>
+
                     <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div class="flex-1">
                             <input type="text" id="edit-imie" class="text-3xl font-bold block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Imię">
                             <input type="text" id="edit-nazwisko" class="text-xl text-slate-500 block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Nazwisko">
                         </div>
-                        <select id="edit-status" class="bg-indigo-50 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none">
+                        <select id="edit-status" class="bg-indigo-50 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none mt-2">
                             <option value="aktywny">Aktywny</option>
                             <option value="nieaktywny">Nieaktywny</option>
                             <option value="zakończona_terapia">Zakończona</option>
                         </select>
                     </div>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-50">
                         <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Telefon</label>
-                            <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Brak">
+                            <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Brak numeru">
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data urodzenia</label>
@@ -92,14 +124,19 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-1 space-y-6">
                         <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-sticky-note text-indigo-500"></i> Diagnoza / Cel</h3>
-                            <textarea id="edit-notatki-ogolne" class="w-full h-64 p-3 bg-slate-50 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Ogólne informacje o pacjencie..."></textarea>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold flex items-center gap-2"><i class="fas fa-sticky-note text-indigo-500"></i> Diagnoza / Cel</h3>
+                                <button onclick="startSTT('edit-notatki-ogolne', 'btn-stt-diag')" id="btn-stt-diag" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 no-print transition">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                            <textarea id="edit-notatki-ogolne" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Stałe notatki i diagnoza..."></textarea>
                         </div>
                     </div>
                     
                     <div class="lg:col-span-2 space-y-4">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-black text-xl">Notatki z sesji</h3>
+                        <div class="flex justify-between items-center no-print">
+                            <h3 class="font-black text-xl">Historia sesji</h3>
                             <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
                                 <i class="fas fa-plus mr-2"></i>Nowa sesja
                             </button>
@@ -114,28 +151,21 @@
             <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100">
                 <h3 class="font-black text-lg mb-4 text-indigo-900">Dodaj nową wizytę</h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <select id="new-app-patient" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                        <option value="">Wybierz pacjenta...</option>
-                    </select>
+                    <select id="new-app-patient" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"></select>
                     <input type="datetime-local" id="new-app-date" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                    <input type="text" id="new-app-notes" placeholder="Kwota, uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                    <button onclick="saveNewAppointment()" class="bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg">
-                        <i class="fas fa-calendar-check mr-2"></i>Zapisz wizytę
-                    </button>
+                    <input type="text" id="new-app-notes" placeholder="Kwota, finanse, uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
+                    <button onclick="saveNewAppointment()" class="bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg">Zapisz wizytę</button>
                 </div>
             </div>
 
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-6 border-b border-slate-50 flex justify-between items-center">
-                    <h3 class="font-black text-xl">Historia wizyt</h3>
-                </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest">
                             <tr>
                                 <th class="p-6">Pacjent</th>
                                 <th class="p-6">Data sesji</th>
-                                <th class="p-6">Notatki / Finanse</th>
+                                <th class="p-6">Notatki</th>
                                 <th class="p-6">Status</th>
                             </tr>
                         </thead>
@@ -180,7 +210,34 @@
             reader.readAsText(e.target.files[0]);
         });
 
-        // --- PACJENCI ---
+        // --- PACJENCI (DODAWANIE / USUWANIE / LISTA) ---
+        function addNewPatient() {
+            const newP = {
+                imie: "Nowy",
+                nazwisko: "Pacjent",
+                status: "aktywny",
+                notatki_z_data: [],
+                attachments: [],
+                created_date: new Date().toISOString()
+            };
+            db.patients.unshift(newP);
+            renderPatientList();
+            updatePatientDropdown();
+            selectPatient(0);
+        }
+
+        function deletePatient(idx, e) {
+            e.stopPropagation();
+            if(confirm(`Czy na pewno chcesz trwale usunąć pacjenta ${db.patients[idx].imie} ${db.patients[idx].nazwisko} wraz z całą historią?`)) {
+                db.patients.splice(idx, 1);
+                selectedIdx = null;
+                document.getElementById('patientDetailContent').classList.add('hidden');
+                document.getElementById('noPatientSelected').classList.remove('hidden');
+                renderPatientList();
+                updatePatientDropdown();
+            }
+        }
+
         function renderPatientList(filter = '') {
             const list = document.getElementById('patientList');
             list.innerHTML = '';
@@ -188,16 +245,18 @@
                 if (!`${p.imie} ${p.nazwisko}`.toLowerCase().includes(filter.toLowerCase())) return;
                 
                 const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group";
+                card.className = "bg-white p-6 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative";
                 card.onclick = () => selectPatient(i);
                 card.innerHTML = `
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-start pr-8">
                         <div>
                             <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${p.imie} ${p.nazwisko}</div>
-                            <div class="text-xs text-slate-400 mt-1 uppercase tracking-tighter font-bold">${p.status} • ${p.miejsce_terapii || 'GABINET'}</div>
+                            <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${p.status}</div>
                         </div>
-                        <i class="fas fa-chevron-right text-slate-200 group-hover:text-indigo-300"></i>
                     </div>
+                    <button onclick="deletePatient(${i}, event)" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-slate-200 hover:bg-red-50 hover:text-red-500 transition">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 `;
                 list.appendChild(card);
             });
@@ -219,12 +278,17 @@
             document.getElementById('edit-miejsce').value = p.miejsce_terapii || '';
             document.getElementById('edit-notatki-ogolne').value = p.notatki || '';
 
-            // Obsługa zmian w czasie rzeczywistym
+            // Dane do wydruku
+            document.getElementById('print-patient-name').innerText = `Karta Pacjenta: ${p.imie} ${p.nazwisko}`;
+            document.getElementById('print-patient-meta').innerText = `Data urodzenia: ${p.data_urodzenia || '-'} | Telefon: ${p.telefon || '-'}`;
+
+            // Sync danych
             const fields = ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'];
             fields.forEach(id => {
-                document.getElementById(`edit-${id}`).onchange = (e) => {
+                document.getElementById(`edit-${id}`).oninput = (e) => {
                     const key = id.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                     db.patients[selectedIdx][key] = e.target.value;
+                    if(id === 'imie' || id === 'nazwisko') renderPatientList(document.getElementById('searchPatient').value);
                 };
             });
 
@@ -232,7 +296,7 @@
             switchTab('details');
         }
 
-        // --- NOTATKI Z SESJI + Speech to Text ---
+        // --- SESJE ---
         function renderNotes(notes) {
             const container = document.getElementById('notesContainer');
             container.innerHTML = '';
@@ -240,14 +304,15 @@
                 const div = document.createElement('div');
                 div.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3";
                 div.innerHTML = `
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center no-print">
                         <input type="datetime-local" value="${note.date.substring(0,16)}" onchange="updateNoteDate('${note.id}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
                         <div class="flex gap-2">
-                            <button onclick="startSTT('${note.id}')" id="stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 transition"><i class="fas fa-microphone"></i></button>
+                            <button onclick="startSTT('txt-${note.id}', 'stt-${note.id}')" id="stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600"><i class="fas fa-microphone"></i></button>
                             <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                    <textarea onchange="updateNoteContent('${note.id}', this.value)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2" placeholder="Przebieg sesji...">${note.content}</textarea>
+                    <div class="hidden print:block text-xs font-bold text-slate-400 mb-1">${new Date(note.date).toLocaleString('pl-PL')}</div>
+                    <textarea oninput="updateNoteContent('${note.id}', this.value)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent" placeholder="Przebieg sesji...">${note.content}</textarea>
                 `;
                 container.appendChild(div);
             });
@@ -263,23 +328,36 @@
             if(n) n.date = new Date(val).toISOString();
         }
 
+        function deleteNote(id) {
+            if(confirm("Usunąć tę notatkę?")) {
+                db.patients[selectedIdx].notatki_z_data = db.patients[selectedIdx].notatki_z_data.filter(n => n.id !== id);
+                renderNotes(db.patients[selectedIdx].notatki_z_data);
+            }
+        }
+
         function addNewNote() {
             const newId = "note-" + Date.now();
             db.patients[selectedIdx].notatki_z_data.unshift({ id: newId, date: new Date().toISOString(), content: "" });
             renderNotes(db.patients[selectedIdx].notatki_z_data);
         }
 
-        function startSTT(id) {
-            if(!recognition) return alert("STT nie jest wspierane w tej przeglądarce.");
-            const btn = document.getElementById(`stt-${id}`);
-            const txt = document.getElementById(`txt-${id}`);
+        // --- SPEECH TO TEXT (UNIWERSALNY) ---
+        function startSTT(textareaId, btnId) {
+            if(!recognition) return alert("Twoja przeglądarka nie wspiera rozpoznawania mowy.");
+            const btn = document.getElementById(btnId);
+            const area = document.getElementById(textareaId);
+            
             btn.classList.add('recording');
             recognition.start();
+
             recognition.onresult = (e) => {
-                txt.value += (txt.value ? " " : "") + e.results[0][0].transcript;
-                updateNoteContent(id, txt.value);
+                const transcript = e.results[0][0].transcript;
+                area.value += (area.value ? " " : "") + transcript;
+                // Wywołaj ręcznie event input, aby zapisać dane do bazy
+                area.dispatchEvent(new Event('input'));
             };
             recognition.onend = () => btn.classList.remove('recording');
+            recognition.onerror = () => btn.classList.remove('recording');
         }
 
         // --- WIZYTY ---
@@ -298,8 +376,7 @@
             const patient = document.getElementById('new-app-patient').value;
             const date = document.getElementById('new-app-date').value;
             const notes = document.getElementById('new-app-notes').value;
-            
-            if(!patient || !date) return alert("Wybierz pacjenta i datę!");
+            if(!patient || !date) return alert("Podaj pacjenta i datę!");
 
             db.appointments.push({
                 patient_name: patient,
@@ -308,7 +385,6 @@
                 notes: notes,
                 created_date: new Date().toISOString()
             });
-
             renderAppointments();
             document.getElementById('new-app-notes').value = "";
         }
@@ -317,13 +393,12 @@
             const tbody = document.getElementById('appointmentsList');
             tbody.innerHTML = '';
             [...db.appointments].sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).forEach(app => {
-                const dateStr = new Date(app.start_time).toLocaleString('pl-PL', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit'});
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="p-6 font-bold text-slate-800">${app.patient_name}</td>
-                    <td class="p-6 text-sm text-slate-500">${dateStr}</td>
+                    <td class="p-6 text-sm text-slate-500">${new Date(app.start_time).toLocaleString('pl-PL')}</td>
                     <td class="p-6 text-sm text-slate-600">${app.notes || '-'}</td>
-                    <td class="p-6"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${app.status === 'odbyta' ? 'bg-green-100 text-green-700' : 'bg-slate-100'}">${app.status}</span></td>
+                    <td class="p-6"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700">${app.status}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -333,7 +408,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `therapy_db_${new Date().toISOString().slice(0,10)}.json`);
+            dl.setAttribute("download", `terapia_backup_${new Date().toISOString().slice(0,10)}.json`);
             dl.click();
         }
 
