@@ -462,10 +462,14 @@
 
         // --- BACKUP ---
         function exportJSON() {
+            const date = new Date().toISOString().split('T')[0]; // Pobiera tylko rrrr-mm-dd
+            const time = new Date().getHours() + "-" + new Date().getMinutes(); // Dodaje hh-mm
+            const fileName = `backup_${date}_${time}.json`; // Krótka nazwa pliku
+
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `therapy_db_fixed_${new Date().toISOString().slice(0,10)}.json`);
+            dl.setAttribute("download", fileName);
             dl.click();
         }
 
