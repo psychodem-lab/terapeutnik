@@ -1,29 +1,32 @@
-const CACHE_NAME = 'terapeutnik-v4';
-// Lista plików do zapamiętania (dodaj tu nazwę swojego pliku HTML)
-const ASSETS = [
+const CACHE_NAME = 'therapy-manager-v2';
+// Lista zasobów do zapisania offline
+const urlsToCache = [
   './',
-  './index.html', // Upewnij się, że nazwa pliku się zgadza
-  './manifest.json'
+  './index.html', // upewnij się, że nazwa pliku HTML się zgadza
+  './manifest.json',
+  'https://cdn.tailwindcss.com',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
 ];
 
-// Instalacja: Zapisywanie plików w pamięci podręcznej
-self.addEventListener('install', (event) => {
+// Instalacja - pobieranie plików do cache
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Service Worker: Buforowanie plików');
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Pobieranie zasobów do cache...');
+        return cache.addAll(urlsToCache);
+      })
   );
 });
 
-// Aktywacja: Usuwanie starych wersji cache
-self.addEventListener('activate', (event) => {
+// Aktywacja i czyszczenie starych wersji
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map((cache) => {
+        cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Usuwanie starego cache');
             return caches.delete(cache);
           }
         })
@@ -32,12 +35,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Obsługa żądań: Najpierw sprawdź cache, potem internet
-self.addEventListener('fetch', (event) => {
+// Przechwytywanie zapytań - tryb offline
+self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Zwróć plik z cache, a jeśli go nie ma, pobierz z sieci
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then(response => {
+        // Jeśli mamy plik w cache, zwróć go. Jeśli nie, pobierz z sieci.
+        return response || fetch(event.request);
+      })
   );
 });
