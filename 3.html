@@ -8,6 +8,7 @@
     <title>TherapyManager Pro - System Gabinetowy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         .tab-active { border-bottom: 4px solid #4f46e5; color: #4f46e5; font-weight: 700; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
@@ -75,6 +76,7 @@
                     <i class="fas fa-user-plus"></i> Nowy Pacjent
                 </button>
             </div>
+            
             <div id="patientList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="col-span-full py-20 text-center text-slate-400">Wczytywanie bazy danych...</div>
             </div>
@@ -87,12 +89,7 @@
             
             <div id="patientDetailContent" class="hidden space-y-6">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative">
-                    <div class="absolute right-6 top-6 no-print flex gap-2">
-                        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition">
-                            <i class="fas fa-print mr-2"></i>Drukuj kartę
-                        </button>
-                    </div>
-
+                    
                     <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div class="flex-1">
                             <input type="text" id="edit-imie" class="text-3xl font-bold block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Imię">
@@ -133,7 +130,11 @@
                             <textarea id="edit-notatki-ogolne" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Wpisz diagnozę lub cele terapii..."></textarea>
                         </div>
                     </div>
-                    
+                    <div class="absolute right-6 top-6 no-print flex gap-2">
+                        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition">
+                            <i class="fas fa-print mr-2"></i>Drukuj kartę
+                        </button>
+                    </div>
                     <div class="lg:col-span-2 space-y-4">
                         <div class="flex justify-between items-center no-print">
                             <h3 class="font-black text-xl">Notatki z sesji</h3>
@@ -178,7 +179,7 @@
 
     <script>
         let db = { patients: [], appointments: [] };
-        let selectedPatientId = null; // Zmiana z indexu na ID dla pewności
+        let selectedPatientId = null; 
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
 
         if (recognition) {
@@ -186,12 +187,35 @@
             recognition.lang = 'pl-PL';
         }
 
+        // --- FUNKCJA BEZPIECZEŃSTWA (XSS) ---
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- GENERATOR ID ---
+        function generateId(prefix) {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                return prefix + crypto.randomUUID();
+            }
+            return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
         // --- INICJALIZACJA I NORMALIZACJA ---
         window.onload = function() {
             const savedData = localStorage.getItem('therapyData');
             if (savedData) {
-                db = JSON.parse(savedData);
-                normalizeData();
+                try {
+                    db = JSON.parse(savedData);
+                    normalizeData();
+                } catch(e) {
+                    console.error("Błąd parsowania lokalnych danych", e);
+                }
             }
             renderPatientList();
             updatePatientDropdown();
@@ -199,16 +223,15 @@
         };
 
         function normalizeData() {
-            // Dodawanie brakujących ID do pacjentów, notatek i wizyt
             db.patients.forEach(p => {
-                if (!p.id) p.id = "p-" + Math.random().toString(36).substr(2, 9);
+                if (!p.id) p.id = generateId('p-');
                 if (!p.notatki_z_data) p.notatki_z_data = [];
                 p.notatki_z_data.forEach(n => {
-                    if (!n.id) n.id = "n-" + Math.random().toString(36).substr(2, 9);
+                    if (!n.id) n.id = generateId('n-');
                 });
             });
             db.appointments.forEach(a => {
-                if (!a.id) a.id = "a-" + Math.random().toString(36).substr(2, 9);
+                if (!a.id) a.id = generateId('a-');
             });
             saveToDisk();
         }
@@ -234,28 +257,58 @@
             document.getElementById(`tab-${tab}`).classList.add('tab-active');
         }
 
-        // --- OBSŁUGA PLIKU ---
+        // --- OBSŁUGA PLIKU (Z ZABEZPIECZENIEM AES) ---
         document.getElementById('jsonInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
             const reader = new FileReader();
             reader.onload = (event) => {
+                const content = event.target.result;
+                let importedData = null;
+
                 try {
-                    const imported = JSON.parse(event.target.result);
-                    db = imported;
+                    importedData = JSON.parse(content);
+                } catch(err) {
+                    const password = prompt("Plik wydaje się być zaszyfrowany. Podaj hasło do odszyfrowania:");
+                    
+                    if (password === null) { 
+                        e.target.value = ''; 
+                        return; 
+                    }
+                    
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(content, password);
+                        const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                        
+                        if (!decryptedText) throw new Error("Nieprawidłowe hasło");
+                        
+                        importedData = JSON.parse(decryptedText);
+                    } catch(decryptErr) {
+                        alert("Błędne hasło lub plik jest uszkodzony!");
+                        e.target.value = '';
+                        return;
+                    }
+                }
+
+                if (importedData) {
+                    db = importedData;
                     normalizeData();
                     renderPatientList();
                     updatePatientDropdown();
                     renderAppointments();
                     alert("Dane zostały pomyślnie załadowane!");
-                } catch(err) {
-                    alert("Błąd pliku JSON!");
                 }
+                
+                e.target.value = '';
             };
-            reader.readAsText(e.target.files[0]);
+           
+            reader.readAsText(file);
         });
 
         // --- PACJENCI ---
         function addNewPatient() {
-            const newId = "p-" + Date.now();
+            const newId = generateId('p-');
             db.patients.unshift({
                 id: newId,
                 imie: "Nowy",
@@ -297,10 +350,10 @@
                 card.onclick = () => selectPatient(p.id);
                 card.innerHTML = `
                     <div class="pr-8">
-                        <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${p.imie} ${p.nazwisko}</div>
-                        <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${p.status}</div>
+                        <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(p.imie)} ${escapeHTML(p.nazwisko)}</div>
+                        <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${escapeHTML(p.status)}</div>
                     </div>
-                    <button onclick="deletePatient('${p.id}', event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 hover:text-red-500 transition">
+                    <button onclick="deletePatient('${escapeHTML(p.id)}', event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 hover:text-red-500 transition">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 `;
@@ -311,6 +364,7 @@
         function selectPatient(id) {
             selectedPatientId = id;
             const p = db.patients.find(x => x.id === id);
+            if (!p) return;
             
             document.getElementById('noPatientSelected').classList.add('hidden');
             document.getElementById('patientDetailContent').classList.remove('hidden');
@@ -326,18 +380,18 @@
             document.getElementById('print-patient-name').innerText = `Karta Pacjenta: ${p.imie} ${p.nazwisko}`;
             document.getElementById('print-patient-meta').innerText = `Urodzony: ${p.data_urodzenia || '-'} | Telefon: ${p.telefon || '-'}`;
 
-            // Sync
             const fields = ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'];
             fields.forEach(fid => {
                 document.getElementById(`edit-${fid}`).oninput = (e) => {
                     const key = fid.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                     const patient = db.patients.find(x => x.id === selectedPatientId);
-                    patient[key] = e.target.value;
-                    saveToDisk();
-                    if(fid === 'imie' || fid === 'nazwisko') renderPatientList(document.getElementById('searchPatient').value);
+                    if(patient) {
+                        patient[key] = e.target.value;
+                        saveToDisk();
+                        if(fid === 'imie' || fid === 'nazwisko') renderPatientList(document.getElementById('searchPatient').value);
+                    }
                 };
             });
-
             renderNotes(p.notatki_z_data);
             switchTab('details');
         }
@@ -351,14 +405,14 @@
                 div.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3";
                 div.innerHTML = `
                     <div class="flex justify-between items-center no-print">
-                        <input type="datetime-local" value="${note.date ? note.date.substring(0,16) : ''}" onchange="updateNoteDate('${note.id}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
+                        <input type="datetime-local" value="${note.date ? escapeHTML(note.date.substring(0,16)) : ''}" onchange="updateNoteDate('${escapeHTML(note.id)}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
                         <div class="flex gap-2">
-                            <button onclick="startSTT('txt-${note.id}', 'stt-${note.id}')" id="stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 transition"><i class="fas fa-microphone"></i></button>
-                            <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                            <button onclick="startSTT('txt-${escapeHTML(note.id)}', 'stt-${escapeHTML(note.id)}')" id="stt-${escapeHTML(note.id)}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 transition"><i class="fas fa-microphone"></i></button>
+                            <button onclick="deleteNote('${escapeHTML(note.id)}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                    <div class="hidden print:block text-xs font-bold text-slate-400 mb-1">${note.date ? new Date(note.date).toLocaleString('pl-PL') : 'Brak daty'}</div>
-                    <textarea oninput="updateNoteContent('${note.id}', this.value)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent" placeholder="Przebieg sesji...">${note.content || ''}</textarea>
+                    <div class="hidden print:block text-xs font-bold text-slate-400 mb-1">${note.date ? escapeHTML(new Date(note.date).toLocaleString('pl-PL')) : 'Brak daty'}</div>
+                    <textarea oninput="updateNoteContent('${escapeHTML(note.id)}', this.value)" id="txt-${escapeHTML(note.id)}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent" placeholder="Przebieg sesji...">${escapeHTML(note.content || '')}</textarea>
                 `;
                 container.appendChild(div);
             });
@@ -366,31 +420,39 @@
 
         function updateNoteContent(noteId, val) {
             const p = db.patients.find(x => x.id === selectedPatientId);
-            const n = p.notatki_z_data.find(x => x.id === noteId);
-            if(n) { n.content = val; saveToDisk(); }
+            if(p) {
+                const n = p.notatki_z_data.find(x => x.id === noteId);
+                if(n) { n.content = val; saveToDisk(); }
+            }
         }
 
         function updateNoteDate(noteId, val) {
             const p = db.patients.find(x => x.id === selectedPatientId);
-            const n = p.notatki_z_data.find(x => x.id === noteId);
-            if(n) { n.date = new Date(val).toISOString(); saveToDisk(); renderNotes(p.notatki_z_data); }
+            if(p) {
+                const n = p.notatki_z_data.find(x => x.id === noteId);
+                if(n) { n.date = new Date(val).toISOString(); saveToDisk(); renderNotes(p.notatki_z_data); }
+            }
         }
 
         function deleteNote(noteId) {
             if(confirm("Usunąć tę notatkę?")) {
                 const p = db.patients.find(x => x.id === selectedPatientId);
-                p.notatki_z_data = p.notatki_z_data.filter(x => x.id !== noteId);
-                saveToDisk();
-                renderNotes(p.notatki_z_data);
+                if(p) {
+                    p.notatki_z_data = p.notatki_z_data.filter(x => x.id !== noteId);
+                    saveToDisk();
+                    renderNotes(p.notatki_z_data);
+                }
             }
         }
 
         function addNewNote() {
             const p = db.patients.find(x => x.id === selectedPatientId);
-            const newId = "n-" + Date.now();
-            p.notatki_z_data.unshift({ id: newId, date: new Date().toISOString(), content: "" });
-            saveToDisk();
-            renderNotes(p.notatki_z_data);
+            if(p) {
+                const newId = generateId('n-');
+                p.notatki_z_data.unshift({ id: newId, date: new Date().toISOString(), content: "" });
+                saveToDisk();
+                renderNotes(p.notatki_z_data);
+            }
         }
 
         // --- STT ---
@@ -414,7 +476,7 @@
             db.patients.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = `${p.imie} ${p.nazwisko}`;
-                opt.textContent = `${p.imie} ${p.nazwisko}`;
+                opt.textContent = `${p.imie} ${p.nazwisko}`; // textContent chroni przed XSS naturalnie
                 select.appendChild(opt);
             });
         }
@@ -423,15 +485,17 @@
             const pName = document.getElementById('new-app-patient').value;
             const dVal = document.getElementById('new-app-date').value;
             const nVal = document.getElementById('new-app-notes').value;
+            
             if(!pName || !dVal) return alert("Wybierz pacjenta i datę!");
-
+            
             db.appointments.push({
-                id: "a-" + Date.now(),
+                id: generateId('a-'),
                 patient_name: pName,
                 start_time: new Date(dVal).toISOString(),
                 notes: nVal,
                 status: "odbyta"
             });
+            
             saveToDisk();
             renderAppointments();
             document.getElementById('new-app-notes').value = "";
@@ -443,11 +507,11 @@
             [...db.appointments].sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).forEach(a => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="p-6 font-bold text-slate-800">${a.patient_name}</td>
-                    <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL')}</td>
-                    <td class="p-6 text-sm text-slate-600">${a.notes || '-'}</td>
+                    <td class="p-6 font-bold text-slate-800">${escapeHTML(a.patient_name)}</td>
+                    <td class="p-6 text-sm text-slate-500">${escapeHTML(new Date(a.start_time).toLocaleString('pl-PL'))}</td>
+                    <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
                     <td class="p-6">
-                        <button onclick="deleteApp('${a.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                        <button onclick="deleteApp('${escapeHTML(a.id)}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -462,40 +526,47 @@
             }
         }
 
-        // --- BACKUP ---
+        // --- BACKUP (Z ZABEZPIECZENIEM AES) ---
         function exportJSON() {
-    const fileName = `b.json`;
-    const data = JSON.stringify(db, null, 2);
-    
-    // Tworzymy Blob zamiast prostego Stringa - to kluczowe dla poprawnego wykrywania pliku
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    
-    const dl = document.createElement('a');
-    dl.href = url;
-    dl.download = fileName;
-    
-    // Dodajemy do dokumentu, aby zadziałało na Safari/iOS
-    document.body.appendChild(dl);
-    dl.click();
-    
-    // Sprzątamy pamięć
-    setTimeout(() => {
-        document.body.removeChild(dl);
-        window.URL.revokeObjectURL(url);
-    }, 100);
-}
+            const password = prompt("Podaj hasło, aby zaszyfrować plik (lub zostaw puste, aby zapisać niezabezpieczony plik):");
+            
+            if (password === null) return; 
+
+            const dataString = JSON.stringify(db, null, 2);
+            let finalData = dataString;
+            let fileName = 'b.json';
+
+            if (password.trim() !== "") {
+                finalData = CryptoJS.AES.encrypt(dataString, password).toString();
+                fileName = 'b_encrypted.json'; 
+            }
+
+            const blob = new Blob([finalData], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            
+            const dl = document.createElement('a');
+            dl.href = url;
+            dl.download = fileName;
+            
+            document.body.appendChild(dl);
+            dl.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(dl);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        }
 
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
-
- // Rejestracja Service Workera
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Service Worker zarejestrowany!'))
-        .catch(err => console.log('Błąd rejestracji SW:', err));
-    });
-  }
+        
+        // Rejestracja Service Workera
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker zarejestrowany!'))
+                .catch(err => console.log('Błąd rejestracji SW:', err));
+            });
+        }
     </script>
 </body>
 </html>
