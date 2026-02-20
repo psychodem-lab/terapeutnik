@@ -9,7 +9,7 @@
   "icons": [
     {
       "src": "https://img.icons8.com/cotton/64/brain--v1.png",
-      "sizes": "512x512",
+      "sizes": "64x64",
       "type": "image/png",
       "purpose": "any maskable"
     }
