@@ -14,11 +14,19 @@
         .tab-active { border-bottom: 4px solid #4f46e5; color: #4f46e5; font-weight: 700; }
         .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        
+
         #patientSearchResults {
             max-height: 200px;
             overflow-y: auto;
             z-index: 100;
+        }
+        
+        /* Placeholder support for contenteditable divs */
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+            display: block;
         }
 
         @media print {
@@ -29,7 +37,7 @@
             main { padding: 0; max-width: 100%; }
             .bg-white { box-shadow: none !important; border: none !important; }
             #section-details { display: block !important; }
-            textarea { border: none !important; resize: none !important; height: auto !important; overflow: visible !important; }
+            textarea, [contenteditable] { border: none !important; resize: none !important; height: auto !important; overflow: visible !important; }
             .print-header { display: block !important; border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
         }
         .print-header { display: none; }
@@ -68,7 +76,7 @@
     </header>
 
     <main class="max-w-6xl mx-auto p-4 md:p-8">
-        
+
         <div class="print-header">
             <h1 id="print-patient-name" class="text-2xl font-bold">Karta Pacjenta</h1>
             <p id="print-patient-meta"></p>
@@ -84,7 +92,7 @@
                     <i class="fas fa-user-plus"></i> Nowy Pacjent
                 </button>
             </div>
-            <div id="patientList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="patientList" class="flex flex-col gap-3"></div>
         </section>
 
         <section id="section-details" class="hidden space-y-6">
@@ -129,7 +137,7 @@
                                     <i class="fas fa-microphone"></i>
                                 </button>
                             </div>
-                            <textarea id="edit-notatki-ogolne" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Opis diagnozy..."></textarea>
+                            <div id="edit-notatki-ogolne" contenteditable="true" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 overflow-y-auto whitespace-pre-wrap" placeholder="Opis diagnozy..."></div>
                         </div>
                     </div>
                     <div class="lg:col-span-2 space-y-4">
@@ -152,7 +160,7 @@
             <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative">
                 <h3 id="app-form-title" class="font-black text-lg mb-4 text-indigo-900">Dodaj nową wizytę</h3>
                 <input type="hidden" id="edit-app-id" value="">
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                     <div class="relative">
                         <input type="text" id="search-app-patient" placeholder="Szukaj pacjenta..." autocomplete="off" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
@@ -162,7 +170,7 @@
 
                     <input type="datetime-local" id="new-app-date" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
                     <input type="text" id="new-app-notes" placeholder="Kwota / uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-                    
+
                     <div class="flex gap-2">
                         <button id="btn-save-app" onclick="saveAppointment()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-lg">Zapisz</button>
                         <button id="btn-cancel-app" onclick="resetAppForm()" class="hidden bg-slate-200 text-slate-600 px-4 py-3 rounded-xl hover:bg-slate-300 transition">Anuluj</button>
@@ -200,7 +208,7 @@
         let db = { patients: [], appointments: [] };
         let selectedPatientId = null;
         let sessionKey = null; 
-        
+
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
         if (recognition) { recognition.continuous = false; recognition.lang = 'pl-PL'; }
 
@@ -211,6 +219,13 @@
 
         function generateId(prefix) {
             return prefix + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9));
+        }
+
+        function linkify(text) {
+            if (!text) return '';
+            const escaped = escapeHTML(text);
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            return escaped.replace(urlRegex, '<a href="$1" target="_blank" contenteditable="false" class="text-indigo-600 underline font-bold cursor-pointer hover:text-indigo-800" onclick="window.open(this.href, \'_blank\'); return false;">$1</a>');
         }
 
         // --- SZYFROWANIE I START ---
@@ -259,7 +274,7 @@
             if (!sessionKey) return;
             const encrypted = CryptoJS.AES.encrypt(JSON.stringify(db), sessionKey).toString();
             localStorage.setItem('therapyData_enc', encrypted);
-            
+
             const status = document.getElementById('saveStatus');
             status.classList.remove('hidden');
             status.classList.add('flex');
@@ -294,19 +309,31 @@
         function renderPatientList(filter = '') {
             const list = document.getElementById('patientList');
             list.innerHTML = '';
-            db.patients.forEach(p => {
+            
+            let filteredPatients = db.patients.filter(p => {
                 const fullName = `${p.imie} ${p.nazwisko}`;
-                if (filter && !fullName.toLowerCase().includes(filter.toLowerCase())) return;
+                return !filter || fullName.toLowerCase().includes(filter.toLowerCase());
+            });
+
+            filteredPatients.sort((a, b) => {
+                const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
+                const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
+                return nameA.localeCompare(nameB, 'pl');
+            });
+
+            filteredPatients.forEach(p => {
+                const fullName = `${p.imie} ${p.nazwisko}`;
+                const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
 
                 const card = document.createElement('div');
-                card.className = `bg-white p-6 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
+                card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
                 card.onclick = () => selectPatient(p.id);
                 card.innerHTML = `
-                    <div class="pr-8">
-                        <div class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(fullName)}</div>
-                        <div class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">${escapeHTML(p.status)}</div>
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(fullName)}</div>
+                        <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor}">${escapeHTML(p.status)}</div>
                     </div>
-                    <button onclick="deletePatient('${p.id}', event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
                 `;
                 list.appendChild(card);
             });
@@ -316,19 +343,28 @@
             selectedPatientId = id;
             const p = db.patients.find(x => x.id === id);
             if (!p) return;
-            
+
             document.getElementById('noPatientSelected').classList.add('hidden');
             document.getElementById('patientDetailContent').classList.remove('hidden');
-            
+
             ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'].forEach(fid => {
                 const key = fid.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                 const field = document.getElementById(`edit-${fid}`);
-                field.value = p[key] || '';
-                field.oninput = (e) => {
-                    p[key] = e.target.value;
-                    saveToDisk();
-                    if(fid === 'imie' || fid === 'nazwisko') renderPatientList(document.getElementById('searchPatient').value);
-                };
+                
+                if (fid === 'notatki-ogolne') {
+                    field.innerHTML = linkify(p[key]);
+                    field.oninput = (e) => {
+                        p[key] = e.target.innerText;
+                        saveToDisk();
+                    };
+                } else {
+                    field.value = p[key] || '';
+                    field.oninput = (e) => {
+                        p[key] = e.target.value;
+                        saveToDisk();
+                        if(['imie', 'nazwisko', 'status'].includes(fid)) renderPatientList(document.getElementById('searchPatient').value);
+                    };
+                }
             });
             renderNotes(p.notatki_z_data);
             switchTab('details');
@@ -368,7 +404,7 @@
                             <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                    <textarea oninput="updateNoteContent('${note.id}', this.value)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent">${escapeHTML(note.content)}</textarea>
+                    <div contenteditable="true" oninput="updateNoteContent('${note.id}', this.innerText)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent whitespace-pre-wrap">${linkify(note.content)}</div>
                 `;
                 container.appendChild(div);
             });
@@ -400,14 +436,19 @@
             renderNotes(p.notatki_z_data);
         }
 
-        function startSTT(textareaId, btnId) {
+        function startSTT(elementId, btnId) {
             if(!recognition) return alert("System nie wspiera rozpoznawania mowy.");
             const btn = document.getElementById(btnId);
-            const area = document.getElementById(textareaId);
+            const area = document.getElementById(elementId);
             btn.classList.add('recording');
             recognition.start();
             recognition.onresult = (e) => {
-                area.value += (area.value ? " " : "") + e.results[0][0].transcript;
+                const transcript = e.results[0][0].transcript;
+                if (area.tagName.toLowerCase() === 'textarea' || area.tagName.toLowerCase() === 'input') {
+                    area.value += (area.value ? " " : "") + transcript;
+                } else {
+                    area.appendChild(document.createTextNode((area.innerText.trim() ? " " : "") + transcript));
+                }
                 area.dispatchEvent(new Event('input'));
             };
             recognition.onend = () => btn.classList.remove('recording');
@@ -542,10 +583,8 @@
                 let dataToImport = null;
 
                 try {
-                    // PRÓBA 1: Sprawdź czy to zwykły JSON (niezaszyfrowany)
                     dataToImport = JSON.parse(content);
                 } catch (err) {
-                    // PRÓBA 2: Jeśli błąd, spróbuj odszyfrować hasłem
                     const pass = prompt("Plik może być zaszyfrowany. Podaj hasło:");
                     if (pass === null) return;
                     try {
@@ -561,10 +600,10 @@
 
                 if (dataToImport) {
                     db = dataToImport;
-                    normalizeData(); // To doda brakujące ID i tablice do starych plików
+                    normalizeData();
                     renderPatientList();
                     renderAppointments();
-                    saveToDisk(); // Zapisze jako zaszyfrowane w localStorage
+                    saveToDisk();
                     alert("Import zakończony!");
                 }
             };
