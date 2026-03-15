@@ -15,18 +15,11 @@
         .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        #patientSearchResults {
-            max-height: 200px; overflow-y: auto; z-index: 100;
-        }
-        
-        /* Placeholder support for contenteditable divs */
-        [contenteditable]:empty:before {
-            content: attr(placeholder); color: #94a3b8; pointer-events: none; display: block;
-        }
+        #patientSearchResults { max-height: 200px; overflow-y: auto; z-index: 100; }
+        [contenteditable]:empty:before { content: attr(placeholder); color: #94a3b8; pointer-events: none; display: block; }
 
         @media print {
-            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash, .status-info {
-                display: none !important; }
+            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash, .status-info { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; max-width: 100%; }
             .bg-white { box-shadow: none !important; border: none !important; }
@@ -41,23 +34,27 @@
 
     <div id="lockScreen" class="hidden"></div>
 
+    <input type="file" id="fallbackFileInput" class="hidden" accept=".bin">
+
     <div id="appContent" class="hidden">
         <header class="bg-white shadow-sm sticky top-0 z-50 no-print">
             <div class="max-w-6xl mx-auto px-4">
                 <div class="flex justify-between items-center h-16 border-b border-slate-100">
                     <div class="flex items-center gap-2 text-indigo-700 font-black text-xl">
                         <i class="fas fa-brain"></i> <span>Terapeutnik</span>
+                        <span id="activeFileIndicator" class="hidden ml-2 px-2 py-1 bg-indigo-50 text-indigo-500 text-[10px] rounded-lg border border-indigo-100 uppercase tracking-widest font-bold" title="Połączono z plikiem na dysku">
+                            <i class="fas fa-hdd"></i> Zsynchronizowano
+                        </span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
                         <span id="saveStatus" class="hidden items-center text-[10px] text-emerald-600 font-bold mr-2 uppercase tracking-widest">
                             <i class="fas fa-check-circle mr-1"></i> Zapisano
                         </span>
-                        <input type="file" id="jsonInput" class="hidden" accept=".bin">
-                        <button onclick="document.getElementById('jsonInput').click()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition">
-                            <i class="fas fa-upload"></i> <span class="hidden md:inline ml-1">Wgraj plik</span>
+                        <button onclick="handleFileOpen()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition">
+                            <i class="fas fa-folder-open"></i> <span class="hidden md:inline ml-1">Otwórz plik</span>
                         </button>
-                        <button onclick="exportData()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm">
-                            <i class="fas fa-save mr-1"></i> Backup
+                        <button onclick="handleFileSaveAs()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm">
+                            <i class="fas fa-save mr-1"></i> Zapisz jako
                         </button>
                         <button onclick="lockApp()" class="text-xs bg-slate-800 text-white hover:bg-black px-3 py-2 rounded-lg transition shadow-sm">
                             <i class="fas fa-lock"></i>
@@ -74,7 +71,6 @@
         </header>
 
         <main class="max-w-6xl mx-auto p-4 md:p-8">
-
             <div class="print-header">
                 <h1 id="print-patient-name" class="text-2xl font-bold">Karta Pacjenta</h1>
                 <p id="print-patient-meta"></p>
@@ -165,10 +161,8 @@
                             <div id="patientSearchResults" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden"></div>
                             <input type="hidden" id="new-app-patient-id">
                         </div>
-
                         <input type="datetime-local" id="new-app-date" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
                         <input type="text" id="new-app-notes" placeholder="Kwota / uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
-
                         <div class="flex gap-2">
                             <button id="btn-save-app" onclick="saveAppointment()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-lg">Zapisz</button>
                             <button id="btn-cancel-app" onclick="resetAppForm()" class="hidden bg-slate-200 text-slate-600 px-4 py-3 rounded-xl hover:bg-slate-300 transition">Anuluj</button>
@@ -199,18 +193,24 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker zarejestrowany!', reg))
-                    .catch(err => console.log('Błąd rejestracji SW:', err));
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
             });
         }
+
+        // --- ZMIENNE GLOBALNE ---
         let db = { patients: [], appointments: [] };
         let selectedPatientId = null;
         let sessionKey = null; 
+        
+        // Zmienne dla File System Access API
+        let currentFileHandle = null;
+        let syncTimeout = null;
+        const isFSAASupported = 'showOpenFilePicker' in window;
 
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
         if (recognition) { recognition.continuous = false; recognition.lang = 'pl-PL'; }
 
+        // --- NARZĘDZIA POMOCNICZE ---
         function escapeHTML(str) {
             if (!str) return '';
             return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[m]));
@@ -227,7 +227,7 @@
             return escaped.replace(urlRegex, '<a href="$1" target="_blank" contenteditable="false" class="text-indigo-600 underline font-bold cursor-pointer hover:text-indigo-800" onclick="window.open(this.href, \'_blank\'); return false;">$1</a>');
         }
 
-        // --- SZYFROWANIE I START ---
+        // --- INICJALIZACJA I BLOKADA ---
         window.onload = function() {
             unlockApp();
         };
@@ -235,9 +235,8 @@
         function unlockApp() {
             const encryptedData = localStorage.getItem('therapyData_enc');
             if (!encryptedData) {
-                // Brak danych - pierwsza inicjalizacja
                 db = { patients: [], appointments: [] };
-                sessionKey = prompt("Utwórz nowe hasło dostępowe do bazy danych:");
+                sessionKey = prompt("Brak lokalnej bazy. Utwórz nowe hasło dostępowe:");
                 if (!sessionKey) { showAccessDenied(); return; }
                 saveToDisk();
                 initializeAppUI();
@@ -245,16 +244,14 @@
             }
 
             const password = prompt("Podaj hasło dostępowe do bazy danych:");
-            if (!password) {
-                showAccessDenied();
-                return;
-            }
+            if (!password) { showAccessDenied(); return; }
             sessionKey = password;
             loadFromDisk();
         }
 
         function lockApp() {
             sessionKey = null;
+            currentFileHandle = null;
             location.reload();
         }
 
@@ -297,22 +294,48 @@
                     </div>
                     <div class="flex gap-4 mt-2">
                         <button onclick="location.reload()" class="bg-indigo-600 text-white font-bold shadow-md px-6 py-3 rounded-xl hover:bg-indigo-700 transition">Spróbuj ponownie</button>
-                        <button onclick="document.getElementById('jsonInput').click()" class="bg-white text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition">
-                            <i class="fas fa-upload mr-2"></i>Wgraj plik (.bin)
+                        <button onclick="handleFileOpen()" class="bg-white text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition">
+                            <i class="fas fa-folder-open mr-2"></i>Otwórz plik z dysku (.bin)
                         </button>
                     </div>
                 </div>`;
         }
 
+        // --- ZAPIS DANYCH I SYNCHRONIZACJA (FILE SYSTEM API) ---
         function saveToDisk() {
             if (!sessionKey) return;
-            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(db), sessionKey).toString();
+            
+            // Zapis do LocalStorage (podstawowy cache)
+            const dataString = JSON.stringify(db);
+            const encrypted = CryptoJS.AES.encrypt(dataString, sessionKey).toString();
             localStorage.setItem('therapyData_enc', encrypted);
 
             const status = document.getElementById('saveStatus');
-            status.classList.remove('hidden');
-            status.classList.add('flex');
+            status.classList.remove('hidden'); status.classList.add('flex');
             setTimeout(() => { status.classList.remove('flex'); status.classList.add('hidden'); }, 1000);
+
+            // Jeśli użytkownik otworzył fizyczny plik przez FSAA - synchronizujemy w tle z opóźnieniem
+            if (currentFileHandle) {
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(() => syncToPhysicalFile(encrypted), 1500); // 1.5s debouncing
+            }
+        }
+
+        async function syncToPhysicalFile(encryptedData) {
+            try {
+                // Sprawdzenie i ewentualne odnowienie uprawnień do zapisu
+                if ((await currentFileHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+                    if ((await currentFileHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') {
+                        throw new Error("Brak uprawnień do zapisu");
+                    }
+                }
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(new Blob([encryptedData], { type: 'application/octet-stream' }));
+                await writable.close();
+                console.log("Pomyślnie zsynchronizowano z plikiem docelowym.");
+            } catch (err) {
+                console.error("Błąd zapisu tła do pliku:", err);
+            }
         }
 
         function normalizeData() {
@@ -327,6 +350,108 @@
                 if (a.paid === undefined) a.paid = false;
             });
             saveToDisk();
+        }
+
+        // --- ZARZĄDZANIE PLIKAMI (OPEN / SAVE AS) ---
+        async function handleFileOpen() {
+            if (isFSAASupported) {
+                try {
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{ description: 'Baza Terapeutnik', accept: { 'application/octet-stream': ['.bin'] } }],
+                        multiple: false
+                    });
+                    const file = await handle.getFile();
+                    const content = await file.text();
+                    currentFileHandle = handle;
+                    processImportedContent(content);
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error(e);
+                }
+            } else {
+                // Fallback
+                document.getElementById('fallbackFileInput').click();
+            }
+        }
+
+        async function handleFileSaveAs() {
+            const pass = prompt("Podaj hasło do zaszyfrowania kopii zapasowej (pozostaw puste by użyć bieżącego):", sessionKey || "");
+            if (pass === null) return;
+            const keyToUse = pass.trim() !== "" ? pass : sessionKey;
+            
+            const dataString = JSON.stringify(db);
+            const finalData = keyToUse ? CryptoJS.AES.encrypt(dataString, keyToUse).toString() : dataString;
+            const blob = new Blob([finalData], { type: 'application/octet-stream' });
+
+            if (isFSAASupported) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: `backup_${new Date().toISOString().split('T')[0]}.bin`,
+                        types: [{ description: 'Baza Terapeutnik', accept: { 'application/octet-stream': ['.bin'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    currentFileHandle = handle;
+                    updateFileIndicator(true);
+                    alert("Zapisano pomyślnie i połączono sesję z tym plikiem.");
+                } catch (err) {
+                    if (err.name !== 'AbortError') alert("Nie udało się zapisać pliku.");
+                }
+            } else {
+                // Fallback
+                const url = window.URL.createObjectURL(blob);
+                const dl = document.createElement('a');
+                dl.href = url;
+                dl.download = `backup_${new Date().toISOString().split('T')[0]}.bin`;
+                dl.click();
+            }
+        }
+
+        document.getElementById('fallbackFileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                processImportedContent(ev.target.result);
+                e.target.value = ''; // Reset
+            };
+            reader.readAsText(file);
+        };
+
+        function processImportedContent(content) {
+            let dataToImport = null;
+            let usedPass = null;
+
+            try {
+                dataToImport = JSON.parse(content);
+            } catch (err) {
+                const pass = prompt("Plik jest zaszyfrowany. Podaj hasło do odblokowania:");
+                if (pass === null) return;
+                try {
+                    const bytes = CryptoJS.AES.decrypt(content, pass);
+                    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                    if (!decrypted) throw new Error();
+                    dataToImport = JSON.parse(decrypted);
+                    usedPass = pass;
+                } catch (decryptErr) {
+                    alert("Błędne hasło lub format pliku.");
+                    return;
+                }
+            }
+
+            if (dataToImport) {
+                db = dataToImport;
+                if (usedPass) sessionKey = usedPass;
+                updateFileIndicator(!!currentFileHandle);
+                initializeAppUI();
+                saveToDisk();
+            }
+        }
+
+        function updateFileIndicator(isActive) {
+            const ind = document.getElementById('activeFileIndicator');
+            if (isActive) { ind.classList.remove('hidden'); ind.classList.add('inline-flex'); } 
+            else { ind.classList.add('hidden'); ind.classList.remove('inline-flex'); }
         }
 
         // --- NAWIGACJA ---
@@ -506,6 +631,7 @@
                 searchResultsDiv.classList.remove('hidden');
             }
         };
+        
         function selectPatientForApp(id, name) {
             selectedPatientIdInput.value = id;
             searchAppInput.value = name;
@@ -588,86 +714,6 @@
         function deleteApp(id) {
             if(confirm("Usunąć wizytę?")) { db.appointments = db.appointments.filter(x => x.id !== id); saveToDisk(); renderAppointments(); }
         }
-
-        // --- IMPORT / EXPORT (.BIN + ZAPIS Z NADPISYWANIEM) ---
-        async function exportData() {
-            const pass = prompt("Podaj hasło do zaszyfrowania kopii zapasowej (pozostaw puste by użyć bieżącego):", sessionKey || "");
-            if (pass === null) return;
-            const keyToUse = pass.trim() !== "" ? pass : sessionKey;
-            
-            const data = JSON.stringify(db);
-            const finalData = keyToUse ? CryptoJS.AES.encrypt(data, keyToUse).toString() : data;
-            const blob = new Blob([finalData], { type: 'application/octet-stream' });
-
-            try {
-                if (window.showSaveFilePicker) {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: `backup_${new Date().toISOString().split('T')[0]}.bin`,
-                        types: [{
-                            description: 'Plik bazy Terapeutnik',
-                            accept: { 'application/octet-stream': ['.bin'] },
-                        }],
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(blob);
-                    await writable.close();
-                    alert("Zapisano pomyślnie!");
-                } else {
-                    const url = window.URL.createObjectURL(blob);
-                    const dl = document.createElement('a');
-                    dl.href = url;
-                    dl.download = `backup_${new Date().toISOString().split('T')[0]}.bin`;
-                    dl.click();
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error("Błąd zapisu pliku:", err);
-                    alert("Nie udało się zapisać pliku. Spróbuj ponownie.");
-                }
-            }
-        }
-
-        document.getElementById('jsonInput').onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const content = ev.target.result;
-                let dataToImport = null;
-                let usedPass = null;
-
-                try {
-                    dataToImport = JSON.parse(content);
-                } catch (err) {
-                    const pass = prompt("Plik może być zaszyfrowany. Podaj hasło:");
-                    if (pass === null) {
-                        e.target.value = ''; 
-                        return;
-                    }
-                    try {
-                        const bytes = CryptoJS.AES.decrypt(content, pass);
-                        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-                        if (!decrypted) throw new Error();
-                        dataToImport = JSON.parse(decrypted);
-                        usedPass = pass;
-                    } catch (decryptErr) {
-                        alert("Nie udało się otworzyć pliku. Błędne hasło lub format.");
-                        e.target.value = ''; 
-                        return;
-                    }
-                }
-
-                if (dataToImport) {
-                    db = dataToImport;
-                    if (usedPass) sessionKey = usedPass;
-                    initializeAppUI();
-                    saveToDisk();
-                    alert("Import zakończony!");
-                }
-                e.target.value = ''; 
-            };
-            reader.readAsText(file);
-        };
 
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
     </script>
