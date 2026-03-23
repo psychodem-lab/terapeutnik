@@ -137,10 +137,19 @@
                         <div class="lg:col-span-2 space-y-4">
                             <div class="flex justify-between items-center no-print">
                                 <h3 class="font-black text-xl">Notatki z sesji</h3>
-                                <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
-                                    <i class="fas fa-plus mr-2"></i>Nowa sesja
-                                </button>
-                            </div>
+                                <div class="flex gap-2">
+                                    <select id="note-templates" onchange="addTemplateNote(this.value)" class="bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl px-3 py-2 outline-none cursor-pointer">
+                                        <option value="" disabled selected>Wybierz szablon...</option>
+                                        <option value="Stan pacjenta: Pacjent otwarty, współpracujący, zgłasza trudności związane z 
+                                            Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psychoedukacji z zakresu">Standard</option>
+                                        <option value="Skala lęku = Skala depresji = Skala stresu = ">DASS</option>
+                                        <option value="Psychoterapia poznawczo behawioalna w zakresie: dialog sokratejski, psychoedukacja, ekspozycja, eksperyment behawioralny, zniekształcenia poznawcze, edukacja o emocjach, model zaburzenia.">Techniki</option>
+                                    </select>
+                                    <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
+                                        <i class="fas fa-plus mr-2"></i>Pusta sesja
+                                    </button>
+                                </div>
+                            </div>                            
                             <div id="notesContainer" class="space-y-4"></div>
                         </div>
                     </div>
@@ -617,7 +626,25 @@
             saveToDisk();
             renderNotes(p.notatki_z_data);
         }
-
+        function addTemplateNote(templateText) {
+            if (!templateText) return;
+            
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+            
+            // Dodaje nową notatkę z gotowym tekstem
+            p.notatki_z_data.unshift({ 
+                id: generateId('n-'), 
+                date: new Date().toISOString(), 
+                content: templateText 
+            });
+            
+            saveToDisk();
+            renderNotes(p.notatki_z_data);
+            
+            // Resetuje listę rozwijaną do domyślnego stanu
+            document.getElementById('note-templates').selectedIndex = 0;
+        }
         function addNewNote() {
             const p = db.patients.find(x => x.id === selectedPatientId);
             p.notatki_z_data.unshift({ id: generateId('n-'), date: new Date().toISOString(), content: "" });
@@ -756,7 +783,7 @@
                         </button>
                     </td>
                     <td class="p-6 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="navigateToPatient('${a.patient_id}')">${escapeHTML(a.patient_name)}</td>
-                    <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL')}</td>
+                    <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
                     <td class="p-6">
                         <div class="flex gap-4">
