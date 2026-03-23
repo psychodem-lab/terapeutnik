@@ -503,38 +503,50 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         }
 
         // --- PACJENCI ---
-        function renderPatientList(filter = '') {
-            const list = document.getElementById('patientList');
-            list.innerHTML = '';
+        
             
-            let filteredPatients = db.patients.filter(p => {
-                const fullName = `${p.imie} ${p.nazwisko}`;
-                return !filter || fullName.toLowerCase().includes(filter.toLowerCase());
-            });
-            
-            filteredPatients.sort((a, b) => {
-                const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
-                const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
-                return nameA.localeCompare(nameB, 'pl');
-            });
-            
-            filteredPatients.forEach(p => {
-                const fullName = `${p.imie} ${p.nazwisko}`;
-                const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+         function renderPatientList(filter = '') {
+    const list = document.getElementById('patientList');
+    list.innerHTML = '';
+    
+    let filteredPatients = db.patients.filter(p => {
+        const fullName = `${p.imie} ${p.nazwisko}`;
+        return !filter || fullName.toLowerCase().includes(filter.toLowerCase());
+    });
+    
+    // Zmodyfikowana logika sortowania
+    filteredPatients.sort((a, b) => {
+        const statusA = (a.status || '').toLowerCase();
+        const statusB = (b.status || '').toLowerCase();
 
-                const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
-                card.onclick = () => selectPatient(p.id);
-                card.innerHTML = `
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(fullName)}</div>
-                        <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor}">${escapeHTML(p.status)}</div>
-                    </div>
-                    <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
-                `;
-                list.appendChild(card);
-            });
-        }
+        // 1. Sprawdzanie statusu "aktywny" (priorytet)
+        if (statusA === 'aktywny' && statusB !== 'aktywny') return -1;
+        if (statusA !== 'aktywny' && statusB === 'aktywny') return 1;
+
+        // 2. Jeśli statusy są takie same (lub oba nie są "aktywny"), sortuj alfabetycznie
+        const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
+        const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
+        return nameA.localeCompare(nameB, 'pl');
+    });
+    
+    filteredPatients.forEach(p => {
+        const fullName = `${p.imie} ${p.nazwisko}`;
+        const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+
+        const card = document.createElement('div');
+        card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
+        card.onclick = () => selectPatient(p.id);
+        card.innerHTML = `
+            <div class="flex items-center gap-4 flex-1">
+                <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(fullName)}</div>
+                <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor}">${escapeHTML(p.status)}</div>
+            </div>
+            <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
+        `;
+        list.appendChild(card);
+    });
+}
+      
 
         function selectPatient(id) {
             selectedPatientId = id;
