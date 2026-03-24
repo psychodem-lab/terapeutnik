@@ -963,6 +963,13 @@ function addMaterial() {
     document.getElementById('new-mat-url').value = '';
     document.getElementById('new-mat-content').value = '';
 }
+function deleteMaterial(id) {
+    if (confirm("Czy na pewno chcesz usunąć ten materiał?")) {
+        db.materials = db.materials.filter(m => m.id !== id);
+        saveToDisk();
+        renderMaterials(document.getElementById('searchMaterials').value);
+    }
+}
 
 function copyMaterialText(id) {
     const mat = db.materials.find(m => m.id === id);
