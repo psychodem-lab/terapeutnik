@@ -19,7 +19,7 @@
         [contenteditable]:empty:before { content: attr(placeholder); color: #94a3b8; pointer-events: none; display: block; }
 
         @media print {
-            header, nav, button, .no-print, #section-list, #section-appointments, .fa-microphone, .fa-trash, .status-info { display: none !important; }
+            header, nav, button, .no-print, #section-list, #section-appointments, #section-materials, .fa-microphone, .fa-trash, .status-info { display: none !important; }
             body { background: white; padding: 0; }
             main { padding: 0; max-width: 100%; }
             .bg-white { box-shadow: none !important; border: none !important; }
@@ -62,10 +62,11 @@
                     </div>
                 </div>
                 
-                <nav class="flex justify-around md:justify-start md:gap-12">
+                <nav class="flex justify-around md:justify-start md:gap-12 flex-wrap">
                     <button onclick="switchTab('list')" id="tab-list" class="py-4 text-sm uppercase tracking-wider tab-active">Pacjenci</button>
                     <button onclick="switchTab('details')" id="tab-details" class="py-4 text-sm uppercase tracking-wider">Szczegóły</button>
                     <button onclick="switchTab('appointments')" id="tab-appointments" class="py-4 text-sm uppercase tracking-wider">Wizyty</button>
+                    <button onclick="switchTab('materials')" id="tab-materials" class="py-4 text-sm uppercase tracking-wider">Materiały</button>
                 </nav>
             </div>
         </header>
@@ -82,7 +83,13 @@
                         <i class="fas fa-search text-slate-300 text-lg"></i>
                         <input type="text" id="searchPatient" placeholder="Szukaj pacjenta..." class="w-full outline-none">
                     </div>
-                    <button onclick="addNewPatient()" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-2">
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
+                        <i class="fas fa-map-marker-alt text-slate-300 text-lg"></i>
+                        <select id="filter-miejsce" onchange="renderPatientList(document.getElementById('searchPatient').value)" class="w-full outline-none bg-transparent font-bold text-slate-600 min-w-[160px]">
+                            <option value="">Wszystkie gabinety</option>
+                        </select>
+                    </div>
+                    <button onclick="addNewPatient()" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
                         <i class="fas fa-user-plus"></i> Nowy Pacjent
                     </button>
                 </div>
@@ -218,6 +225,24 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
                     </div>
                 </div>
             </section>
+
+            <section id="section-materials" class="hidden space-y-8">
+                <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative">
+                    <h3 class="font-black text-lg mb-4 text-indigo-900">Dodaj nowy materiał</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                        <input type="text" id="new-mat-title" placeholder="Tytuł / Opis testu..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
+                        <input type="url" id="new-mat-url" placeholder="Link (np. https://...)" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
+                        <button onclick="addMaterial()" class="bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg">Dodaj do bazy</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <h4 class="font-bold text-slate-700 pl-2">Zapisane materiały i testy</h4>
+                    </div>
+                    <div id="materialsList" class="p-6 flex flex-col gap-3"></div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -229,7 +254,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         }
 
         // --- ZMIENNE GLOBALNE ---
-        let db = { patients: [], appointments: [] };
+        let db = { patients: [], appointments: [], materials: [] };
         let selectedPatientId = null;
         let sessionKey = null; 
         
@@ -258,6 +283,21 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             return escaped.replace(urlRegex, '<a href="$1" target="_blank" contenteditable="false" class="text-indigo-600 underline font-bold cursor-pointer hover:text-indigo-800" onclick="window.open(this.href, \'_blank\'); return false;">$1</a>');
         }
 
+        function getLocalDatetimeString(dateString) {
+            if (!dateString) return "";
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return dateString;
+            return d.getFullYear() + '-' + 
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(d.getDate()).padStart(2, '0') + 'T' + 
+                   String(d.getHours()).padStart(2, '0') + ':' + 
+                   String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function getNowLocalString() {
+            return getLocalDatetimeString(new Date().toISOString());
+        }
+
         // --- INICJALIZACJA I BLOKADA ---
         window.onload = function() {
             unlockApp();
@@ -266,7 +306,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         function unlockApp() {
             const encryptedData = localStorage.getItem('therapyData_enc');
             if (!encryptedData) {
-                db = { patients: [], appointments: [] };
+                db = { patients: [], appointments: [], materials: [] };
                 sessionKey = prompt("Brak lokalnej bazy. Utwórz nowe hasło dostępowe:");
                 if (!sessionKey) { showAccessDenied(); return; }
                 saveToDisk();
@@ -306,7 +346,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
 
         function initializeAppUI() {
             normalizeData();
-            
             // Ustawienie domyślnego miesiąca (bieżącego) w filtrze wizyt
             const today = new Date();
             const yyyy = today.getFullYear();
@@ -318,6 +357,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             
             renderPatientList();
             renderAppointments();
+            renderMaterials();
             document.getElementById('lockScreen').classList.add('hidden');
             document.getElementById('appContent').classList.remove('hidden');
         }
@@ -381,6 +421,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         function normalizeData() {
             if (!db.patients) db.patients = [];
             if (!db.appointments) db.appointments = [];
+            if (!db.materials) db.materials = [];
             db.patients.forEach(p => {
                 if (!p.id) p.id = generateId('p-');
                 if (!p.notatki_z_data) p.notatki_z_data = [];
@@ -496,7 +537,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
 
         // --- NAWIGACJA ---
         function switchTab(tab) {
-            ['list', 'details', 'appointments'].forEach(t => {
+            ['list', 'details', 'appointments', 'materials'].forEach(t => {
                 document.getElementById(`section-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('tab-active');
             });
@@ -518,51 +559,74 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         }
 
         // --- PACJENCI ---
-        
+        function updateMiejsceFilterOptions() {
+            const filterSelect = document.getElementById('filter-miejsce');
+            const currentValue = filterSelect.value;
+            const miejsca = new Set();
+            db.patients.forEach(p => {
+                if (p.miejsce_terapii && p.miejsce_terapii.trim()) miejsca.add(p.miejsce_terapii.trim());
+            });
             
-         function renderPatientList(filter = '') {
-    const list = document.getElementById('patientList');
-    list.innerHTML = '';
-    
-    let filteredPatients = db.patients.filter(p => {
-        const fullName = `${p.imie} ${p.nazwisko}`;
-        return !filter || fullName.toLowerCase().includes(filter.toLowerCase());
-    });
-    
-    // Zmodyfikowana logika sortowania
-    filteredPatients.sort((a, b) => {
-        const statusA = (a.status || '').toLowerCase();
-        const statusB = (b.status || '').toLowerCase();
+            filterSelect.innerHTML = '<option value="">Wszystkie gabinety</option>';
+            [...miejsca].sort().forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.innerText = m;
+                if (m === currentValue) opt.selected = true;
+                filterSelect.appendChild(opt);
+            });
+        }
+            
+        function renderPatientList(filter = '') {
+            updateMiejsceFilterOptions();
+            const list = document.getElementById('patientList');
+            list.innerHTML = '';
+            
+            const locationFilter = document.getElementById('filter-miejsce').value;
+            
+            let filteredPatients = db.patients.filter(p => {
+                const fullName = `${p.imie} ${p.nazwisko}`.toLowerCase();
+                const matchesName = !filter || fullName.includes(filter.toLowerCase());
+                const matchesLocation = !locationFilter || (p.miejsce_terapii && p.miejsce_terapii.trim() === locationFilter);
+                return matchesName && matchesLocation;
+            });
 
-        // 1. Sprawdzanie statusu "aktywny" (priorytet)
-        if (statusA === 'aktywny' && statusB !== 'aktywny') return -1;
-        if (statusA !== 'aktywny' && statusB === 'aktywny') return 1;
+            // Logika sortowania
+            filteredPatients.sort((a, b) => {
+                const statusA = (a.status || '').toLowerCase();
+                const statusB = (b.status || '').toLowerCase();
 
-        // 2. Jeśli statusy są takie same (lub oba nie są "aktywny"), sortuj alfabetycznie
-        const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
-        const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
-        return nameA.localeCompare(nameB, 'pl');
-    });
-    
-    filteredPatients.forEach(p => {
-        const fullName = `${p.imie} ${p.nazwisko}`;
-        const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+                // 1. Sprawdzanie statusu "aktywny" (priorytet)
+                if (statusA === 'aktywny' && statusB !== 'aktywny') return -1;
+                if (statusA !== 'aktywny' && statusB === 'aktywny') return 1;
 
-        const card = document.createElement('div');
-        card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
-        card.onclick = () => selectPatient(p.id);
-        card.innerHTML = `
-            <div class="flex items-center gap-4 flex-1">
-                <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition">${escapeHTML(fullName)}</div>
-                <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor}">${escapeHTML(p.status)}</div>
-            </div>
-            <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
-        `;
-        list.appendChild(card);
-    });
-}
+                // 2. Jeśli statusy są takie same (lub oba nie są "aktywny"), sortuj alfabetycznie
+                const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
+                const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
+                return nameA.localeCompare(nameB, 'pl');
+            });
+
+            filteredPatients.forEach(p => {
+                const fullName = `${p.imie} ${p.nazwisko}`;
+                const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+                const miejsceBadge = p.miejsce_terapii ? `<span class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded border border-slate-200">${escapeHTML(p.miejsce_terapii)}</span>` : '';
+
+                const card = document.createElement('div');
+                card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
+                card.onclick = () => selectPatient(p.id);
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition flex items-center flex-wrap gap-1">
+                            ${escapeHTML(fullName)} ${miejsceBadge}
+                        </div>
+                        <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor} ml-auto">${escapeHTML(p.status)}</div>
+                    </div>
+                    <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
+                `;
+                list.appendChild(card);
+            });
+        }
       
-
         function selectPatient(id) {
             selectedPatientId = id;
             const p = db.patients.find(x => x.id === id);
@@ -586,11 +650,10 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
                     field.oninput = (e) => {
                         p[key] = e.target.value;
                         saveToDisk();
-                        if(['imie', 'nazwisko', 'status'].includes(fid)) renderPatientList(document.getElementById('searchPatient').value);
+                        if(['imie', 'nazwisko', 'status', 'miejsce_terapii'].includes(key)) renderPatientList(document.getElementById('searchPatient').value);
                     };
                 }
             });
-            
             renderNotes(p.notatki_z_data);
             switchTab('details');
         }
@@ -623,7 +686,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
                 div.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3";
                 div.innerHTML = `
                     <div class="flex justify-between items-center no-print">
-                        <input type="datetime-local" value="${note.date ? note.date.substring(0,16) : ''}" onchange="updateNoteDate('${note.id}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
+                        <input type="datetime-local" value="${getLocalDatetimeString(note.date)}" onchange="updateNoteDate('${note.id}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
                         <div class="flex gap-2">
                             <button onclick="startSTT('txt-${note.id}', 'stt-${note.id}')" id="stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 transition"><i class="fas fa-microphone"></i></button>
                             <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
@@ -644,7 +707,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         function updateNoteDate(id, val) {
             const p = db.patients.find(x => x.id === selectedPatientId);
             const n = p.notatki_z_data.find(x => x.id === id);
-            if(n) { n.date = new Date(val).toISOString(); saveToDisk(); renderNotes(p.notatki_z_data); }
+            if(n) { n.date = val; saveToDisk(); renderNotes(p.notatki_z_data); }
         }
 
         function deleteNote(id) {
@@ -653,28 +716,27 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             saveToDisk();
             renderNotes(p.notatki_z_data);
         }
+        
         function addTemplateNote(templateText) {
             if (!templateText) return;
-            
             const p = db.patients.find(x => x.id === selectedPatientId);
             if (!p) return;
-            
             // Dodaje nową notatkę z gotowym tekstem
             p.notatki_z_data.unshift({ 
                 id: generateId('n-'), 
-                date: new Date().toISOString(), 
+                date: getNowLocalString(), 
                 content: templateText 
             });
-            
             saveToDisk();
             renderNotes(p.notatki_z_data);
             
             // Resetuje listę rozwijaną do domyślnego stanu
             document.getElementById('note-templates').selectedIndex = 0;
         }
+        
         function addNewNote() {
             const p = db.patients.find(x => x.id === selectedPatientId);
-            p.notatki_z_data.unshift({ id: generateId('n-'), date: new Date().toISOString(), content: "" });
+            p.notatki_z_data.unshift({ id: generateId('n-'), date: getNowLocalString(), content: "" });
             saveToDisk();
             renderNotes(p.notatki_z_data);
         }
@@ -738,9 +800,9 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
 
             if (id) {
                 const app = db.appointments.find(a => a.id === id);
-                if (app) { Object.assign(app, { patient_name: pName, patient_id: pId, start_time: new Date(date).toISOString(), notes: notes }); }
+                if (app) { Object.assign(app, { patient_name: pName, patient_id: pId, start_time: date, notes: notes }); }
             } else {
-                db.appointments.push({ id: generateId('a-'), patient_name: pName, patient_id: pId, start_time: new Date(date).toISOString(), notes: notes, paid: false });
+                db.appointments.push({ id: generateId('a-'), patient_name: pName, patient_id: pId, start_time: date, notes: notes, paid: false });
             }
 
             saveToDisk();
@@ -775,7 +837,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             document.getElementById('edit-app-id').value = app.id;
             selectedPatientIdInput.value = app.patient_id || "";
             searchAppInput.value = app.patient_name;
-            document.getElementById('new-app-date').value = app.start_time.substring(0, 16);
+            document.getElementById('new-app-date').value = getLocalDatetimeString(app.start_time);
             document.getElementById('new-app-notes').value = app.notes || "";
             document.getElementById('app-form-title').innerText = "Edytuj wizytę";
             document.getElementById('btn-cancel-app').classList.remove('hidden');
@@ -791,10 +853,9 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const tbody = document.getElementById('appointmentsList');
             tbody.innerHTML = '';
             
-            const filterValue = document.getElementById('appointmentMonthFilter').value; // Oczekiwany format 'YYYY-MM'
+            const filterValue = document.getElementById('appointmentMonthFilter').value; 
             
             let filteredApps = db.appointments;
-            
             if (filterValue) {
                 filteredApps = filteredApps.filter(a => {
                     return a.start_time && a.start_time.startsWith(filterValue);
@@ -827,6 +888,52 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
         function deleteApp(id) {
             if(confirm("Usunąć wizytę?")) { db.appointments = db.appointments.filter(x => x.id !== id);
             saveToDisk(); renderAppointments(); }
+        }
+
+        // --- MATERIAŁY ---
+        function renderMaterials() {
+            const list = document.getElementById('materialsList');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            if (db.materials.length === 0) {
+                list.innerHTML = `<div class="text-slate-400 text-center py-4">Brak dodanych materiałów.</div>`;
+                return;
+            }
+
+            db.materials.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-slate-50 rounded-xl flex justify-between items-center border border-slate-100 hover:shadow-sm transition";
+                card.innerHTML = `
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="font-bold text-slate-800 truncate">${escapeHTML(m.title)}</div>
+                        <a href="${escapeHTML(m.url)}" target="_blank" class="text-indigo-500 text-sm hover:underline truncate block">${escapeHTML(m.url)}</a>
+                    </div>
+                    <button onclick="deleteMaterial('${m.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function addMaterial() {
+            const title = document.getElementById('new-mat-title').value;
+            const url = document.getElementById('new-mat-url').value;
+            if (!title || !url) return alert("Uzupełnij tytuł i link!");
+            
+            db.materials.push({ id: generateId('m-'), title, url });
+            saveToDisk();
+            renderMaterials();
+            
+            document.getElementById('new-mat-title').value = '';
+            document.getElementById('new-mat-url').value = '';
+        }
+
+        function deleteMaterial(id) {
+            if (confirm("Usunąć ten materiał z bazy?")) {
+                db.materials = db.materials.filter(m => m.id !== id);
+                saveToDisk();
+                renderMaterials();
+            }
         }
 
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
