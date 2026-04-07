@@ -146,6 +146,18 @@
                                 <div id="edit-notatki-ogolne" contenteditable="true" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 overflow-y-auto whitespace-pre-wrap" placeholder="Opis diagnozy..."></div>
                             </div>
                         </div>
+
+                                                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mt-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold flex items-center gap-2"><i class="fas fa-bullseye text-emerald-500"></i> Cele Terapii</h3>
+                                <button onclick="addGoal()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition font-bold no-print">
+                                    + Dodaj Cel
+                                </button>
+                            </div>
+                            <div id="goals-container" class="space-y-4">
+                                </div>
+                        </div>
+                        
                         <div class="lg:col-span-2 space-y-4">
                             <div class="flex justify-between items-center no-print">
                                 <h3 class="font-black text-xl">Notatki z sesji</h3>
@@ -160,6 +172,9 @@
                                     </button>
                                     <button onclick="addNewNote()" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-slate-300 transition" title="Pusta notatka">
                                         <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button onclick="openScaleCalculator()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-blue-100 transition border border-blue-100 shadow-sm flex items-center">
+                                        <i class="fas fa-calculator mr-2"></i> Sumuj skalę
                                     </button>
                                 </div>
                             </div>                            
@@ -650,6 +665,7 @@
             });
             renderNotes(p.notatki_z_data);
             switchTab('details');
+            renderGoals();
         }
 
         function addNewPatient() {
@@ -994,6 +1010,98 @@
             }
         }
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
+
+                // --- MODUŁ CELÓW ---
+        function renderGoals() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            const container = document.getElementById('goals-container');
+            if (!p || !container) return;
+            
+            if (!p.goals) p.goals = [];
+            container.innerHTML = '';
+        
+            p.goals.forEach((goal, index) => {
+                const goalDiv = document.createElement('div');
+                goalDiv.className = "p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2";
+                goalDiv.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div contenteditable="true" oninput="updateGoalText(${index}, this.innerText)" class="text-xs font-bold text-slate-700 outline-none flex-1">${escapeHTML(goal.text)}</div>
+                        <button onclick="deleteGoal(${index})" class="text-slate-300 hover:text-red-500 transition text-[10px]"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="range" min="0" max="100" value="${goal.progress}" oninput="updateGoalProgress(${index}, this.value)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <span class="text-[10px] font-black text-emerald-600 w-8">${goal.progress}%</span>
+                    </div>
+                `;
+                container.appendChild(goalDiv);
+            });
+        }
+        
+        function addGoal() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+            if (!p.goals) p.goals = [];
+            p.goals.push({ text: "Nowy cel terapeutyczny...", progress: 0 });
+            saveToDisk();
+            renderGoals();
+        }
+        
+        function updateGoalText(index, val) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p && p.goals[index]) {
+                p.goals[index].text = val;
+                saveToDisk();
+            }
+        }
+        
+        function updateGoalProgress(index, val) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p && p.goals[index]) {
+                p.goals[index].progress = val;
+                saveToDisk();
+                renderGoals(); // Odśwież widok procentów
+            }
+        }
+        
+        function deleteGoal(index) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p && confirm("Usunąć ten cel?")) {
+                p.goals.splice(index, 1);
+                saveToDisk();
+                renderGoals();
+            }
+        }
+        
+        // --- MODUŁ KALKULATORA SKAL ---
+        function openScaleCalculator() {
+            const input = prompt("Wpisz wyniki cząstkowe skali oddzielone spacją (np. 1 2 0 3 1):");
+            if (!input) return;
+            
+            // Parsowanie liczb i sumowanie
+            const scores = input.match(/\d+/g);
+            if (!scores) return alert("Nie znaleziono liczb.");
+            
+            const sum = scores.reduce((a, b) => parseInt(a) + parseInt(b), 0);
+            const resultText = `\nWynik skali: ${sum} pkt (Składniki: ${scores.join(', ')})`;
+            
+            // Dodaj wynik do ostatniej notatki lub schowka
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p && p.notatki_z_data.length > 0) {
+                p.notatki_z_data[0].content += resultText;
+                saveToDisk();
+                renderNotes(p.notatki_z_data);
+                alert("Wynik został dopisany do najnowszej notatki.");
+            } else {
+                navigator.clipboard.writeText(resultText);
+                alert(`Suma: ${sum}. Skopiowano do schowka (brak aktywnej notatki).`);
+            }
+        }
+        
+        // --- AKTUALIZACJA FUNKCJI SELECTPATIENT ---
+        // Musisz dodać wywołanie renderGoals() wewnątrz funkcji selectPatient(id), 
+        // aby cele odświeżały się po kliknięciu w pacjenta.
+        // Znajdź koniec funkcji selectPatient(id) i dodaj tam:
+        // renderGoals();
     </script>
 </body>
 </html>
