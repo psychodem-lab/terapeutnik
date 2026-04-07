@@ -178,13 +178,10 @@
                                         <option value="Skala BDI = &#10;Skala BAI = ">BDI/BAI</option>
                                     </select>
                                     <button onclick="addCBTProtocolNote()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-700 transition flex items-center">
-                                        <i class="fas fa-clipboard-check mr-2"></i>Nowa Sesja CBT
+                                        <i class="fas fa-clipboard-check mr-2"></i>Nowa CBT
                                     </button>
                                     <button onclick="addNewNote()" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-slate-300 transition" title="Pusta notatka">
                                         <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button onclick="openScaleCalculator()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-blue-100 transition border border-blue-100 shadow-sm flex items-center">
-                                        <i class="fas fa-calculator mr-2"></i> Sumuj skalę
                                     </button>
                                 </div>
                             </div>                            
@@ -1083,93 +1080,68 @@
             }
         }
         
-        // --- MODUŁ KALKULATORA SKAL ---
-        function openScaleCalculator() {
-            const input = prompt("Wpisz wyniki cząstkowe skali oddzielone spacją (np. 1 2 0 3 1):");
-            if (!input) return;
-            
-            // Parsowanie liczb i sumowanie
-            const scores = input.match(/\d+/g);
-            if (!scores) return alert("Nie znaleziono liczb.");
-            
-            const sum = scores.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-            const resultText = `\nWynik skali: ${sum} pkt (Składniki: ${scores.join(', ')})`;
-            
-            // Dodaj wynik do ostatniej notatki lub schowka
+        function renderScalesHistory() {
             const p = db.patients.find(x => x.id === selectedPatientId);
-            if (p && p.notatki_z_data.length > 0) {
-                p.notatki_z_data[0].content += resultText;
+            const container = document.getElementById('scales-history-container');
+            if (!p || !container) return;
+            
+            if (!p.scale_results) p.scale_results = [];
+            container.innerHTML = '';
+        
+            // Sortowanie od najnowszych
+            const sortedResults = [...p.scale_results].sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+            sortedResults.forEach((res, index) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center p-2 border-b border-slate-50 text-xs";
+                
+                // Prosty wskaźnik trendu (porównanie z poprzednim wynikiem chronologicznym)
+                let trendIcon = '';
+                const olderRes = sortedResults[index + 1];
+                if (olderRes) {
+                    if (res.score < olderRes.score) trendIcon = '<i class="fas fa-arrow-down text-emerald-500 ml-1" title="Poprawa"></i>';
+                    if (res.score > olderRes.score) trendIcon = '<i class="fas fa-arrow-up text-red-500 ml-1" title="Pogorszenie"></i>';
+                }
+        
+                row.innerHTML = `
+                    <div class="text-slate-400">${new Date(res.date).toLocaleDateString('pl-PL')}</div>
+                    <div class="font-bold text-slate-700">${escapeHTML(res.name)}: ${res.score} ${trendIcon}</div>
+                    <button onclick="deleteScaleResult('${res.id}')" class="text-slate-300 hover:text-red-500 px-1"><i class="fas fa-times"></i></button>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function addScaleResult() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+        
+            const name = prompt("Nazwa skali (np. BDI, BAI, GAD-7):", "BDI-II");
+            if (!name) return;
+            const score = prompt("Wynik punktowy (tylko liczba):");
+            if (score === null || isNaN(parseInt(score))) return;
+        
+            if (!p.scale_results) p.scale_results = [];
+            
+            p.scale_results.push({
+                id: generateId('res-'),
+                date: new Date().toISOString(),
+                name: name,
+                score: parseInt(score)
+            });
+        
+            saveToDisk();
+            renderScalesHistory();
+        }
+        
+        function deleteScaleResult(resId) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p && confirm("Usunąć ten wynik z historii?")) {
+                p.scale_results = p.scale_results.filter(r => r.id !== resId);
                 saveToDisk();
-                renderNotes(p.notatki_z_data);
-                alert("Wynik został dopisany do najnowszej notatki.");
-            } else {
-                navigator.clipboard.writeText(resultText);
-                alert(`Suma: ${sum}. Skopiowano do schowka (brak aktywnej notatki).`);
+                renderScalesHistory();
             }
         }
-        
-function renderScalesHistory() {
-    const p = db.patients.find(x => x.id === selectedPatientId);
-    const container = document.getElementById('scales-history-container');
-    if (!p || !container) return;
-    
-    if (!p.scale_results) p.scale_results = [];
-    container.innerHTML = '';
-
-    // Sortowanie od najnowszych
-    const sortedResults = [...p.scale_results].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    sortedResults.forEach((res, index) => {
-        const row = document.createElement('div');
-        row.className = "flex justify-between items-center p-2 border-b border-slate-50 text-xs";
-        
-        // Prosty wskaźnik trendu (porównanie z poprzednim wynikiem chronologicznym)
-        let trendIcon = '';
-        const olderRes = sortedResults[index + 1];
-        if (olderRes) {
-            if (res.score < olderRes.score) trendIcon = '<i class="fas fa-arrow-down text-emerald-500 ml-1" title="Poprawa"></i>';
-            if (res.score > olderRes.score) trendIcon = '<i class="fas fa-arrow-up text-red-500 ml-1" title="Pogorszenie"></i>';
-        }
-
-        row.innerHTML = `
-            <div class="text-slate-400">${new Date(res.date).toLocaleDateString('pl-PL')}</div>
-            <div class="font-bold text-slate-700">${escapeHTML(res.name)}: ${res.score} ${trendIcon}</div>
-            <button onclick="deleteScaleResult('${res.id}')" class="text-slate-300 hover:text-red-500 px-1"><i class="fas fa-times"></i></button>
-        `;
-        container.appendChild(row);
-    });
-}
-
-function addScaleResult() {
-    const p = db.patients.find(x => x.id === selectedPatientId);
-    if (!p) return;
-
-    const name = prompt("Nazwa skali (np. BDI, BAI, GAD-7):", "BDI-II");
-    if (!name) return;
-    const score = prompt("Wynik punktowy (tylko liczba):");
-    if (score === null || isNaN(parseInt(score))) return;
-
-    if (!p.scale_results) p.scale_results = [];
-    
-    p.scale_results.push({
-        id: generateId('res-'),
-        date: new Date().toISOString(),
-        name: name,
-        score: parseInt(score)
-    });
-
-    saveToDisk();
-    renderScalesHistory();
-}
-
-function deleteScaleResult(resId) {
-    const p = db.patients.find(x => x.id === selectedPatientId);
-    if (p && confirm("Usunąć ten wynik z historii?")) {
-        p.scale_results = p.scale_results.filter(r => r.id !== resId);
-        saveToDisk();
-        renderScalesHistory();
-    }
-}
     </script>
 </body>
 </html>
