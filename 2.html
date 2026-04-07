@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/?size=48&id=111447&format=png&color=228BE6">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terapeutnik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        .tab-active { border-bottom: 4px solid #4f46e5; color: #4f46e5; font-weight: 700; }
+        .recording { animation: pulse 1.5s infinite; color: #ef4444 !important; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        #patientSearchResults { max-height: 200px; overflow-y: auto; z-index: 100; }
+        [contenteditable]:empty:before { content: attr(placeholder); color: #94a3b8; pointer-events: none; display: block; }
+
+        @media print {
+            header, nav, button, .no-print, #section-list, #section-appointments, #section-materials, .fa-microphone, .fa-trash, .status-info { display: none !important; }
+            body { background: white; padding: 0; }
+            main { padding: 0; max-width: 100%; }
+            .bg-white { box-shadow: none !important; border: none !important; }
+            #section-details { display: block !important; }
+            textarea, [contenteditable] { border: none !important; resize: none !important; height: auto !important; overflow: visible !important; }
+            .print-header { display: block !important; border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <div id="lockScreen" class="hidden"></div>
+
+    <input type="file" id="fallbackFileInput" class="hidden" accept=".bin">
+
+    <div id="appContent" class="hidden">
+        <header class="bg-white shadow-sm sticky top-0 z-50 no-print">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="flex justify-between items-center h-16 border-b border-slate-100">
+                    <div class="flex items-center gap-2 text-indigo-700 font-black text-xl">
+                        <i class="fas fa-brain"></i> <span>Terapeutnik</span>
+                        <span id="activeFileIndicator" class="hidden ml-2 px-2 py-1 bg-indigo-50 text-indigo-500 text-[10px] rounded-lg border border-indigo-100 uppercase tracking-widest font-bold" title="Połączono z plikiem na dysku">
+                            <i class="fas fa-hdd"></i>
+                        </span>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <span id="saveStatus" class="hidden items-center text-[10px] text-emerald-600 font-bold mr-2 uppercase tracking-widest">
+                            <i class="fas fa-check-circle mr-1"></i> Zapisano
+                        </span>
+                        <button onclick="handleFileOpen()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition">
+                            <i class="fas fa-folder-open"></i> <span class="hidden md:inline ml-1">Otwórz</span>
+                        </button>
+                        <button onclick="handleFileSaveAs()" class="text-xs bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition shadow-sm">
+                            <i class="fas fa-save mr-1"></i> Zapisz
+                        </button>
+                        <button onclick="lockApp()" class="text-xs bg-slate-800 text-white hover:bg-black px-3 py-2 rounded-lg transition shadow-sm">
+                            <i class="fas fa-lock"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <nav class="flex justify-around md:justify-start md:gap-12 flex-wrap">
+                    <button onclick="switchTab('list')" id="tab-list" class="py-4 text-sm uppercase tracking-wider tab-active">Pacjenci</button>
+                    <button onclick="switchTab('details')" id="tab-details" class="py-4 text-sm uppercase tracking-wider">Szczegóły</button>
+                    <button onclick="switchTab('appointments')" id="tab-appointments" class="py-4 text-sm uppercase tracking-wider">Wizyty</button>
+                    <button onclick="switchTab('materials')" id="tab-materials" class="py-4 text-sm uppercase tracking-wider">Materiały</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto p-4 md:p-8">
+            <div class="print-header">
+                <h1 id="print-patient-name" class="text-2xl font-bold">Karta Pacjenta</h1>
+                <p id="print-patient-meta"></p>
+            </div>
+
+            <section id="section-list" class="space-y-6">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 flex-1">
+                        <i class="fas fa-search text-slate-300 text-lg"></i>
+                        <input type="text" id="searchPatient" placeholder="Szukaj pacjenta..." class="w-full outline-none">
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
+                        <i class="fas fa-map-marker-alt text-slate-300 text-lg"></i>
+                        <select id="filter-miejsce" onchange="renderPatientList(document.getElementById('searchPatient').value)" class="w-full outline-none bg-transparent font-bold text-slate-600 min-w-[160px]">
+                            <option value="">Wszystkie gabinety</option>
+                        </select>
+                    </div>
+                    <button onclick="addNewPatient()" class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-user-plus"></i> Nowy Pacjent
+                    </button>
+                </div>
+                <div id="patientList" class="flex flex-col gap-3"></div>
+            </section>
+
+            <section id="section-details" class="hidden space-y-6">
+                <div id="noPatientSelected" class="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-400">
+                    Wybierz pacjenta z listy głównej.
+                </div>
+                <div id="patientDetailContent" class="hidden space-y-6">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative">
+                        <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+                            <div class="flex-1">
+                                <input type="text" id="edit-imie" class="text-3xl font-bold block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Imię">
+                                <input type="text" id="edit-nazwisko" class="text-xl text-slate-500 block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Nazwisko">
+                            </div>
+                            <select id="edit-status" class="bg-indigo-50 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none mt-2">
+                                <option value="aktywny">Aktywny</option>
+                                <option value="nieaktywny">Nieaktywny</option>
+                                <option value="zakończona_terapia">Zakończona</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-50">
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Telefon</label>
+                                <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Dodaj numer...">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data urodzenia</label>
+                                <input type="date" id="edit-urodzenie" class="w-full p-2 bg-slate-50 rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Miejsce terapii</label>
+                                <input type="text" id="edit-miejsce" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Miejsce...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 space-y-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold flex items-center gap-2"><i class="fas fa-id-badge text-indigo-500"></i> Diagnoza / Cel</h3>
+                                    <button onclick="startSTT('edit-notatki-ogolne', 'btn-stt-diag')" id="btn-stt-diag" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 no-print transition">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                </div>
+                                <div id="edit-notatki-ogolne" contenteditable="true" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 overflow-y-auto whitespace-pre-wrap" placeholder="Opis diagnozy..."></div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="flex justify-between items-center no-print">
+                                <h3 class="font-black text-xl">Notatki z sesji</h3>
+                                <div class="flex gap-2">
+                                    <select id="note-templates" onchange="addTemplateNote(this.value)" class="bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl px-3 py-2 outline-none cursor-pointer">
+                                        <option value="" disabled selected>Wybierz szablon...</option>
+                                        <option value="Stan pacjenta: Pacjent otwarty, współpracujący, zgłasza trudności związane z 
+Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psychoedukacji z zakresu">Standard</option>
+                                        <option value="Skala lęku = Skala depresji = Skala stresu = ">DASS</option>
+                                        <option value="Poziom 1 Skali Przekrojowej Samooceny Objawów dla Dorosłych (DSM 5)
+1. Depresja - nieznaczny
+2. Gniew - nieznaczny 
+3. Mania - w ogóle 
+4. Lęk - łagodne
+5. Objawy Somatyczne - w ogóle 
+6. Tendencje samobójcze - w ogóle 
+7. Psychoza - w ogóle 
+8. Problemy ze snem - w ogóle 
+9. Pamięć - w ogóle 
+10. Nawracające myśli i zachowania - ciężko 
+11. Dysocjacja - w ogóle 
+12. Funkcjonowanie osobowości - w ogóle 
+13. Używanie substancji - w ogóle
+">DSM lvl 1</option>
+                                        <option value="Psychoterapia poznawczo behawioralna w zakresie: dialog sokratejski, psychoedukacja, ekspozycja, eksperyment behawioralny, zniekształcenia poznawcze, edukacja o emocjach, model zaburzenia.">Techniki</option>
+                                    </select>
+                                    <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
+                                        <i class="fas fa-plus mr-2"></i>Nowa
+                                    </button>
+                                </div>
+                            </div>                            
+                            <div id="notesContainer" class="space-y-4"></div>
+                        </div>
+                    </div>
+                    <div class="no-print pt-10 text-center">
+                        <button onclick="window.print()" class="bg-slate-800 text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition">Drukuj Kartę Pacjenta</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-appointments" class="hidden space-y-8">
+                <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative">
+                    <h3 id="app-form-title" class="font-black text-lg mb-4 text-indigo-900">Dodaj nową wizytę</h3>
+                    <input type="hidden" id="edit-app-id" value="">
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                        <div class="relative">
+                            <input type="text" id="search-app-patient" placeholder="Szukaj pacjenta..." autocomplete="off" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
+                            <div id="patientSearchResults" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden"></div>
+                            <input type="hidden" id="new-app-patient-id">
+                        </div>
+                        <input type="datetime-local" id="new-app-date" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
+                        <input type="text" id="new-app-notes" placeholder="Kwota / uwagi..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
+                        <div class="flex gap-2">
+                            <button id="btn-save-app" onclick="saveAppointment()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition shadow-lg">Zapisz</button>
+                            <button id="btn-cancel-app" onclick="resetAppForm()" class="hidden bg-slate-200 text-slate-600 px-4 py-3 rounded-xl hover:bg-slate-300 transition">Anuluj</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h4 class="font-bold text-slate-700 pl-2">Lista wizyt</h4>
+                        <div class="flex items-center gap-2">
+                            <label for="appointmentMonthFilter" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Miesiąc:</label>
+                            <input type="month" id="appointmentMonthFilter" class="p-2 bg-white rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200 text-sm" onchange="renderAppointments()">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
+                                <tr>
+                                    <th class="p-6">Płatność</th>
+                                    <th class="p-6">Pacjent</th>
+                                    <th class="p-6">Data sesji</th>
+                                    <th class="p-6">Notatki</th>
+                                    <th class="p-6">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsList" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-materials" class="hidden space-y-8">
+                <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative">
+                    <h3 class="font-black text-lg mb-4 text-indigo-900">Dodaj nowy materiał / tekst</h3>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="new-mat-title" placeholder="Tytuł (np. Technika oddechowa)..." class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
+                            <input type="url" id="new-mat-url" placeholder="Link opcjonalny (https://...)" class="p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200">
+                        </div>
+                        <textarea id="new-mat-content" placeholder="Treść psychoedukacyjna do szybkiego skopiowania dla pacjenta..." class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200 h-32"></textarea>
+                        <button onclick="addMaterial()" class="w-full md:w-auto bg-indigo-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg">
+                            <i class="fas fa-plus mr-2"></i>Dodaj do bazy
+                        </button>
+                    </div>
+                </div>
+            
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h4 class="font-bold text-slate-700 pl-2">Zapisane materiały i teksty</h4>
+                        <div class="relative w-full md:w-72">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                            <input type="text" id="searchMaterials" oninput="renderMaterials(this.value)" placeholder="Szukaj w tytułach i treści..." class="w-full pl-10 pr-4 py-2 bg-white rounded-xl border border-slate-200 outline-none text-sm">
+                        </div>
+                    </div>
+                    <div id="materialsList" class="p-6 grid grid-cols-1 gap-4"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
+        // --- ZMIENNE GLOBALNE ---
+        let db = { patients: [], appointments: [], materials: [] };
+        let selectedPatientId = null;
+        let sessionKey = null; 
+        
+        // Zmienne dla File System Access API
+        let currentFileHandle = null;
+        let syncTimeout = null;
+        const isFSAASupported = 'showOpenFilePicker' in window;
+
+        let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
+        if (recognition) { recognition.continuous = false; recognition.lang = 'pl-PL'; }
+
+        // --- NARZĘDZIA POMOCNICZE ---
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[m]));
+        }
+
+        function generateId(prefix) {
+            return prefix + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9));
+        }
+
+        function linkify(text) {
+            if (!text) return '';
+            const escaped = escapeHTML(text);
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            return escaped.replace(urlRegex, '<a href="$1" target="_blank" contenteditable="false" class="text-indigo-600 underline font-bold cursor-pointer hover:text-indigo-800" onclick="window.open(this.href, \'_blank\'); return false;">$1</a>');
+        }
+
+        function getLocalDatetimeString(dateString) {
+            if (!dateString) return "";
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return dateString;
+            return d.getFullYear() + '-' + 
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(d.getDate()).padStart(2, '0') + 'T' + 
+                   String(d.getHours()).padStart(2, '0') + ':' + 
+                   String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function getNowLocalString() {
+            return getLocalDatetimeString(new Date().toISOString());
+        }
+
+        // --- INICJALIZACJA I BLOKADA ---
+        window.onload = function() {
+            unlockApp();
+        };
+
+        function unlockApp() {
+            const encryptedData = localStorage.getItem('therapyData_enc');
+            if (!encryptedData) {
+                db = { patients: [], appointments: [], materials: [] };
+                sessionKey = prompt("Brak lokalnej bazy. Utwórz nowe hasło dostępowe:");
+                if (!sessionKey) { showAccessDenied(); return; }
+                saveToDisk();
+                initializeAppUI();
+                return;
+            }
+
+            const password = prompt("Podaj hasło dostępowe do bazy danych:");
+            if (!password) { showAccessDenied(); return; }
+            sessionKey = password;
+            loadFromDisk();
+        }
+
+        function lockApp() {
+            sessionKey = null;
+            currentFileHandle = null;
+            location.reload();
+        }
+
+        function loadFromDisk() {
+            const encryptedData = localStorage.getItem('therapyData_enc');
+            if (encryptedData) {
+                try {
+                    const bytes = CryptoJS.AES.decrypt(encryptedData, sessionKey);
+                    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                    if (!decryptedText) throw new Error();
+                    db = JSON.parse(decryptedText);
+                } catch(e) {
+                    alert("Błędne hasło! Nie można odszyfrować bazy lokalnej.");
+                    sessionKey = null;
+                    showAccessDenied();
+                    return;
+                }
+            }
+            initializeAppUI();
+        }
+
+        function initializeAppUI() {
+            normalizeData();
+            // Ustawienie domyślnego miesiąca (bieżącego) w filtrze wizyt
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const monthInput = document.getElementById('appointmentMonthFilter');
+            if(monthInput && !monthInput.value) {
+                monthInput.value = `${yyyy}-${mm}`;
+            }
+            
+            renderPatientList();
+            renderAppointments();
+            renderMaterials();
+            document.getElementById('lockScreen').classList.add('hidden');
+            document.getElementById('appContent').classList.remove('hidden');
+        }
+
+        function showAccessDenied() {
+            document.getElementById('appContent').classList.add('hidden');
+            const lockScreen = document.getElementById('lockScreen');
+            lockScreen.classList.remove('hidden');
+            lockScreen.innerHTML = `
+                <div class="flex items-center justify-center h-screen flex-col gap-6 text-center bg-slate-50">
+                    <div>
+                        <i class="fas fa-lock text-4xl text-slate-300 mb-4"></i>
+                        <p class="font-black text-red-500 text-2xl">Dostęp zablokowany</p>
+                        <p class="text-slate-500 mt-2">Błędne hasło lub anulowano logowanie.</p>
+                    </div>
+                    <div class="flex gap-4 mt-2">
+                        <button onclick="location.reload()" class="bg-indigo-600 text-white font-bold shadow-md px-6 py-3 rounded-xl hover:bg-indigo-700 transition">Spróbuj ponownie</button>
+                        <button onclick="handleFileOpen()" class="bg-white text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition">
+                            <i class="fas fa-folder-open mr-2"></i>Otwórz plik z dysku (.bin)
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        // --- ZAPIS DANYCH I SYNCHRONIZACJA (FILE SYSTEM API) ---
+        function saveToDisk() {
+            if (!sessionKey) return;
+            // Zapis do LocalStorage (podstawowy cache)
+            const dataString = JSON.stringify(db);
+            const encrypted = CryptoJS.AES.encrypt(dataString, sessionKey).toString();
+            localStorage.setItem('therapyData_enc', encrypted);
+
+            const status = document.getElementById('saveStatus');
+            status.classList.remove('hidden'); status.classList.add('flex');
+            setTimeout(() => { status.classList.remove('flex'); status.classList.add('hidden'); }, 1000);
+            
+            // Jeśli użytkownik otworzył fizyczny plik przez FSAA - synchronizujemy w tle z opóźnieniem
+            if (currentFileHandle) {
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(() => syncToPhysicalFile(encrypted), 1500); // 1.5s debouncing
+            }
+        }
+
+        async function syncToPhysicalFile(encryptedData) {
+            try {
+                // Sprawdzenie i ewentualne odnowienie uprawnień do zapisu
+                if ((await currentFileHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+                    if ((await currentFileHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') {
+                        throw new Error("Brak uprawnień do zapisu");
+                    }
+                }
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(new Blob([encryptedData], { type: 'application/octet-stream' }));
+                await writable.close();
+                console.log("Pomyślnie zsynchronizowano z plikiem docelowym.");
+            } catch (err) {
+                console.error("Błąd zapisu tła do pliku:", err);
+            }
+        }
+
+        function normalizeData() {
+            if (!db.patients) db.patients = [];
+            if (!db.appointments) db.appointments = [];
+            if (!db.materials) db.materials = [];
+            db.patients.forEach(p => {
+                if (!p.id) p.id = generateId('p-');
+                if (!p.notatki_z_data) p.notatki_z_data = [];
+            });
+            db.appointments.forEach(a => {
+                if (!a.id) a.id = generateId('a-');
+                if (a.paid === undefined) a.paid = false;
+            });
+            saveToDisk();
+        }
+
+        // --- ZARZĄDZANIE PLIKAMI (OPEN / SAVE AS) ---
+        async function handleFileOpen() {
+            if (isFSAASupported) {
+                try {
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{ description: 'Baza Terapeutnik', accept: { 'application/octet-stream': ['.bin'] } }],
+                        multiple: false
+                    });
+                    const file = await handle.getFile();
+                    const content = await file.text();
+                    currentFileHandle = handle;
+                    processImportedContent(content);
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error(e);
+                }
+            } else {
+                // Fallback
+                document.getElementById('fallbackFileInput').click();
+            }
+        }
+
+        async function handleFileSaveAs() {
+            const pass = prompt("Podaj hasło do zaszyfrowania kopii zapasowej (pozostaw puste by użyć bieżącego):", sessionKey || "");
+            if (pass === null) return;
+            const keyToUse = pass.trim() !== "" ? pass : sessionKey;
+            
+            const dataString = JSON.stringify(db);
+            const finalData = keyToUse ? CryptoJS.AES.encrypt(dataString, keyToUse).toString() : dataString;
+            const blob = new Blob([finalData], { type: 'application/octet-stream' });
+            
+            if (isFSAASupported) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: `backup_${new Date().toISOString().split('T')[0]}.bin`,
+                        types: [{ description: 'Baza Terapeutnik', accept: { 'application/octet-stream': ['.bin'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    currentFileHandle = handle;
+                    updateFileIndicator(true);
+                    alert("Zapisano pomyślnie i połączono sesję z tym plikiem.");
+                } catch (err) {
+                    if (err.name !== 'AbortError') alert("Nie udało się zapisać pliku.");
+                }
+            } else {
+                // Fallback
+                const url = window.URL.createObjectURL(blob);
+                const dl = document.createElement('a');
+                dl.href = url;
+                dl.download = `backup_${new Date().toISOString().split('T')[0]}.bin`;
+                dl.click();
+            }
+        }
+
+        document.getElementById('fallbackFileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                processImportedContent(ev.target.result);
+                e.target.value = ''; // Reset
+            };
+            reader.readAsText(file);
+        };
+        
+        function processImportedContent(content) {
+            let dataToImport = null;
+            let usedPass = null;
+
+            try {
+                dataToImport = JSON.parse(content);
+            } catch (err) {
+                const pass = prompt("Plik jest zaszyfrowany. Podaj hasło do odblokowania:");
+                if (pass === null) return;
+                try {
+                    const bytes = CryptoJS.AES.decrypt(content, pass);
+                    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                    if (!decrypted) throw new Error();
+                    dataToImport = JSON.parse(decrypted);
+                    usedPass = pass;
+                } catch (decryptErr) {
+                    alert("Błędne hasło lub format pliku.");
+                    return;
+                }
+            }
+
+            if (dataToImport) {
+                db = dataToImport;
+                if (usedPass) sessionKey = usedPass;
+                updateFileIndicator(!!currentFileHandle);
+                initializeAppUI();
+                saveToDisk();
+            }
+        }
+
+        function updateFileIndicator(isActive) {
+            const ind = document.getElementById('activeFileIndicator');
+            if (isActive) { ind.classList.remove('hidden'); ind.classList.add('inline-flex'); } 
+            else { ind.classList.add('hidden'); ind.classList.remove('inline-flex'); }
+        }
+
+        // --- NAWIGACJA ---
+        function switchTab(tab) {
+            ['list', 'details', 'appointments', 'materials'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('tab-active');
+            });
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+        }
+
+        function navigateToPatient(pId) {
+            if (!pId) {
+                alert("Ta wizyta nie jest powiązana z konkretnym profilem pacjenta (wpisana ręcznie).");
+                return;
+            }
+            const p = db.patients.find(x => x.id === pId);
+            if (!p) {
+                alert("Nie znaleziono profilu pacjenta w bazie.");
+                return;
+            }
+            selectPatient(pId);
+        }
+
+        // --- PACJENCI ---
+        function updateMiejsceFilterOptions() {
+            const filterSelect = document.getElementById('filter-miejsce');
+            const currentValue = filterSelect.value;
+            const miejsca = new Set();
+            db.patients.forEach(p => {
+                if (p.miejsce_terapii && p.miejsce_terapii.trim()) miejsca.add(p.miejsce_terapii.trim());
+            });
+            
+            filterSelect.innerHTML = '<option value="">Wszystkie gabinety</option>';
+            [...miejsca].sort().forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.innerText = m;
+                if (m === currentValue) opt.selected = true;
+                filterSelect.appendChild(opt);
+            });
+        }
+            
+        function renderPatientList(filter = '') {
+            updateMiejsceFilterOptions();
+            const list = document.getElementById('patientList');
+            list.innerHTML = '';
+            
+            const locationFilter = document.getElementById('filter-miejsce').value;
+            
+            let filteredPatients = db.patients.filter(p => {
+                const fullName = `${p.imie} ${p.nazwisko}`.toLowerCase();
+                const matchesName = !filter || fullName.includes(filter.toLowerCase());
+                const matchesLocation = !locationFilter || (p.miejsce_terapii && p.miejsce_terapii.trim() === locationFilter);
+                return matchesName && matchesLocation;
+            });
+
+            // Logika sortowania
+            filteredPatients.sort((a, b) => {
+                const statusA = (a.status || '').toLowerCase();
+                const statusB = (b.status || '').toLowerCase();
+
+                // 1. Sprawdzanie statusu "aktywny" (priorytet)
+                if (statusA === 'aktywny' && statusB !== 'aktywny') return -1;
+                if (statusA !== 'aktywny' && statusB === 'aktywny') return 1;
+
+                // 2. Jeśli statusy są takie same (lub oba nie są "aktywny"), sortuj alfabetycznie
+                const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
+                const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
+                return nameA.localeCompare(nameB, 'pl');
+            });
+
+            filteredPatients.forEach(p => {
+                const fullName = `${p.imie} ${p.nazwisko}`;
+                const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+                const miejsceBadge = p.miejsce_terapii ? `<span class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded border border-slate-200">${escapeHTML(p.miejsce_terapii)}</span>` : '';
+
+                const card = document.createElement('div');
+                card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
+                card.onclick = () => selectPatient(p.id);
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition flex items-center flex-wrap gap-1">
+                            ${escapeHTML(fullName)} ${miejsceBadge}
+                        </div>
+                        <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor} ml-auto">${escapeHTML(p.status)}</div>
+                    </div>
+                    <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
+                `;
+                list.appendChild(card);
+            });
+        }
+      
+        function selectPatient(id) {
+            selectedPatientId = id;
+            const p = db.patients.find(x => x.id === id);
+            if (!p) return;
+
+            document.getElementById('noPatientSelected').classList.add('hidden');
+            document.getElementById('patientDetailContent').classList.remove('hidden');
+            
+            ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'].forEach(fid => {
+                const key = fid.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
+                const field = document.getElementById(`edit-${fid}`);
+                
+                if (fid === 'notatki-ogolne') {
+                    field.innerHTML = linkify(p[key]);
+                    field.oninput = (e) => {
+                        p[key] = e.target.innerText;
+                        saveToDisk();
+                    };
+                } else {
+                    field.value = p[key] || '';
+                    field.oninput = (e) => {
+                        p[key] = e.target.value;
+                        saveToDisk();
+                        if(['imie', 'nazwisko', 'status', 'miejsce_terapii'].includes(key)) renderPatientList(document.getElementById('searchPatient').value);
+                    };
+                }
+            });
+            renderNotes(p.notatki_z_data);
+            switchTab('details');
+        }
+
+        function addNewPatient() {
+            const id = generateId('p-');
+            db.patients.unshift({ id, imie: "Nowy", nazwisko: "Pacjent", status: "aktywny", notatki_z_data: [], notatki: "" });
+            saveToDisk();
+            renderPatientList();
+            selectPatient(id);
+        }
+
+        function deletePatient(id, e) {
+            e.stopPropagation();
+            if(confirm("Usunąć pacjenta?")) {
+                db.patients = db.patients.filter(p => p.id !== id);
+                if(selectedPatientId === id) selectedPatientId = null;
+                saveToDisk();
+                renderPatientList();
+                switchTab('list');
+            }
+        }
+
+        // --- NOTATKI ---
+        function renderNotes(notes) {
+            const container = document.getElementById('notesContainer');
+            container.innerHTML = '';
+            [...notes].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(note => {
+                const div = document.createElement('div');
+                div.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center no-print">
+                        <input type="datetime-local" value="${getLocalDatetimeString(note.date)}" onchange="updateNoteDate('${note.id}', this.value)" class="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full outline-none">
+                        <div class="flex gap-2">
+                            <button onclick="startSTT('txt-${note.id}', 'stt-${note.id}')" id="stt-${note.id}" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 transition"><i class="fas fa-microphone"></i></button>
+                            <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div contenteditable="true" oninput="updateNoteContent('${note.id}', this.innerText)" id="txt-${note.id}" class="w-full min-h-[100px] outline-none text-sm leading-relaxed text-slate-600 p-2 bg-transparent whitespace-pre-wrap">${linkify(note.content)}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateNoteContent(id, val) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            const n = p.notatki_z_data.find(x => x.id === id);
+            if(n) { n.content = val; saveToDisk(); }
+        }
+
+        function updateNoteDate(id, val) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            const n = p.notatki_z_data.find(x => x.id === id);
+            if(n) { n.date = val; saveToDisk(); renderNotes(p.notatki_z_data); }
+        }
+
+        function deleteNote(id) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            p.notatki_z_data = p.notatki_z_data.filter(x => x.id !== id);
+            saveToDisk();
+            renderNotes(p.notatki_z_data);
+        }
+        
+        function addTemplateNote(templateText) {
+            if (!templateText) return;
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+            // Dodaje nową notatkę z gotowym tekstem
+            p.notatki_z_data.unshift({ 
+                id: generateId('n-'), 
+                date: getNowLocalString(), 
+                content: templateText 
+            });
+            saveToDisk();
+            renderNotes(p.notatki_z_data);
+            
+            // Resetuje listę rozwijaną do domyślnego stanu
+            document.getElementById('note-templates').selectedIndex = 0;
+        }
+        
+        function addNewNote() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            p.notatki_z_data.unshift({ id: generateId('n-'), date: getNowLocalString(), content: "" });
+            saveToDisk();
+            renderNotes(p.notatki_z_data);
+        }
+
+        function startSTT(elementId, btnId) {
+            if(!recognition) return alert("System nie wspiera rozpoznawania mowy.");
+            const btn = document.getElementById(btnId);
+            const area = document.getElementById(elementId);
+            btn.classList.add('recording');
+            recognition.start();
+            
+            recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                if (area.tagName.toLowerCase() === 'textarea' || area.tagName.toLowerCase() === 'input') {
+                    area.value += (area.value ? " " : "") + transcript;
+                } else {
+                    area.appendChild(document.createTextNode((area.innerText.trim() ? " " : "") + transcript));
+                }
+                area.dispatchEvent(new Event('input'));
+            };
+            recognition.onend = () => btn.classList.remove('recording');
+        }
+
+        // --- WIZYTY ---
+        const searchAppInput = document.getElementById('search-app-patient');
+        const searchResultsDiv = document.getElementById('patientSearchResults');
+        const selectedPatientIdInput = document.getElementById('new-app-patient-id');
+
+        searchAppInput.oninput = function() {
+            const val = this.value.toLowerCase();
+            if (!val) { searchResultsDiv.classList.add('hidden'); return; }
+            const matches = db.patients.filter(p => `${p.imie} ${p.nazwisko}`.toLowerCase().includes(val));
+            
+            if (matches.length > 0) {
+                searchResultsDiv.innerHTML = matches.map(p => `
+                    <div onclick="selectPatientForApp('${p.id}', '${escapeHTML(p.imie)} ${escapeHTML(p.nazwisko)}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none">
+                        ${escapeHTML(p.imie)} ${escapeHTML(p.nazwisko)}
+                    </div>
+                `).join('');
+                searchResultsDiv.classList.remove('hidden');
+            } else {
+                searchResultsDiv.innerHTML = `<div class="p-3 text-slate-400">Nie znaleziono...</div>`;
+                searchResultsDiv.classList.remove('hidden');
+            }
+        };
+        
+        function selectPatientForApp(id, name) {
+            selectedPatientIdInput.value = id;
+            searchAppInput.value = name;
+            searchResultsDiv.classList.add('hidden');
+        }
+
+        function saveAppointment() {
+            const id = document.getElementById('edit-app-id').value;
+            const pId = selectedPatientIdInput.value;
+            const pName = searchAppInput.value;
+            const date = document.getElementById('new-app-date').value;
+            const notes = document.getElementById('new-app-notes').value;
+            
+            if (!pName || !date) return alert("Uzupełnij dane!");
+
+            if (id) {
+                const app = db.appointments.find(a => a.id === id);
+                if (app) { Object.assign(app, { patient_name: pName, patient_id: pId, start_time: date, notes: notes }); }
+            } else {
+                db.appointments.push({ id: generateId('a-'), patient_name: pName, patient_id: pId, start_time: date, notes: notes, paid: false });
+            }
+
+            saveToDisk();
+            renderAppointments();
+            resetAppForm();
+        }
+
+        function bookAgain(pId, pName) {
+            document.getElementById('edit-app-id').value = "";
+            document.getElementById('new-app-patient-id').value = pId || "";
+            document.getElementById('search-app-patient').value = pName || "";
+            document.getElementById('new-app-date').value = "";
+            document.getElementById('new-app-notes').value = "";
+            document.getElementById('app-form-title').innerText = "Dodaj nową wizytę";
+            document.getElementById('btn-cancel-app').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetAppForm() {
+            document.getElementById('edit-app-id').value = "";
+            selectedPatientIdInput.value = "";
+            searchAppInput.value = "";
+            document.getElementById('new-app-date').value = "";
+            document.getElementById('new-app-notes').value = "";
+            document.getElementById('app-form-title').innerText = "Dodaj nową wizytę";
+            document.getElementById('btn-cancel-app').classList.add('hidden');
+        }
+
+        function editAppointment(id) {
+            const app = db.appointments.find(a => a.id === id);
+            if (!app) return;
+            document.getElementById('edit-app-id').value = app.id;
+            selectedPatientIdInput.value = app.patient_id || "";
+            searchAppInput.value = app.patient_name;
+            document.getElementById('new-app-date').value = getLocalDatetimeString(app.start_time);
+            document.getElementById('new-app-notes').value = app.notes || "";
+            document.getElementById('app-form-title').innerText = "Edytuj wizytę";
+            document.getElementById('btn-cancel-app').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function togglePaid(id) {
+            const app = db.appointments.find(a => a.id === id);
+            if (app) { app.paid = !app.paid; saveToDisk(); renderAppointments(); }
+        }
+
+        function renderAppointments() {
+            const tbody = document.getElementById('appointmentsList');
+            tbody.innerHTML = '';
+            
+            const filterValue = document.getElementById('appointmentMonthFilter').value; 
+            
+            let filteredApps = db.appointments;
+            if (filterValue) {
+                filteredApps = filteredApps.filter(a => {
+                    return a.start_time && a.start_time.startsWith(filterValue);
+                });
+            }
+
+            [...filteredApps].sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-6">
+                        <button onclick="togglePaid('${a.id}')" class="text-xl transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}">
+                            <i class="fas ${a.paid ? 'fa-check-circle' : 'fa-wallet'}"></i>
+                        </button>
+                    </td>
+                    <td class="p-6 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="navigateToPatient('${a.patient_id}')">${escapeHTML(a.patient_name)}</td>
+                    <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
+                    <td class="p-6">
+                        <div class="flex gap-4">
+                            <button onclick="bookAgain('${a.patient_id}', '${escapeHTML(a.patient_name)}')" class="text-emerald-500 hover:text-emerald-700" title="Umów ponownie"><i class="fas fa-calendar-plus"></i></button>
+                            <button onclick="editAppointment('${a.id}')" class="text-indigo-400 hover:text-indigo-600" title="Edytuj"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteApp('${a.id}')" class="text-slate-300 hover:text-red-500" title="Usuń"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteApp(id) {
+            if(confirm("Usunąć wizytę?")) { db.appointments = db.appointments.filter(x => x.id !== id);
+            saveToDisk(); renderAppointments(); }
+        }
+
+        // --- MATERIAŁY ---
+        function renderMaterials(filter = '') {
+    const list = document.getElementById('materialsList');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const filtered = db.materials.filter(m => {
+        const searchStr = filter.toLowerCase();
+        return m.title.toLowerCase().includes(searchStr) || 
+               (m.content && m.content.toLowerCase().includes(searchStr));
+    });
+
+    if (filtered.length === 0) {
+        list.innerHTML = `<div class="text-slate-400 text-center py-4">Nie znaleziono materiałów.</div>`;
+        return;
+    }
+
+    filtered.forEach(m => {
+        const card = document.createElement('div');
+        card.className = "p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition space-y-3";
+        
+        let linkHtml = m.url ? `<a href="${escapeHTML(m.url)}" target="_blank" class="text-indigo-500 text-xs hover:underline block truncate"><i class="fas fa-link mr-1"></i>${escapeHTML(m.url)}</a>` : '';
+        let contentHtml = m.content ? `<div class="text-sm text-slate-600 bg-white p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">${escapeHTML(m.content)}</div>` : '';
+        let copyBtn = m.content ? `<button onclick="copyMaterialText('${m.id}')" class="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-copy mr-1"></i>Kopiuj tekst</button>` : '';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="font-black text-slate-800 truncate">${escapeHTML(m.title)}</div>
+                    ${linkHtml}
+                </div>
+                <button onclick="deleteMaterial('${m.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+            </div>
+            ${contentHtml}
+            <div class="flex justify-end">
+                ${copyBtn}
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function addMaterial() {
+    const title = document.getElementById('new-mat-title').value;
+    const url = document.getElementById('new-mat-url').value;
+    const content = document.getElementById('new-mat-content').value;
+    
+    if (!title) return alert("Podaj przynajmniej tytuł materiału!");
+    
+    db.materials.push({ 
+        id: generateId('m-'), 
+        title, 
+        url, 
+        content 
+    });
+    
+    saveToDisk();
+    renderMaterials();
+    
+    // Czyszczenie pól
+    document.getElementById('new-mat-title').value = '';
+    document.getElementById('new-mat-url').value = '';
+    document.getElementById('new-mat-content').value = '';
+}
+function deleteMaterial(id) {
+    if (confirm("Czy na pewno chcesz usunąć ten materiał?")) {
+        db.materials = db.materials.filter(m => m.id !== id);
+        saveToDisk();
+        renderMaterials(document.getElementById('searchMaterials').value);
+    }
+}
+
+function copyMaterialText(id) {
+    const mat = db.materials.find(m => m.id === id);
+    if (mat && mat.content) {
+        navigator.clipboard.writeText(mat.content).then(() => {
+            alert("Tekst skopiowany do schowka!");
+        }).catch(err => {
+            console.error('Błąd kopiowania:', err);
+        });
+    }
+}
+        document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
+    </script>
+</body>
+</html>
