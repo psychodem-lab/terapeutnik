@@ -133,10 +133,15 @@
                         <div class="lg:col-span-1 space-y-6">
                             <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
                                 <div class="flex justify-between items-center mb-4">
-                                    <h3 class="font-bold flex items-center gap-2"><i class="fas fa-id-badge text-indigo-500"></i> Diagnoza / Cel</h3>
-                                    <button onclick="startSTT('edit-notatki-ogolne', 'btn-stt-diag')" id="btn-stt-diag" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 no-print transition">
-                                        <i class="fas fa-microphone"></i>
-                                    </button>
+                                    <h3 class="font-bold flex items-center gap-2"><i class="fas fa-project-diagram text-indigo-500"></i> Konceptualizacja CBT</h3>
+                                    <div class="flex gap-2">
+                                        <button onclick="loadCBTConceptualization()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition font-bold no-print">
+                                            + Szablon
+                                        </button>
+                                        <button onclick="startSTT('edit-notatki-ogolne', 'btn-stt-diag')" id="btn-stt-diag" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:text-indigo-600 no-print transition">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="edit-notatki-ogolne" contenteditable="true" class="w-full h-80 p-3 bg-indigo-50/30 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 overflow-y-auto whitespace-pre-wrap" placeholder="Opis diagnozy..."></div>
                             </div>
@@ -146,29 +151,15 @@
                                 <h3 class="font-black text-xl">Notatki z sesji</h3>
                                 <div class="flex gap-2">
                                     <select id="note-templates" onchange="addTemplateNote(this.value)" class="bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl px-3 py-2 outline-none cursor-pointer">
-                                        <option value="" disabled selected>Wybierz szablon...</option>
-                                        <option value="Stan pacjenta: Pacjent otwarty, współpracujący, zgłasza trudności związane z 
-Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psychoedukacji z zakresu">Standard</option>
+                                        <option value="" disabled selected>Zwykłe szablony...</option>
                                         <option value="Skala lęku = Skala depresji = Skala stresu = ">DASS</option>
-                                        <option value="Poziom 1 Skali Przekrojowej Samooceny Objawów dla Dorosłych (DSM 5)
-1. Depresja - nieznaczny
-2. Gniew - nieznaczny 
-3. Mania - w ogóle 
-4. Lęk - łagodne
-5. Objawy Somatyczne - w ogóle 
-6. Tendencje samobójcze - w ogóle 
-7. Psychoza - w ogóle 
-8. Problemy ze snem - w ogóle 
-9. Pamięć - w ogóle 
-10. Nawracające myśli i zachowania - ciężko 
-11. Dysocjacja - w ogóle 
-12. Funkcjonowanie osobowości - w ogóle 
-13. Używanie substancji - w ogóle
-">DSM lvl 1</option>
-                                        <option value="Psychoterapia poznawczo behawioralna w zakresie: dialog sokratejski, psychoedukacja, ekspozycja, eksperyment behawioralny, zniekształcenia poznawcze, edukacja o emocjach, model zaburzenia.">Techniki</option>
+                                        <option value="Skala BDI = &#10;Skala BAI = ">BDI/BAI</option>
                                     </select>
-                                    <button onclick="addNewNote()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition">
-                                        <i class="fas fa-plus mr-2"></i>Nowa
+                                    <button onclick="addCBTProtocolNote()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-700 transition flex items-center">
+                                        <i class="fas fa-clipboard-check mr-2"></i>Nowa Sesja CBT
+                                    </button>
+                                    <button onclick="addNewNote()" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-slate-300 transition" title="Pusta notatka">
+                                        <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                             </div>                            
@@ -402,7 +393,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const status = document.getElementById('saveStatus');
             status.classList.remove('hidden'); status.classList.add('flex');
             setTimeout(() => { status.classList.remove('flex'); status.classList.add('hidden'); }, 1000);
-            
             // Jeśli użytkownik otworzył fizyczny plik przez FSAA - synchronizujemy w tle z opóźnieniem
             if (currentFileHandle) {
                 clearTimeout(syncTimeout);
@@ -471,7 +461,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const dataString = JSON.stringify(db);
             const finalData = keyToUse ? CryptoJS.AES.encrypt(dataString, keyToUse).toString() : dataString;
             const blob = new Blob([finalData], { type: 'application/octet-stream' });
-            
             if (isFSAASupported) {
                 try {
                     const handle = await window.showSaveFilePicker({
@@ -575,7 +564,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             db.patients.forEach(p => {
                 if (p.miejsce_terapii && p.miejsce_terapii.trim()) miejsca.add(p.miejsce_terapii.trim());
             });
-            
             filterSelect.innerHTML = '<option value="">Wszystkie gabinety</option>';
             [...miejsca].sort().forEach(m => {
                 const opt = document.createElement('option');
@@ -592,7 +580,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             list.innerHTML = '';
             
             const locationFilter = document.getElementById('filter-miejsce').value;
-            
             let filteredPatients = db.patients.filter(p => {
                 const fullName = `${p.imie} ${p.nazwisko}`.toLowerCase();
                 const matchesName = !filter || fullName.includes(filter.toLowerCase());
@@ -614,7 +601,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
                 const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
                 return nameA.localeCompare(nameB, 'pl');
             });
-
             filteredPatients.forEach(p => {
                 const fullName = `${p.imie} ${p.nazwisko}`;
                 const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
@@ -643,7 +629,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
 
             document.getElementById('noPatientSelected').classList.add('hidden');
             document.getElementById('patientDetailContent').classList.remove('hidden');
-            
             ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'].forEach(fid => {
                 const key = fid.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                 const field = document.getElementById(`edit-${fid}`);
@@ -742,6 +727,37 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             // Resetuje listę rozwijaną do domyślnego stanu
             document.getElementById('note-templates').selectedIndex = 0;
         }
+
+        function addCBTProtocolNote() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+
+            const cbtTemplate = `[ ] Nastroje i objawy (skale/0-10): \n[ ] Bridge (wnioski z poprzedniej sesji): \n[ ] Przegląd pracy domowej: \n\n=== AGENDA SESJI ===\n1. \n2. \n\n=== INTERWENCJE / KONCEPTUALIZACJA ===\nTechniki: \nPostępy w stosunku do przekonania kluczowego: \n\n=== PODSUMOWANIE ===\n[ ] Nowa praca domowa (konkretna): \n[ ] Podsumowanie pacjenta: \n[ ] Feedback (SRS - relacja i zgodność z celem): `;
+
+            p.notatki_z_data.unshift({ 
+                id: generateId('n-'), 
+                date: getNowLocalString(), 
+                content: cbtTemplate 
+            });
+            saveToDisk();
+            renderNotes(p.notatki_z_data);
+        }
+
+        function loadCBTConceptualization() {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+            
+            if (p.notatki && p.notatki.length > 10) {
+                if (!confirm("Pole konceptualizacji nie jest puste. Czy na pewno chcesz nadpisać obecne dane szablonem?")) return;
+            }
+
+            const conceptualizationTemplate = `Diagnoza DSM/ICD: \n\n1. ISTOTNE DANE Z DZIECIŃSTWA:\n\n\n2. PRZEKONANIA KLUCZOWE:\n(O sobie / O innych / O świecie)\n\n\n3. PRZEKONANIA POŚREDNICZĄCE:\nZasady: "Muszę..."\nZałożenia: "Jeśli... to..."\nPostawy: \n\n4. STRATEGIE RADZENIA SOBIE (Kompensacyjne):\n\n\n--- BIEŻĄCY PROBLEM ---\nSytuacja wyzwalająca: \nMyśli Automatyczne: \nZnaczenie Myśli: \nEmocje: \nZachowanie: `;
+
+            const field = document.getElementById('edit-notatki-ogolne');
+            field.innerText = conceptualizationTemplate;
+            p.notatki = conceptualizationTemplate;
+            saveToDisk();
+        }
         
         function addNewNote() {
             const p = db.patients.find(x => x.id === selectedPatientId);
@@ -756,7 +772,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const area = document.getElementById(elementId);
             btn.classList.add('recording');
             recognition.start();
-            
             recognition.onresult = (e) => {
                 const transcript = e.results[0][0].transcript;
                 if (area.tagName.toLowerCase() === 'textarea' || area.tagName.toLowerCase() === 'input') {
@@ -778,7 +793,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const val = this.value.toLowerCase();
             if (!val) { searchResultsDiv.classList.add('hidden'); return; }
             const matches = db.patients.filter(p => `${p.imie} ${p.nazwisko}`.toLowerCase().includes(val));
-            
             if (matches.length > 0) {
                 searchResultsDiv.innerHTML = matches.map(p => `
                     <div onclick="selectPatientForApp('${p.id}', '${escapeHTML(p.imie)} ${escapeHTML(p.nazwisko)}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none">
@@ -791,7 +805,7 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
                 searchResultsDiv.classList.remove('hidden');
             }
         };
-        
+
         function selectPatientForApp(id, name) {
             selectedPatientIdInput.value = id;
             searchAppInput.value = name;
@@ -804,7 +818,6 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
             const pName = searchAppInput.value;
             const date = document.getElementById('new-app-date').value;
             const notes = document.getElementById('new-app-notes').value;
-            
             if (!pName || !date) return alert("Uzupełnij dane!");
 
             if (id) {
@@ -901,86 +914,85 @@ Podjęte działania: Przeprowadzono konceptualizację problemu, udzielono psycho
 
         // --- MATERIAŁY ---
         function renderMaterials(filter = '') {
-    const list = document.getElementById('materialsList');
-    if (!list) return;
-    list.innerHTML = '';
-    
-    const filtered = db.materials.filter(m => {
-        const searchStr = filter.toLowerCase();
-        return m.title.toLowerCase().includes(searchStr) || 
-               (m.content && m.content.toLowerCase().includes(searchStr));
-    });
+            const list = document.getElementById('materialsList');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const filtered = db.materials.filter(m => {
+                const searchStr = filter.toLowerCase();
+                return m.title.toLowerCase().includes(searchStr) || 
+                       (m.content && m.content.toLowerCase().includes(searchStr));
+            });
 
-    if (filtered.length === 0) {
-        list.innerHTML = `<div class="text-slate-400 text-center py-4">Nie znaleziono materiałów.</div>`;
-        return;
-    }
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="text-slate-400 text-center py-4">Nie znaleziono materiałów.</div>`;
+                return;
+            }
 
-    filtered.forEach(m => {
-        const card = document.createElement('div');
-        card.className = "p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition space-y-3";
-        
-        let linkHtml = m.url ? `<a href="${escapeHTML(m.url)}" target="_blank" class="text-indigo-500 text-xs hover:underline block truncate"><i class="fas fa-link mr-1"></i>${escapeHTML(m.url)}</a>` : '';
-        let contentHtml = m.content ? `<div class="text-sm text-slate-600 bg-white p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">${escapeHTML(m.content)}</div>` : '';
-        let copyBtn = m.content ? `<button onclick="copyMaterialText('${m.id}')" class="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-copy mr-1"></i>Kopiuj tekst</button>` : '';
+            filtered.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition space-y-3";
+                
+                let linkHtml = m.url ? `<a href="${escapeHTML(m.url)}" target="_blank" class="text-indigo-500 text-xs hover:underline block truncate"><i class="fas fa-link mr-1"></i>${escapeHTML(m.url)}</a>` : '';
+                let contentHtml = m.content ? `<div class="text-sm text-slate-600 bg-white p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">${escapeHTML(m.content)}</div>` : '';
+                let copyBtn = m.content ? `<button onclick="copyMaterialText('${m.id}')" class="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-copy mr-1"></i>Kopiuj tekst</button>` : '';
 
-        card.innerHTML = `
-            <div class="flex justify-between items-start gap-4">
-                <div class="flex-1 min-w-0">
-                    <div class="font-black text-slate-800 truncate">${escapeHTML(m.title)}</div>
-                    ${linkHtml}
-                </div>
-                <button onclick="deleteMaterial('${m.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
-            </div>
-            ${contentHtml}
-            <div class="flex justify-end">
-                ${copyBtn}
-            </div>
-        `;
-        list.appendChild(card);
-    });
-}
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-black text-slate-800 truncate">${escapeHTML(m.title)}</div>
+                            ${linkHtml}
+                        </div>
+                        <button onclick="deleteMaterial('${m.id}')" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                    </div>
+                    ${contentHtml}
+                    <div class="flex justify-end">
+                        ${copyBtn}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
 
-function addMaterial() {
-    const title = document.getElementById('new-mat-title').value;
-    const url = document.getElementById('new-mat-url').value;
-    const content = document.getElementById('new-mat-content').value;
-    
-    if (!title) return alert("Podaj przynajmniej tytuł materiału!");
-    
-    db.materials.push({ 
-        id: generateId('m-'), 
-        title, 
-        url, 
-        content 
-    });
-    
-    saveToDisk();
-    renderMaterials();
-    
-    // Czyszczenie pól
-    document.getElementById('new-mat-title').value = '';
-    document.getElementById('new-mat-url').value = '';
-    document.getElementById('new-mat-content').value = '';
-}
-function deleteMaterial(id) {
-    if (confirm("Czy na pewno chcesz usunąć ten materiał?")) {
-        db.materials = db.materials.filter(m => m.id !== id);
-        saveToDisk();
-        renderMaterials(document.getElementById('searchMaterials').value);
-    }
-}
+        function addMaterial() {
+            const title = document.getElementById('new-mat-title').value;
+            const url = document.getElementById('new-mat-url').value;
+            const content = document.getElementById('new-mat-content').value;
+            if (!title) return alert("Podaj przynajmniej tytuł materiału!");
+            
+            db.materials.push({ 
+                id: generateId('m-'), 
+                title, 
+                url, 
+                content 
+            });
+            saveToDisk();
+            renderMaterials();
+            
+            // Czyszczenie pól
+            document.getElementById('new-mat-title').value = '';
+            document.getElementById('new-mat-url').value = '';
+            document.getElementById('new-mat-content').value = '';
+        }
 
-function copyMaterialText(id) {
-    const mat = db.materials.find(m => m.id === id);
-    if (mat && mat.content) {
-        navigator.clipboard.writeText(mat.content).then(() => {
-            alert("Tekst skopiowany do schowka!");
-        }).catch(err => {
-            console.error('Błąd kopiowania:', err);
-        });
-    }
-}
+        function deleteMaterial(id) {
+            if (confirm("Czy na pewno chcesz usunąć ten materiał?")) {
+                db.materials = db.materials.filter(m => m.id !== id);
+                saveToDisk();
+                renderMaterials(document.getElementById('searchMaterials').value);
+            }
+        }
+
+        function copyMaterialText(id) {
+            const mat = db.materials.find(m => m.id === id);
+            if (mat && mat.content) {
+                navigator.clipboard.writeText(mat.content).then(() => {
+                    alert("Tekst skopiowany do schowka!");
+                }).catch(err => {
+                    console.error('Błąd kopiowania:', err);
+                });
+            }
+        }
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
     </script>
 </body>
