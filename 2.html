@@ -1088,44 +1088,68 @@
             if (!p.scale_results) p.scale_results = [];
             container.innerHTML = '';
         
-            // Sortowanie od najnowszych
             const sortedResults = [...p.scale_results].sort((a, b) => new Date(b.date) - new Date(a.date));
         
             sortedResults.forEach((res, index) => {
                 const row = document.createElement('div');
                 row.className = "flex justify-between items-center p-2 border-b border-slate-50 text-xs";
                 
-                // Prosty wskaźnik trendu (porównanie z poprzednim wynikiem chronologicznym)
                 let trendIcon = '';
                 const olderRes = sortedResults[index + 1];
                 if (olderRes) {
-                    if (res.score < olderRes.score) trendIcon = '<i class="fas fa-arrow-down text-emerald-500 ml-1" title="Poprawa"></i>';
-                    if (res.score > olderRes.score) trendIcon = '<i class="fas fa-arrow-up text-red-500 ml-1" title="Pogorszenie"></i>';
+                    if (res.score < olderRes.score) trendIcon = '<i class="fas fa-arrow-down text-emerald-500 ml-1"></i>';
+                    if (res.score > olderRes.score) trendIcon = '<i class="fas fa-arrow-up text-red-500 ml-1"></i>';
                 }
         
+                // Zmieniliśmy div daty na button z funkcją editScaleDate
                 row.innerHTML = `
-                    <div class="text-slate-400">${new Date(res.date).toLocaleDateString('pl-PL')}</div>
-                    <div class="font-bold text-slate-700">${escapeHTML(res.name)}: ${res.score} ${trendIcon}</div>
+                    <button onclick="editScaleDate('${res.id}')" class="text-slate-400 hover:text-indigo-600 transition cursor-pointer" title="Kliknij, aby zmienić datę">
+                        ${new Date(res.date).toLocaleDateString('pl-PL')}
+                    </button>
+                    <div class="font-bold text-slate-700 flex-1 ml-4">${escapeHTML(res.name)}: ${res.score} ${trendIcon}</div>
                     <button onclick="deleteScaleResult('${res.id}')" class="text-slate-300 hover:text-red-500 px-1"><i class="fas fa-times"></i></button>
                 `;
                 container.appendChild(row);
             });
         }
+        function editScaleDate(resId) {
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (!p) return;
+            
+            const res = p.scale_results.find(r => r.id === resId);
+            if (!res) return;
         
+            // Pobieramy obecną datę w formacie RRRR-MM-DD dla prompterów
+            const currentDate = new Date(res.date).toISOString().split('T')[0];
+            const newDate = prompt("Zmień datę wyniku (format RRRR-MM-DD):", currentDate);
+        
+            if (newDate && !isNaN(Date.parse(newDate))) {
+                res.date = new Date(newDate).toISOString();
+                saveToDisk();
+                renderScalesHistory();
+            } else if (newDate !== null) {
+                alert("Nieprawidłowy format daty. Użyj RRRR-MM-DD.");
+            }
+        }
         function addScaleResult() {
             const p = db.patients.find(x => x.id === selectedPatientId);
             if (!p) return;
         
-            const name = prompt("Nazwa skali (np. BDI, BAI, GAD-7):", "BDI-II");
+            const name = prompt("Nazwa skali:", "BDI-II");
             if (!name) return;
-            const score = prompt("Wynik punktowy (tylko liczba):");
+            const score = prompt("Wynik punktowy:");
             if (score === null || isNaN(parseInt(score))) return;
+            
+            // Dodatkowe pytanie o datę (domyślnie dzisiaj)
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = prompt("Data wyniku (RRRR-MM-DD):", today);
+            const finalDate = (dateInput && !isNaN(Date.parse(dateInput))) ? new Date(dateInput).toISOString() : new Date().toISOString();
         
             if (!p.scale_results) p.scale_results = [];
             
             p.scale_results.push({
                 id: generateId('res-'),
-                date: new Date().toISOString(),
+                date: finalDate,
                 name: name,
                 score: parseInt(score)
             });
