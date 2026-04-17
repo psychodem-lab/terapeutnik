@@ -113,21 +113,30 @@
                                 <option value="zakończona_terapia">Zakończona</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-50">
-                            <div>
-                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Telefon</label>
-                                <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Dodaj numer...">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data urodzenia</label>
-                                <input type="date" id="edit-urodzenie" class="w-full p-2 bg-slate-50 rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Miejsce terapii</label>
-                                <input type="text" id="edit-miejsce" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Miejsce...">
-                            </div>
+                          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 pt-6 border-t border-slate-50">
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Telefon</label>
+                        <input type="text" id="edit-telefon" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Dodaj numer...">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Data urodzenia</label>
+                        <input type="date" id="edit-urodzenie" class="w-full p-2 bg-slate-50 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Miejsce terapii</label>
+                        <input type="text" id="edit-miejsce" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Miejsce...">
+                    </div>
+                
+                    <div>
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Spotkanie Online</label>
+                        <div class="flex gap-2">
+                            <input type="url" id="edit-link" class="w-full p-2 bg-slate-50 rounded-lg outline-none" placeholder="Link (np. Google Meet)">
+                            <button onclick="openOnlineLink()" class="bg-indigo-100 text-indigo-700 px-3 rounded-lg hover:bg-indigo-200 transition" title="Dołącz do spotkania">
+                                <i class="fas fa-video"></i>
+                            </button>
                         </div>
                     </div>
+                </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-1 space-y-6">
@@ -651,7 +660,7 @@
 
             document.getElementById('noPatientSelected').classList.add('hidden');
             document.getElementById('patientDetailContent').classList.remove('hidden');
-            ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'notatki-ogolne'].forEach(fid => {
+            ['imie', 'nazwisko', 'status', 'telefon', 'urodzenie', 'miejsce', 'link', 'notatki-ogolne'].forEach(fid => {
                 const key = fid.replace('urodzenie', 'data_urodzenia').replace('miejsce', 'miejsce_terapii').replace('notatki-ogolne', 'notatki');
                 const field = document.getElementById(`edit-${fid}`);
                 
@@ -1018,7 +1027,21 @@
             }
         }
         document.getElementById('searchPatient').oninput = (e) => renderPatientList(e.target.value);
-
+        
+        function openOnlineLink() {
+            const linkInput = document.getElementById('edit-link').value.trim();
+            if (!linkInput) {
+                alert('Najpierw wklej link do spotkania.');
+                return;
+            }
+            
+            // Zabezpieczenie na wypadek wklejenia linku bez prefiksu "https://"
+            const finalUrl = (linkInput.startsWith('http://') || linkInput.startsWith('https://')) 
+                ? linkInput 
+                : 'https://' + linkInput;
+                
+            window.open(finalUrl, '_blank');
+        }
                 // --- MODUŁ CELÓW ---
         function renderGoals() {
             const p = db.patients.find(x => x.id === selectedPatientId);
