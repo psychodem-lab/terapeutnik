@@ -744,8 +744,7 @@
             const p = db.patients.find(x => x.id === selectedPatientId);
             if (!p) return;
 
-            const cbtTemplate = `[ ] Stan psychiczny (skale/0-10): \n[ ] Wnioski z poprzedniej sesji: \n[ ] Przegląd pracy domowej: \n\n=== AGENDA SESJI ===\n1. \n2. \n\n=== INTERWENCJE / KONCEPTUALIZACJA ===\nTechniki: \n=== PODSUMOWANIE ===\n[ ] Nowa praca domowa (konkretna): \n[ ] Podsumowanie pacjenta:`;
-
+            const cbtTemplate = `=== STAN PSYCHICZNY === \n=== PODJĘTE DZIAŁANIA === \n === ZALECENIA ===\n`;
             p.notatki_z_data.unshift({ 
                 id: generateId('n-'), 
                 date: getNowLocalString(), 
@@ -763,7 +762,7 @@
                 if (!confirm("Pole konceptualizacji nie jest puste. Czy na pewno chcesz nadpisać obecne dane szablonem?")) return;
             }
 
-            const conceptualizationTemplate = `Lista problemów do terapii: \n Cele terapii: \nBadanie stanu psychicznego \nDiagnoza DSM/ICD: \n\nInformacje ogólne:\n\n\n\n\n--- BIEŻĄCY PROBLEM ---\nSytuacja wyzwalająca: \nMyśli Automatyczne: \nObjawy z ciała: \nEmocje: \nZachowanie:\n PRZEKONANIA KLUCZOWE:\n(O sobie / O innych / O świecie)\n\n\nZasady: "Muszę..."\nZałożenia: "Jeśli... to..."\n\n STRATEGIE RADZENIA SOBIE: `;
+            const conceptualizationTemplate = `Lista problemów do terapii: \n Cele terapii: \nBadanie stanu psychicznego \nDiagnoza DSM/ICD: \n\nInformacje ogólne:\n\n\n\n\n--- BIEŻĄCY PROBLEM ---\nSytuacja wyzwalająca: \nMyśli Automatyczne: \nObjawy z ciała: \nEmocje: \nZachowanie:\n PRZEKONANIA KLUCZOWE:\n(O sobie / O innych / O świecie)\n\n\nZasady: "Muszę..."\nZałożenia: "Jeśli... to..."\n\n Strategie: `;
 
             const field = document.getElementById('edit-notatki-ogolne');
             field.innerText = conceptualizationTemplate;
