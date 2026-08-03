@@ -744,7 +744,7 @@
             const p = db.patients.find(x => x.id === selectedPatientId);
             if (!p) return;
 
-            const cbtTemplate = `[ ] Nastroje i objawy (skale/0-10): \n[ ] Bridge (wnioski z poprzedniej sesji): \n[ ] Przegląd pracy domowej: \n\n=== AGENDA SESJI ===\n1. \n2. \n\n=== INTERWENCJE / KONCEPTUALIZACJA ===\nTechniki: \nPostępy w stosunku do przekonania kluczowego: \n\n=== PODSUMOWANIE ===\n[ ] Nowa praca domowa (konkretna): \n[ ] Podsumowanie pacjenta: \n[ ] Feedback (SRS - relacja i zgodność z celem): `;
+            const cbtTemplate = `[ ] Stan psychiczny (skale/0-10): \n[ ] Wnioski z poprzedniej sesji: \n[ ] Przegląd pracy domowej: \n\n=== AGENDA SESJI ===\n1. \n2. \n\n=== INTERWENCJE / KONCEPTUALIZACJA ===\nTechniki: \n=== PODSUMOWANIE ===\n[ ] Nowa praca domowa (konkretna): \n[ ] Podsumowanie pacjenta:`;
 
             p.notatki_z_data.unshift({ 
                 id: generateId('n-'), 
@@ -763,7 +763,7 @@
                 if (!confirm("Pole konceptualizacji nie jest puste. Czy na pewno chcesz nadpisać obecne dane szablonem?")) return;
             }
 
-            const conceptualizationTemplate = `Diagnoza DSM/ICD: \n\n1. ISTOTNE DANE Z DZIECIŃSTWA:\n\n\n2. PRZEKONANIA KLUCZOWE:\n(O sobie / O innych / O świecie)\n\n\n3. PRZEKONANIA POŚREDNICZĄCE:\nZasady: "Muszę..."\nZałożenia: "Jeśli... to..."\nPostawy: \n\n4. STRATEGIE RADZENIA SOBIE (Kompensacyjne):\n\n\n--- BIEŻĄCY PROBLEM ---\nSytuacja wyzwalająca: \nMyśli Automatyczne: \nZnaczenie Myśli: \nEmocje: \nZachowanie: `;
+            const conceptualizationTemplate = `Lista problemów do terapii: \n Cele terapii: \nBadanie stanu psychicznego \nDiagnoza DSM/ICD: \n\nInformacje ogólne:\n\n\n\n\n--- BIEŻĄCY PROBLEM ---\nSytuacja wyzwalająca: \nMyśli Automatyczne: \nObjawy z ciała: \nEmocje: \nZachowanie:\n PRZEKONANIA KLUCZOWE:\n(O sobie / O innych / O świecie)\n\n\nZasady: "Muszę..."\nZałożenia: "Jeśli... to..."\n\n STRATEGIE RADZENIA SOBIE: `;
 
             const field = document.getElementById('edit-notatki-ogolne');
             field.innerText = conceptualizationTemplate;
@@ -1020,153 +1020,6 @@
                 : 'https://' + linkInput;
                 
             window.open(finalUrl, '_blank');
-        }
-                // --- MODUŁ CELÓW ---
-        function renderGoals() {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            const container = document.getElementById('goals-container');
-            if (!p || !container) return;
-            
-            if (!p.goals) p.goals = [];
-            container.innerHTML = '';
-        
-            p.goals.forEach((goal, index) => {
-                const goalDiv = document.createElement('div');
-                goalDiv.className = "p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2";
-                goalDiv.innerHTML = `
-                    <div class="flex justify-between items-start gap-2">
-                        <div contenteditable="true" oninput="updateGoalText(${index}, this.innerText)" class="text-xs font-bold text-slate-700 outline-none flex-1">${escapeHTML(goal.text)}</div>
-                        <button onclick="deleteGoal(${index})" class="text-slate-300 hover:text-red-500 transition text-[10px]"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <input type="range" min="0" max="100" value="${goal.progress}" oninput="updateGoalProgress(${index}, this.value)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                        <span class="text-[10px] font-black text-emerald-600 w-8">${goal.progress}%</span>
-                    </div>
-                `;
-                container.appendChild(goalDiv);
-            });
-        }
-        
-        function addGoal() {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (!p) return;
-            if (!p.goals) p.goals = [];
-            p.goals.push({ text: "Nowy cel terapeutyczny...", progress: 0 });
-            saveToDisk();
-            renderGoals();
-        }
-        
-        function updateGoalText(index, val) {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (p && p.goals[index]) {
-                p.goals[index].text = val;
-                saveToDisk();
-            }
-        }
-        
-        function updateGoalProgress(index, val) {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (p && p.goals[index]) {
-                p.goals[index].progress = val;
-                saveToDisk();
-                renderGoals(); // Odśwież widok procentów
-            }
-        }
-        
-        function deleteGoal(index) {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (p && confirm("Usunąć ten cel?")) {
-                p.goals.splice(index, 1);
-                saveToDisk();
-                renderGoals();
-            }
-        }
-        
-        function renderScalesHistory() {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            const container = document.getElementById('scales-history-container');
-            if (!p || !container) return;
-            
-            if (!p.scale_results) p.scale_results = [];
-            container.innerHTML = '';
-        
-            const sortedResults = [...p.scale_results].sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-            sortedResults.forEach((res, index) => {
-                const row = document.createElement('div');
-                row.className = "flex justify-between items-center p-2 border-b border-slate-50 text-xs";
-                
-                let trendIcon = '';
-                const olderRes = sortedResults[index + 1];
-                if (olderRes) {
-                    if (res.score < olderRes.score) trendIcon = '<i class="fas fa-arrow-down text-emerald-500 ml-1"></i>';
-                    if (res.score > olderRes.score) trendIcon = '<i class="fas fa-arrow-up text-red-500 ml-1"></i>';
-                }
-        
-                // Zmieniliśmy div daty na button z funkcją editScaleDate
-                row.innerHTML = `
-                    <button onclick="editScaleDate('${res.id}')" class="text-slate-400 hover:text-indigo-600 transition cursor-pointer" title="Kliknij, aby zmienić datę">
-                        ${new Date(res.date).toLocaleDateString('pl-PL')}
-                    </button>
-                    <div class="font-bold text-slate-700 flex-1 ml-4">${escapeHTML(res.name)}: ${res.score} ${trendIcon}</div>
-                    <button onclick="deleteScaleResult('${res.id}')" class="text-slate-300 hover:text-red-500 px-1"><i class="fas fa-times"></i></button>
-                `;
-                container.appendChild(row);
-            });
-        }
-        function editScaleDate(resId) {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (!p) return;
-            
-            const res = p.scale_results.find(r => r.id === resId);
-            if (!res) return;
-        
-            // Pobieramy obecną datę w formacie RRRR-MM-DD dla prompterów
-            const currentDate = new Date(res.date).toISOString().split('T')[0];
-            const newDate = prompt("Zmień datę wyniku (format RRRR-MM-DD):", currentDate);
-        
-            if (newDate && !isNaN(Date.parse(newDate))) {
-                res.date = new Date(newDate).toISOString();
-                saveToDisk();
-                renderScalesHistory();
-            } else if (newDate !== null) {
-                alert("Nieprawidłowy format daty. Użyj RRRR-MM-DD.");
-            }
-        }
-        function addScaleResult() {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (!p) return;
-        
-            const name = prompt("Nazwa skali:", "BDI-II");
-            if (!name) return;
-            const score = prompt("Wynik punktowy:");
-            if (score === null || isNaN(parseInt(score))) return;
-            
-            // Dodatkowe pytanie o datę (domyślnie dzisiaj)
-            const today = new Date().toISOString().split('T')[0];
-            const dateInput = prompt("Data wyniku (RRRR-MM-DD):", today);
-            const finalDate = (dateInput && !isNaN(Date.parse(dateInput))) ? new Date(dateInput).toISOString() : new Date().toISOString();
-        
-            if (!p.scale_results) p.scale_results = [];
-            
-            p.scale_results.push({
-                id: generateId('res-'),
-                date: finalDate,
-                name: name,
-                score: parseInt(score)
-            });
-        
-            saveToDisk();
-            renderScalesHistory();
-        }
-        
-        function deleteScaleResult(resId) {
-            const p = db.patients.find(x => x.id === selectedPatientId);
-            if (p && confirm("Usunąć ten wynik z historii?")) {
-                p.scale_results = p.scale_results.filter(r => r.id !== resId);
-                saveToDisk();
-                renderScalesHistory();
-            }
         }
     </script>
 </body>
