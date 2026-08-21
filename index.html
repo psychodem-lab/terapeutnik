@@ -221,9 +221,10 @@
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
                                 <tr>
-                                    <th class="p-6">Płatność</th>
-                                    <th class="p-6">Pacjent</th>
-                                    <th class="p-6">Data sesji</th>
+                                    <th class="p-6 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortAppointments('paid')">Płatność <i id="sortIcon-paid" class="fas fa-sort text-slate-300 ml-1"></i></th>
+                                    <th class="p-6 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortAppointments('patient_name')">Pacjent <i id="sortIcon-patient_name" class="fas fa-sort text-slate-300 ml-1"></i></th>
+                                    <th class="p-6 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortAppointments('start_time')">Data sesji <i id="sortIcon-start_time" class="fas fa-sort text-slate-300 ml-1"></i></th>
+                                    <th class="p-6 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortAppointments('miejsce_terapii')">Miejsce terapii <i id="sortIcon-miejsce_terapii" class="fas fa-sort text-slate-300 ml-1"></i></th>
                                     <th class="p-6">Notatki</th>
                                     <th class="p-6">Akcje</th>
                                 </tr>
@@ -274,6 +275,7 @@
         let db = { patients: [], appointments: [], materials: [] };
         let selectedPatientId = null;
         let sessionKey = null; 
+        let appSort = { key: 'start_time', dir: 'desc' };
         
         // Zmienne dla File System Access API
         let currentFileHandle = null;
@@ -893,6 +895,31 @@
             if (app) { app.paid = !app.paid; saveToDisk(); renderAppointments(); }
         }
 
+        function getAppointmentPlace(a) {
+            const p = db.patients.find(x => x.id === a.patient_id);
+            return (p && p.miejsce_terapii) ? p.miejsce_terapii : '-';
+        }
+
+        function sortAppointments(key) {
+            if (appSort.key === key) {
+                appSort.dir = appSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                appSort.key = key;
+                appSort.dir = (key === 'start_time') ? 'desc' : 'asc';
+            }
+            renderAppointments();
+        }
+
+        function updateSortIcons() {
+            ['paid', 'patient_name', 'start_time', 'miejsce_terapii'].forEach(key => {
+                const icon = document.getElementById('sortIcon-' + key);
+                if (!icon) return;
+                icon.className = 'fas ml-1 ' + (appSort.key === key
+                    ? (appSort.dir === 'asc' ? 'fa-sort-up text-indigo-500' : 'fa-sort-down text-indigo-500')
+                    : 'fa-sort text-slate-300');
+            });
+        }
+
         function renderAppointments() {
             const tbody = document.getElementById('appointmentsList');
             tbody.innerHTML = '';
@@ -906,7 +933,24 @@
                 });
             }
 
-            [...filteredApps].sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).forEach(a => {
+            const arr = [...filteredApps];
+            arr.sort((a, b) => {
+                let av, bv;
+                switch(appSort.key) {
+                    case 'paid': av = a.paid ? 1 : 0; bv = b.paid ? 1 : 0; break;
+                    case 'patient_name': av = (a.patient_name || '').toLowerCase(); bv = (b.patient_name || '').toLowerCase(); break;
+                    case 'miejsce_terapii': av = getAppointmentPlace(a).toLowerCase(); bv = getAppointmentPlace(b).toLowerCase(); break;
+                    default: av = new Date(a.start_time).getTime(); bv = new Date(b.start_time).getTime();
+                }
+                let cmp;
+                if (typeof av === 'string') cmp = av.localeCompare(bv, 'pl');
+                else cmp = av - bv;
+                return appSort.dir === 'asc' ? cmp : -cmp;
+            });
+
+            updateSortIcons();
+
+            arr.forEach(a => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="p-6">
@@ -916,6 +960,7 @@
                     </td>
                     <td class="p-6 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="navigateToPatient('${a.patient_id}')">${escapeHTML(a.patient_name)}</td>
                     <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td class="p-6 text-sm text-slate-600">${escapeHTML(getAppointmentPlace(a))}</td>
                     <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
                     <td class="p-6">
                         <div class="flex gap-4">
