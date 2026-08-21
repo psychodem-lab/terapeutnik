@@ -447,6 +447,7 @@
             db.appointments.forEach(a => {
                 if (!a.id) a.id = generateId('a-');
                 if (a.paid === undefined) a.paid = false;
+                if (!a.visit_status) a.visit_status = 'pending';
             });
             saveToDisk();
         }
@@ -895,6 +896,22 @@
             if (app) { app.paid = !app.paid; saveToDisk(); renderAppointments(); }
         }
 
+        function toggleVisitStatus(id) {
+            const app = db.appointments.find(a => a.id === id);
+            if (!app) return;
+            const order = ['pending', 'done', 'cancelled'];
+            const cur = app.visit_status || 'pending';
+            app.visit_status = order[(order.indexOf(cur) + 1) % order.length];
+            saveToDisk();
+            renderAppointments();
+        }
+
+        function getVisitStatusIcon(st) {
+            if (st === 'done') return '<i class="fas fa-check text-emerald-500"></i>';
+            if (st === 'cancelled') return '<i class="fas fa-times text-red-500"></i>';
+            return '<i class="far fa-square text-slate-300"></i>';
+        }
+
         function getAppointmentPlace(a) {
             const p = db.patients.find(x => x.id === a.patient_id);
             return (p && p.miejsce_terapii) ? p.miejsce_terapii : '-';
@@ -954,9 +971,14 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="p-6">
-                        <button onclick="togglePaid('${a.id}')" class="text-xl transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}">
-                            <i class="fas ${a.paid ? 'fa-check-circle' : 'fa-wallet'}"></i>
-                        </button>
+                        <div class="flex gap-3 items-center text-xl">
+                            <button onclick="toggleVisitStatus('${a.id}')" class="transition hover:scale-110" title="Status wizyty (kliknij by zmienić)">
+                                ${getVisitStatusIcon(a.visit_status)}
+                            </button>
+                            <button onclick="togglePaid('${a.id}')" class="transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}" title="Płatność">
+                                <i class="fas ${a.paid ? 'fa-check-circle' : 'fa-wallet'}"></i>
+                            </button>
+                        </div>
                     </td>
                     <td class="p-6 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="navigateToPatient('${a.patient_id}')">${escapeHTML(a.patient_name)}</td>
                     <td class="p-6 text-sm text-slate-500">${new Date(a.start_time).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</td>
