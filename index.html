@@ -975,8 +975,8 @@
                             <button onclick="toggleVisitStatus('${a.id}')" class="transition hover:scale-110" title="Status wizyty (kliknij by zmienić)">
                                 ${getVisitStatusIcon(a.visit_status)}
                             </button>
-                            <button onclick="togglePaid('${a.id}')" class="transition ${a.paid ? 'text-emerald-500' : 'text-slate-200 hover:text-slate-400'}" title="Płatność">
-                                <i class="fas ${a.paid ? 'fa-check-circle' : 'fa-wallet'}"></i>
+                            <button onclick="togglePaid('${a.id}')" class="transition ${a.paid ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-500'}" title="Płatność">
+                                <i class="fas fa-wallet"></i>
                             </button>
                         </div>
                     </td>
