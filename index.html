@@ -94,6 +94,10 @@
                     </button>
                 </div>
                 <div id="patientList" class="flex flex-col gap-3"></div>
+                <button onclick="togglePatientArchive()" id="archiveToggleBtn" class="hidden w-full text-left text-[10px] uppercase font-black tracking-widest text-slate-400 hover:text-slate-600 transition py-2 flex items-center gap-2">
+                    <i class="fas fa-archive"></i> <span id="archiveLabel">Archiwum</span>
+                </button>
+                <div id="archivePatientList" class="hidden flex-col gap-3"></div>
             </section>
 
             <section id="section-details" class="hidden space-y-6">
@@ -604,10 +608,44 @@
             });
         }
             
+        function isArchivedPatient(p) {
+            const s = (p.status || '').toLowerCase();
+            return s === 'nieaktywny' || s === 'zakończona_terapia';
+        }
+
+        function createPatientCard(p) {
+            const fullName = `${p.imie} ${p.nazwisko}`;
+            const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
+            const miejsceBadge = p.miejsce_terapii ? `<span class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded border border-slate-200">${escapeHTML(p.miejsce_terapii)}</span>` : '';
+
+            const card = document.createElement('div');
+            card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
+            card.onclick = () => selectPatient(p.id);
+            card.innerHTML = `
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition flex items-center flex-wrap gap-1">
+                        ${escapeHTML(fullName)} ${miejsceBadge}
+                    </div>
+                    <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor} ml-auto">${escapeHTML(p.status)}</div>
+                </div>
+                <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
+            `;
+            return card;
+        }
+
+        function togglePatientArchive() {
+            const el = document.getElementById('archivePatientList');
+            el.classList.toggle('hidden');
+            el.classList.toggle('flex');
+        }
+
         function renderPatientList(filter = '') {
             updateMiejsceFilterOptions();
             const list = document.getElementById('patientList');
+            const archiveList = document.getElementById('archivePatientList');
+            const archiveBtn = document.getElementById('archiveToggleBtn');
             list.innerHTML = '';
+            archiveList.innerHTML = '';
             
             const locationFilter = document.getElementById('filter-miejsce').value;
             let filteredPatients = db.patients.filter(p => {
@@ -617,39 +655,28 @@
                 return matchesName && matchesLocation;
             });
 
-            // Logika sortowania
-            filteredPatients.sort((a, b) => {
-                const statusA = (a.status || '').toLowerCase();
-                const statusB = (b.status || '').toLowerCase();
+            const active = filteredPatients.filter(p => !isArchivedPatient(p));
+            const archived = filteredPatients.filter(p => isArchivedPatient(p));
 
-                // 1. Sprawdzanie statusu "aktywny" (priorytet)
-                if (statusA === 'aktywny' && statusB !== 'aktywny') return -1;
-                if (statusA !== 'aktywny' && statusB === 'aktywny') return 1;
-
-                // 2. Jeśli statusy są takie same (lub oba nie są "aktywny"), sortuj alfabetycznie
+            const sortFn = (a, b) => {
                 const nameA = `${a.imie} ${a.nazwisko}`.toLowerCase();
                 const nameB = `${b.imie} ${b.nazwisko}`.toLowerCase();
                 return nameA.localeCompare(nameB, 'pl');
-            });
-            filteredPatients.forEach(p => {
-                const fullName = `${p.imie} ${p.nazwisko}`;
-                const statusColor = p.status.toLowerCase() === 'aktywny' ? 'text-emerald-500' : 'text-slate-400';
-                const miejsceBadge = p.miejsce_terapii ? `<span class="ml-2 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded border border-slate-200">${escapeHTML(p.miejsce_terapii)}</span>` : '';
+            };
+            active.sort(sortFn);
+            archived.sort(sortFn);
 
-                const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition group relative flex justify-between items-center ${selectedPatientId === p.id ? 'ring-2 ring-indigo-500' : ''}`;
-                card.onclick = () => selectPatient(p.id);
-                card.innerHTML = `
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition flex items-center flex-wrap gap-1">
-                            ${escapeHTML(fullName)} ${miejsceBadge}
-                        </div>
-                        <div class="text-[10px] uppercase font-bold tracking-widest ${statusColor} ml-auto">${escapeHTML(p.status)}</div>
-                    </div>
-                    <button onclick="deletePatient('${p.id}', event)" class="text-slate-200 hover:text-red-500 transition ml-4"><i class="fas fa-trash-alt"></i></button>
-                `;
-                list.appendChild(card);
-            });
+            active.forEach(p => list.appendChild(createPatientCard(p)));
+            archived.forEach(p => archiveList.appendChild(createPatientCard(p)));
+
+            if (archived.length > 0) {
+                archiveBtn.classList.remove('hidden');
+                document.getElementById('archiveLabel').innerHTML = `Archiwum <span class="ml-1 text-slate-300">(${archived.length})</span>`;
+            } else {
+                archiveBtn.classList.add('hidden');
+                archiveList.classList.add('hidden');
+                archiveList.classList.remove('flex');
+            }
         }
       
         function selectPatient(id) {
