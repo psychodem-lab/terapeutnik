@@ -1096,6 +1096,8 @@
                             ${linkHtml}
                         </div>
                         <div class="flex gap-3">
+                            <button onclick="moveMaterial('${m.id}', -1)" class="text-slate-300 hover:text-indigo-500 transition" title="Przesuń wyżej"><i class="fas fa-arrow-up"></i></button>
+                            <button onclick="moveMaterial('${m.id}', 1)" class="text-slate-300 hover:text-indigo-500 transition" title="Przesuń niżej"><i class="fas fa-arrow-down"></i></button>
                             <button onclick="editMaterial('${m.id}')" class="text-slate-300 hover:text-indigo-500 transition" title="Edytuj"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteMaterial('${m.id}')" class="text-slate-300 hover:text-red-500 transition" title="Usuń"><i class="fas fa-trash"></i></button>
                         </div>
@@ -1110,6 +1112,27 @@
         }
 
         let editingMaterialId = null;
+
+        function moveMaterial(id, dir) {
+            const filter = document.getElementById('searchMaterials').value;
+            const searchStr = filter.toLowerCase();
+            const filtered = db.materials.filter(m =>
+                m.title.toLowerCase().includes(searchStr) ||
+                (m.content && m.content.toLowerCase().includes(searchStr))
+            );
+            const idx = filtered.findIndex(m => m.id === id);
+            if (idx === -1) return;
+            const target = idx + dir;
+            if (target < 0 || target >= filtered.length) return;
+
+            const a = db.materials.indexOf(filtered[idx]);
+            const b = db.materials.indexOf(filtered[target]);
+            const tmp = db.materials[a];
+            db.materials[a] = db.materials[b];
+            db.materials[b] = tmp;
+            saveToDisk();
+            renderMaterials(filter);
+        }
 
         function addMaterial() {
             const title = document.getElementById('new-mat-title').value;
