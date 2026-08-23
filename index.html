@@ -240,7 +240,10 @@
             </section>
 
             <section id="section-materials" class="hidden space-y-8">
-                <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative">
+                <button onclick="toggleMaterialForm()" class="bg-indigo-600 text-white font-bold px-6 py-3 rounded-2xl shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition">
+                    <i class="fas fa-plus"></i> Dodaj materiał / tekst
+                </button>
+                <div id="addMaterialPanel" class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 relative hidden">
                     <h3 id="mat-form-title" class="font-black text-lg mb-4 text-indigo-900">Dodaj nowy materiał / tekst</h3>
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1113,6 +1116,10 @@
 
         let editingMaterialId = null;
 
+        function toggleMaterialForm() {
+            document.getElementById('addMaterialPanel').classList.toggle('hidden');
+        }
+
         function moveMaterial(id, dir) {
             const filter = document.getElementById('searchMaterials').value;
             const searchStr = filter.toLowerCase();
@@ -1164,6 +1171,7 @@
             document.getElementById('new-mat-url').value = mat.url || '';
             document.getElementById('new-mat-content').value = mat.content || '';
             document.getElementById('mat-form-title').innerText = "Edytuj materiał / tekst";
+            document.getElementById('addMaterialPanel').classList.remove('hidden');
             const btn = document.getElementById('btn-add-material');
             btn.innerHTML = '<i class="fas fa-save mr-2"></i>Zapisz zmiany';
             document.getElementById('btn-cancel-material').classList.remove('hidden');
