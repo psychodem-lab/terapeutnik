@@ -861,11 +861,20 @@
             resetAppForm();
         }
 
-        function bookAgain(pId, pName) {
+        function bookAgain(appId, pId, pName) {
             document.getElementById('edit-app-id').value = "";
             document.getElementById('new-app-patient-id').value = pId || "";
             document.getElementById('search-app-patient').value = pName || "";
-            document.getElementById('new-app-date').value = "";
+
+            let newDate = "";
+            const app = db.appointments.find(a => a.id === appId);
+            if (app && app.start_time) {
+                const d = new Date(app.start_time);
+                d.setDate(d.getDate() + 7);
+                newDate = getLocalDatetimeString(d.toISOString());
+            }
+            document.getElementById('new-app-date').value = newDate;
+
             document.getElementById('new-app-notes').value = "";
             document.getElementById('app-form-title').innerText = "Dodaj nową wizytę";
             document.getElementById('btn-cancel-app').classList.add('hidden');
@@ -1037,7 +1046,7 @@
                     <td class="p-6 text-sm text-slate-600">${escapeHTML(a.notes || '-')}</td>
                     <td class="p-6">
                         <div class="flex gap-4">
-                            <button onclick="bookAgain('${a.patient_id}', '${escapeHTML(a.patient_name)}')" class="text-emerald-500 hover:text-emerald-700" title="Umów ponownie"><i class="fas fa-calendar-plus"></i></button>
+                            <button onclick="bookAgain('${a.id}', '${a.patient_id}', '${escapeHTML(a.patient_name)}')" class="text-emerald-500 hover:text-emerald-700" title="Umów ponownie"><i class="fas fa-calendar-plus"></i></button>
                             <button onclick="editAppointment('${a.id}')" class="text-indigo-400 hover:text-indigo-600" title="Edytuj"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteApp('${a.id}')" class="text-slate-300 hover:text-red-500" title="Usuń"><i class="fas fa-trash"></i></button>
                         </div>
