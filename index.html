@@ -805,14 +805,12 @@
             const p = db.patients.find(x => x.id === selectedPatientId);
             if (!p) return;
             
-            if (p.notatki && p.notatki.length > 10) {
-                if (!confirm("Pole konceptualizacji nie jest puste. Czy na pewno chcesz nadpisać obecne dane szablonem?")) return;
-            }
-
             const conceptualizationTemplate = `===Lista problemów do terapii=== \n\n\n ===Cele terapii=== \n\n\n ===Badanie stanu psychicznego=== \n\n\n ====Diagnoza DSM/ICD==== \n\n\n ====Informacje ogólne==== \n\n\n ===BIEŻĄCY PROBLEM=== \n\n\nSytuacja wyzwalająca: \n\n\nMyśli Automatyczne: \n\n\nObjawy z ciała: \n\n\nEmocje: \n\n\nZachowanie:\n\n\n ====PRZEKONANIA KLUCZOWE====:\n(O sobie / O innych / O świecie)\n\n\nZasadym: "Muszę..."\n\n\n\nZałożenia: "Jeśli... to..."\n\n\n\n Strategie: \n\n\n\n `;
             const field = document.getElementById('edit-notatki-ogolne');
-            field.innerText = conceptualizationTemplate;
-            p.notatki = conceptualizationTemplate;
+            const existing = (p.notatki || '').trim();
+            const combined = existing ? existing + '\n\n' + conceptualizationTemplate : conceptualizationTemplate;
+            field.innerText = combined;
+            p.notatki = combined;
             saveToDisk();
         }
 
