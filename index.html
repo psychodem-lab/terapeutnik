@@ -184,15 +184,15 @@
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="border-b border-slate-100 text-[11px] uppercase font-bold text-slate-400">
-                                            <th class="py-3 px-3">Data</th>
-                                            <th class="py-3 px-3">Nazwa testu</th>
-                                            <th class="py-3 px-3">Wynik</th>
-                                            <th class="py-3 px-3">Notatki</th>
-                                            <th class="py-3 px-3 w-10 no-print"></th>
-                                        </tr>
-                                    </thead>
+                                     <thead>
+                                         <tr class="border-b border-slate-100 text-[11px] uppercase font-bold text-slate-400">
+                                             <th class="py-3 px-3 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTests('date')">Data <i id="sortIcon-test-date" class="fas fa-sort text-slate-300 ml-1"></i></th>
+                                             <th class="py-3 px-3 cursor-pointer select-none hover:text-slate-600 transition" onclick="sortTests('name')">Nazwa testu <i id="sortIcon-test-name" class="fas fa-sort text-slate-300 ml-1"></i></th>
+                                             <th class="py-3 px-3">Wynik</th>
+                                             <th class="py-3 px-3">Notatki</th>
+                                             <th class="py-3 px-3 w-10 no-print"></th>
+                                         </tr>
+                                     </thead>
                                     <tbody id="testsTableBody" class="divide-y divide-slate-100 text-sm">
                                     </tbody>
                                 </table>
@@ -323,6 +323,7 @@
         let selectedPatientId = null;
         let sessionKey = null; 
         let appSort = { key: 'start_time', dir: 'desc' };
+        let testsSort = { key: 'name', dir: 'asc' };
         
         // Zmienne dla File System Access API
         let currentFileHandle = null;
@@ -857,7 +858,29 @@
             section.classList.toggle('hidden');
         }
 
+        function sortTests(key) {
+            if (testsSort.key === key) {
+                testsSort.dir = testsSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                testsSort.key = key;
+                testsSort.dir = 'asc';
+            }
+            const p = db.patients.find(x => x.id === selectedPatientId);
+            if (p) renderTests(p.tests);
+        }
+
+        function updateTestSortIcons() {
+            ['date', 'name'].forEach(key => {
+                const icon = document.getElementById('sortIcon-test-' + key);
+                if (!icon) return;
+                icon.className = 'fas ml-1 ' + (testsSort.key === key
+                    ? (testsSort.dir === 'asc' ? 'fa-sort-up text-indigo-500' : 'fa-sort-down text-indigo-500')
+                    : 'fa-sort text-slate-300');
+            });
+        }
+
         function renderTests(tests) {
+            updateTestSortIcons();
             const tbody = document.getElementById('testsTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
@@ -865,7 +888,27 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Brak zapisanych testów.</td></tr>`;
                 return;
             }
-            [...tests].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(test => {
+            const arr = [...tests];
+            arr.sort((a, b) => {
+                let res = 0;
+                if (testsSort.key === 'name') {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    res = nameA.localeCompare(nameB, 'pl');
+                    if (res === 0) {
+                        res = new Date(a.date) - new Date(b.date);
+                    }
+                } else if (testsSort.key === 'date') {
+                    res = new Date(a.date) - new Date(b.date);
+                    if (res === 0) {
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+                        res = nameA.localeCompare(nameB, 'pl');
+                    }
+                }
+                return testsSort.dir === 'asc' ? res : -res;
+            });
+            arr.forEach(test => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/50 transition";
                 tr.innerHTML = `
