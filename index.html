@@ -111,18 +111,20 @@
                                 <input type="text" id="edit-imie" class="text-3xl font-bold block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Imię">
                                 <input type="text" id="edit-nazwisko" class="text-xl text-slate-500 block w-full outline-none border-b border-transparent focus:border-indigo-200" placeholder="Nazwisko">
                             </div>
-                            <div class="flex items-center gap-2 mt-2">
+                            <div class="flex flex-wrap items-center justify-between md:justify-end gap-2 mt-2">
                                 <select id="edit-status" class="bg-indigo-50 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none">
                                     <option value="aktywny">Aktywny</option>
                                     <option value="nieaktywny">Nieaktywny</option>
                                     <option value="zakończona_terapia">Zakończona</option>
                                 </select>
-                                 <button onclick="toggleConceptualization()" class="bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none hover:bg-indigo-200 transition no-print flex items-center gap-2">
-                                     <i class="fas fa-project-diagram"></i> Konceptualizacja
-                                 </button>
-                                 <button onclick="toggleTests()" class="bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none hover:bg-indigo-200 transition no-print flex items-center gap-2">
-                                     <i class="fas fa-clipboard-list"></i> Testy
-                                 </button>
+                                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                     <button onclick="toggleConceptualization()" class="bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none hover:bg-indigo-200 transition no-print flex items-center justify-center gap-2">
+                                         <i class="fas fa-project-diagram"></i> Konceptualizacja
+                                     </button>
+                                     <button onclick="toggleTests()" class="bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-xl border-none hover:bg-indigo-200 transition no-print flex items-center justify-center gap-2">
+                                         <i class="fas fa-clipboard-list"></i> Testy
+                                     </button>
+                                </div>
                             </div>
                         </div>
                           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 pt-6 border-t border-slate-50">
