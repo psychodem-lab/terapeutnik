@@ -274,13 +274,80 @@
               <span id="recording-timer" class="font-mono text-sm font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">00:00</span>
             </div>
 
+            <!-- Wybór trybu dyktowania (rozwiązanie konfliktu sterowników audio) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tryb przetwarzania mowy:</span>
+                <span id="speech-mode-badge" class="text-[11px] font-semibold text-clinical-sage">Tryb A · Bezpośredni</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/80" role="group" aria-label="Wybór trybu dyktowania">
+                <button type="button" id="btn-speech-mode-live" onclick="setSpeechMode('live')"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-clinical-sage shadow-2xs transition text-center">
+                  Tryb A: Na żywo (pl-PL)
+                </button>
+                <button type="button" id="btn-speech-mode-buffer" onclick="setSpeechMode('ai-buffer')"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition text-center">
+                  Tryb B: Uniwersalny AI (RAM)
+                </button>
+              </div>
+            </div>
+
+            <!-- Selektor mikrofonu na laptopie -->
+            <div class="flex items-center gap-2">
+              <label for="mic-device-selector" class="text-xs font-semibold text-slate-600 shrink-0">Mikrofon:</label>
+              <select id="mic-device-selector" onchange="handleMicrophoneSelect(this.value)"
+                class="flex-1 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage truncate">
+                <option value="">Domyślny mikrofon systemowy</option>
+              </select>
+              <button type="button" onclick="refreshMicrophoneList(true)" title="Odśwież listę mikrofonów"
+                class="p-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 transition shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+
             <!-- Wizualizacja fali dźwiękowej na żywo -->
             <div class="relative rounded-xl bg-slate-50 border border-slate-200 p-3 flex flex-col items-center justify-center">
               <canvas id="waveform-canvas" class="w-full h-16 rounded-lg"></canvas>
-              <div id="mic-status-text" class="mt-2 text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                Gotowy do dyktowania (Web Speech API · pl-PL)
+              <div id="mic-status-text" class="mt-2 text-xs font-medium text-slate-500 flex items-center gap-1.5 text-center">
+                <span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                <span>Gotowy do dyktowania (Tryb A: Web Speech API · pl-PL)</span>
               </div>
+            </div>
+
+            <!-- Pasek diagnostyczny silnika mowy -->
+            <div id="speech-diagnostic-banner" class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-600 leading-relaxed">
+              <strong class="text-slate-800">Diagnostyka silnika mowy:</strong> Tryb A nie blokuje mikrofonu dodatkowym strumieniem audio (brak konfliktu sterowników na laptopach). W razie blokady przeglądarki nastąpi automatyczne przełączenie na Tryb B.
+            </div>
+
+            <!-- Podgląd rozpoznawania mowy na żywo (interim transcript) -->
+            <div id="interim-speech-preview" class="hidden rounded-xl bg-clinical-sageLight/80 border border-clinical-sageMid px-3 py-2 text-xs text-clinical-sage">
+              <span class="font-semibold">Rozpoznawanie na żywo:</span> <span id="interim-speech-text" class="italic">...</span>
+            </div>
+
+            <!-- Przycisk nagrywania + informacja o braku archiwizacji dźwięku -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <button type="button" id="btn-toggle-mic" onclick="toggleSpeechRecognition()"
+                class="relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white font-semibold text-sm shadow-xs transition">
+                <svg id="mic-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <span id="mic-btn-label">Rozpocznij dyktowanie po sesji</span>
+              </button>
+              <button type="button" onclick="clearRawDictation()"
+                class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-medium transition">
+                Wyczyść tekst
+              </button>
+            </div>
+
+            <!-- Komunikat o prywatności audio -->
+            <div class="rounded-xl bg-emerald-50/70 border border-emerald-200/80 px-3 py-2 flex items-center gap-2 text-xs text-emerald-900">
+              <svg class="w-4 h-4 text-clinical-green shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Plik audio <strong>nie jest zapisywany na dysku</strong>. W Trybie B ulotny bufor RAM jest natychmiast czyszczony po transkrypcji.</span>
+            </div>
             </div>
 
             <!-- Przycisk nagrywania + informacja o braku archiwizacji dźwięku -->
@@ -1440,6 +1507,7 @@
       renderSampleDictationButtons();
       syncAllViews();
       switchTab(appState.activeTab || "scribe");
+      initSpeechModule();
       initIdleWaveform();
     });
 
@@ -1532,16 +1600,149 @@
     }
 
     // =========================================================================
-    // 4. MODUŁ 1: NOTATKA GŁOSOWA PO SESJI (WEB SPEECH API + AI SCRIBE)
+    // 4. MODUŁ 1: NOTATKA GŁOSOWA PO SESJI (DWUTRYBOWY ENGINE: LIVE + RAM AI)
     // =========================================================================
+    let activeSpeechMode = "live"; // 'live' (Tryb A: Web Speech API) | 'ai-buffer' (Tryb B: MediaRecorder RAM -> Gemini)
+    let selectedMicDeviceId = "";
     let speechRecognition = null;
     let isRecording = false;
+    let manualStopRequested = false;
     let recordingSeconds = 0;
     let recordingTimerInterval = null;
+
+    // Zmienne dla Trybu A (bez getUserMedia - brak konfliktu sterowników)
+    let speechActivityLevel = 0;
+    let speechEventWaveformId = null;
+
+    // Zmienne dla Trybu B (MediaRecorder w ulotnej pamięci RAM + AnalyserNode)
     let audioContext = null;
     let analyserNode = null;
     let micStream = null;
+    let mediaRecorder = null;
+    let ramAudioChunks = [];
     let waveformAnimationId = null;
+
+    function initSpeechModule() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        activeSpeechMode = "ai-buffer";
+        updateSpeechModeUI();
+        setSpeechDiagnostic(
+          "Ta przeglądarka nie udostępnia wbudowanego silnika Web Speech API. Automatycznie aktywowano Tryb B (Uniwersalny AI z ulotnym buforem RAM).",
+          "info"
+        );
+      } else {
+        activeSpeechMode = "live";
+        updateSpeechModeUI();
+      }
+      refreshMicrophoneList(false);
+    }
+
+    async function refreshMicrophoneList(requestLabels = false) {
+      const selector = document.getElementById("mic-device-selector");
+      if (!selector || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+
+      try {
+        if (requestLabels && !isRecording) {
+          const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          tempStream.getTracks().forEach(t => t.stop());
+        }
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === "audioinput");
+        const previousVal = selector.value || selectedMicDeviceId;
+
+        selector.innerHTML = `<option value="">Domyślny mikrofon systemowy</option>`;
+        audioInputs.forEach((dev, idx) => {
+          const opt = document.createElement("option");
+          opt.value = dev.deviceId;
+          opt.textContent = dev.label || `Mikrofon wewnętrzny / zewnętrzny #${idx + 1}`;
+          if (dev.deviceId === previousVal) opt.selected = true;
+          selector.appendChild(opt);
+        });
+
+        if (requestLabels) {
+          showToast("Zaktualizowano listę dostępnych mikrofonów.", "info");
+        }
+      } catch (e) {
+        if (requestLabels) {
+          showToast("Nie udało się odczytać nazw mikrofonów (sprawdź uprawnienia przeglądarki).", "warning");
+        }
+      }
+    }
+
+    function handleMicrophoneSelect(deviceId) {
+      selectedMicDeviceId = deviceId;
+      if (deviceId && activeSpeechMode === "live") {
+        setSpeechDiagnostic(
+          "Wybrano konkretne urządzenie audio. W Trybie A przeglądarka używa domyślnego mikrofonu systemowego; aby wymusić wybrany mikrofon, możesz użyć Trybu B.",
+          "info"
+        );
+      }
+    }
+
+    function setSpeechMode(mode) {
+      if (isRecording) {
+        stopSpeechRecognition();
+      }
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (mode === "live" && !SpeechRec) {
+        showToast("Twoja przeglądarka nie obsługuje Trybu A (Web Speech API). Pozostawiono Tryb B.", "warning");
+        activeSpeechMode = "ai-buffer";
+        updateSpeechModeUI();
+        return;
+      }
+      activeSpeechMode = mode;
+      updateSpeechModeUI();
+      if (mode === "live") {
+        setSpeechDiagnostic(
+          "Tryb A aktywny: Web Speech API (pl-PL) uruchamiane bez blokowania mikrofonu przez getUserMedia (brak konfliktu sterowników na laptopach).",
+          "neutral"
+        );
+      } else {
+        setSpeechDiagnostic(
+          "Tryb B aktywny: Nagrywanie wyłącznie w ulotnej pamięci RAM przeglądarki -> transkrypcja przez Gemini AI po kliknięciu Zatrzymaj -> natychmiastowe wyczyszczenie RAM.",
+          "neutral"
+        );
+      }
+    }
+
+    function updateSpeechModeUI() {
+      const btnLive = document.getElementById("btn-speech-mode-live");
+      const btnBuffer = document.getElementById("btn-speech-mode-buffer");
+      const badge = document.getElementById("speech-mode-badge");
+      const status = document.getElementById("mic-status-text");
+
+      if (activeSpeechMode === "live") {
+        btnLive.className = "px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-clinical-sage shadow-2xs transition text-center";
+        btnBuffer.className = "px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition text-center";
+        badge.textContent = "Tryb A · Web Speech pl-PL";
+        if (!isRecording) {
+          status.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span><span>Gotowy do dyktowania (Tryb A: Web Speech API · pl-PL)</span>`;
+        }
+      } else {
+        btnBuffer.className = "px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-clinical-sage shadow-2xs transition text-center";
+        btnLive.className = "px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition text-center";
+        badge.textContent = "Tryb B · Bufor RAM + Gemini";
+        if (!isRecording) {
+          status.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span><span>Gotowy do dyktowania (Tryb B: Bufor RAM -> Transkrypcja Gemini)</span>`;
+        }
+      }
+    }
+
+    function setSpeechDiagnostic(message, level = "neutral") {
+      const banner = document.getElementById("speech-diagnostic-banner");
+      if (!banner) return;
+      if (level === "warning") {
+        banner.className = "rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-900 leading-relaxed";
+      } else if (level === "success") {
+        banner.className = "rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-[11px] text-emerald-900 leading-relaxed";
+      } else if (level === "info") {
+        banner.className = "rounded-xl bg-clinical-sageLight border border-clinical-sageMid px-3 py-2 text-[11px] text-clinical-sage leading-relaxed";
+      } else {
+        banner.className = "rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-600 leading-relaxed";
+      }
+      banner.innerHTML = `<strong class="font-semibold">Diagnostyka silnika mowy:</strong> ${escapeHtml(message)}`;
+    }
 
     function renderSampleDictationButtons() {
       const container = document.getElementById("sample-dictation-buttons");
@@ -1572,7 +1773,26 @@
       const patient = getCurrentPatient();
       patient.rawDictation = "";
       document.getElementById("raw-dictation-input").value = "";
+      hideInterimPreview();
       saveAppState();
+    }
+
+    function showInterimPreview(text) {
+      const box = document.getElementById("interim-speech-preview");
+      const span = document.getElementById("interim-speech-text");
+      if (!box || !span) return;
+      if (text && text.trim().length > 0) {
+        box.classList.remove("hidden");
+        span.textContent = text.trim();
+      } else {
+        box.classList.add("hidden");
+        span.textContent = "...";
+      }
+    }
+
+    function hideInterimPreview() {
+      const box = document.getElementById("interim-speech-preview");
+      if (box) box.classList.add("hidden");
     }
 
     function initIdleWaveform() {
@@ -1593,6 +1813,478 @@
         ctx.beginPath();
         ctx.roundRect(x, y, barWidth, h, 2);
         ctx.fill();
+      }
+    }
+
+    async function toggleSpeechRecognition() {
+      if (isRecording) {
+        stopSpeechRecognition();
+        return;
+      }
+
+      manualStopRequested = false;
+      if (activeSpeechMode === "live") {
+        startModeALiveSpeech();
+      } else {
+        await startModeBAiBuffer();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // TRYB A: Web Speech API pl-PL (BEZ getUserMedia - brak konfliktu sterowników)
+    // -------------------------------------------------------------------------
+    function startModeALiveSpeech() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        activeSpeechMode = "ai-buffer";
+        updateSpeechModeUI();
+        startModeBAiBuffer();
+        return;
+      }
+
+      const textarea = document.getElementById("raw-dictation-input");
+      let committedText = textarea.value.trim();
+      if (committedText.length > 0) committedText += " ";
+
+      const launchSession = () => {
+        if (manualStopRequested) return;
+        try {
+          speechRecognition = new SpeechRec();
+          speechRecognition.lang = "pl-PL";
+          speechRecognition.continuous = true;
+          speechRecognition.interimResults = true;
+          speechRecognition.maxAlternatives = 1;
+
+          speechRecognition.onstart = () => {
+            isRecording = true;
+            updateRecordingUI(true, "Tryb A: Nasłuchiwanie mowy (pl-PL) · Mów teraz...");
+            setSpeechDiagnostic(
+              "Silnik Web Speech API (pl-PL) aktywny. Mikrofon nie jest blokowany przez dodatkowy strumień audio. Wypowiadane słowa pojawią się natychmiast w polu tekstowym.",
+              "success"
+            );
+          };
+
+          speechRecognition.onsoundstart = () => {
+            speechActivityLevel = 0.75;
+          };
+
+          speechRecognition.onspeechstart = () => {
+            speechActivityLevel = 1.0;
+            const status = document.getElementById("mic-status-text");
+            if (status && isRecording) {
+              status.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span><span class="text-red-700 font-semibold">Wykryto mowę – przetwarzanie na tekst (pl-PL)...</span>`;
+            }
+          };
+
+          speechRecognition.onspeechend = () => {
+            speechActivityLevel = 0.25;
+          };
+
+          speechRecognition.onresult = (event) => {
+            speechActivityLevel = 1.0;
+            let interimTranscript = "";
+            let newlyFinalized = "";
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                newlyFinalized += transcript;
+              } else {
+                interimTranscript += transcript;
+              }
+            }
+
+            if (newlyFinalized) {
+              const cleaned = newlyFinalized.trim();
+              if (cleaned) {
+                committedText += cleaned + " ";
+              }
+            }
+
+            textarea.value = committedText + interimTranscript;
+            textarea.scrollTop = textarea.scrollHeight;
+            showInterimPreview(interimTranscript);
+
+            getCurrentPatient().rawDictation = textarea.value;
+            saveAppState();
+          };
+
+          speechRecognition.onerror = (event) => {
+            const errCode = event.error;
+
+            if (errCode === "no-speech") {
+              // Normalna pauza w mówieniu - nie przerywamy sesji
+              speechActivityLevel = 0.1;
+              return;
+            }
+
+            if (errCode === "aborted") {
+              return;
+            }
+
+            if (errCode === "not-allowed" || errCode === "audio-capture") {
+              manualStopRequested = true;
+              stopSpeechRecognition();
+              setSpeechDiagnostic(
+                "Brak dostępu do mikrofonu (not-allowed / audio-capture). Odblokuj mikrofon w pasku adresu przeglądarki lub wybierz inne urządzenie.",
+                "warning"
+              );
+              showToast("Odblokuj uprawnienia mikrofonu w przeglądarce.", "warning");
+              return;
+            }
+
+            if (errCode === "network" || errCode === "service-not-allowed" || errCode === "language-not-supported") {
+              // Typowe dla przeglądarek Brave, lokalnego otwarcia pliku file:// lub zablokowanej usługi mowy
+              manualStopRequested = true;
+              cleanupSpeechModeA();
+              activeSpeechMode = "ai-buffer";
+              updateSpeechModeUI();
+              setSpeechDiagnostic(
+                `Usługa chmurowa rozpoznawania mowy przeglądarki jest niedostępna (${errCode} – częste w Brave lub przy otwarciu lokalnym). Automatycznie przełączono na Tryb B (Uniwersalny AI z buforem RAM).`,
+                "warning"
+              );
+              showToast("Przełączono automatycznie na Tryb B (Uniwersalny AI)...", "info");
+              manualStopRequested = false;
+              startModeBAiBuffer();
+              return;
+            }
+
+            setSpeechDiagnostic(`Komunikat silnika rozpoznawania mowy: ${errCode}. Możesz przełączyć na Tryb B (Uniwersalny AI).`, "warning");
+          };
+
+          speechRecognition.onend = () => {
+            hideInterimPreview();
+            // Automatyczne wznowienie po naturalnej pauzie (Chrome kończy sesję po dłuższej ciszy)
+            if (isRecording && !manualStopRequested && activeSpeechMode === "live") {
+              setTimeout(() => {
+                if (isRecording && !manualStopRequested && activeSpeechMode === "live") {
+                  launchSession();
+                }
+              }, 150);
+            } else {
+              cleanupSpeechModeA();
+              updateRecordingUI(false);
+              initIdleWaveform();
+            }
+          };
+
+          speechRecognition.start();
+          startEventDrivenWaveform();
+        } catch (err) {
+          manualStopRequested = true;
+          cleanupSpeechModeA();
+          activeSpeechMode = "ai-buffer";
+          updateSpeechModeUI();
+          setSpeechDiagnostic("Nie udało się uruchomić Trybu A. Przełączono na Tryb B (Uniwersalny AI).", "warning");
+          manualStopRequested = false;
+          startModeBAiBuffer();
+        }
+      };
+
+      launchSession();
+    }
+
+    function startEventDrivenWaveform() {
+      const canvas = document.getElementById("waveform-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.offsetWidth || 400;
+      canvas.height = canvas.offsetHeight || 64;
+
+      if (speechEventWaveformId) cancelAnimationFrame(speechEventWaveformId);
+      let phase = 0;
+
+      const animateSpeechBars = () => {
+        if (!isRecording || activeSpeechMode !== "live") return;
+        speechEventWaveformId = requestAnimationFrame(animateSpeechBars);
+        phase += 0.16;
+        speechActivityLevel = Math.max(0.08, speechActivityLevel * 0.94);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const bars = 42;
+        const barWidth = Math.max(3, (canvas.width / bars) - 3);
+        for (let i = 0; i < bars; i++) {
+          const envelope = Math.sin((i / bars) * Math.PI);
+          const wave = Math.abs(Math.sin(phase + i * 0.42)) * 34 * speechActivityLevel * envelope;
+          const idleRipple = 5 + Math.sin(phase * 0.5 + i * 0.3) * 2;
+          const h = Math.max(5, idleRipple + wave);
+          const x = i * (barWidth + 3) + 4;
+          const y = (canvas.height - h) / 2;
+          ctx.fillStyle = speechActivityLevel > 0.3 ? "#1E4D4B" : "#64748B";
+          ctx.beginPath();
+          ctx.roundRect(x, y, barWidth, h, 2);
+          ctx.fill();
+        }
+      };
+      animateSpeechBars();
+    }
+
+    function cleanupSpeechModeA() {
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch (e) {}
+        speechRecognition = null;
+      }
+      if (speechEventWaveformId) {
+        cancelAnimationFrame(speechEventWaveformId);
+        speechEventWaveformId = null;
+      }
+      hideInterimPreview();
+    }
+
+    // -------------------------------------------------------------------------
+    // TRYB B: Uniwersalny AI (MediaRecorder w ulotnym buforze RAM -> Gemini)
+    // -------------------------------------------------------------------------
+    async function startModeBAiBuffer() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
+        setSpeechDiagnostic("Twoja przeglądarka nie obsługuje nagrywania audio MediaRecorder. Wpisz refleksję ręcznie lub użyj przycisków przykładów.", "warning");
+        showToast("Brak obsługi nagrywania w tej przeglądarce.", "warning");
+        return;
+      }
+
+      try {
+        const audioConstraints = selectedMicDeviceId
+          ? { deviceId: { exact: selectedMicDeviceId }, echoCancellation: true, noiseSuppression: true }
+          : { echoCancellation: true, noiseSuppression: true };
+
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+        // Po uzyskaniu zgody odświeżamy etykiety urządzeń audio w tle
+        refreshMicrophoneList(false);
+
+        ramAudioChunks = [];
+        const supportedTypes = [
+          "audio/webm;codecs=opus",
+          "audio/webm",
+          "audio/ogg;codecs=opus",
+          "audio/mp4"
+        ];
+        const chosenMime = supportedTypes.find(t => MediaRecorder.isTypeSupported(t)) || "";
+
+        mediaRecorder = chosenMime
+          ? new MediaRecorder(micStream, { mimeType: chosenMime })
+          : new MediaRecorder(micStream);
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            ramAudioChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const finalMime = mediaRecorder.mimeType || chosenMime || "audio/webm";
+          const ephemeralBlob = new Blob(ramAudioChunks, { type: finalMime });
+          // Natychmiastowe czyszczenie tablicy fragmentów w RAM
+          ramAudioChunks = [];
+
+          if (ephemeralBlob.size < 250) {
+            setSpeechDiagnostic("Nagranie było zbyt krótkie, aby wyodrębnić mowę. Bufor RAM wyczyszczony.", "warning");
+            return;
+          }
+
+          await processRamAudioWithGemini(ephemeralBlob, finalMime);
+        };
+
+        mediaRecorder.start(250);
+        isRecording = true;
+        updateRecordingUI(true, "Tryb B: Nagrywanie do ulotnego bufora RAM · Kliknij Zatrzymaj, aby przetworzyć");
+        setSpeechDiagnostic(
+          "Tryb B aktywny: Nagrywanie głosu do ulotnej pamięci RAM (bez zapisu na dysku). Po kliknięciu 'Zatrzymaj dyktowanie' AI dokona transkrypcji i wyczyści bufor.",
+          "info"
+        );
+        startLiveFrequencyVisualizer(micStream);
+      } catch (err) {
+        cleanupAudioModeB();
+        updateRecordingUI(false);
+        setSpeechDiagnostic("Nie udało się uzyskać dostępu do mikrofonu w Trybie B. Sprawdź ustawienia prywatności systemu/przeglądarki.", "warning");
+        showToast("Brak dostępu do mikrofonu.", "warning");
+      }
+    }
+
+    function startLiveFrequencyVisualizer(stream) {
+      const canvas = document.getElementById("waveform-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.offsetWidth || 400;
+      canvas.height = canvas.offsetHeight || 64;
+
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 128;
+        source.connect(analyserNode);
+
+        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        const draw = () => {
+          if (!isRecording || activeSpeechMode !== "ai-buffer") return;
+          waveformAnimationId = requestAnimationFrame(draw);
+          analyserNode.getByteFrequencyData(dataArray);
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const bars = 42;
+          const barWidth = Math.max(3, (canvas.width / bars) - 3);
+          for (let i = 0; i < bars; i++) {
+            const val = dataArray[i % dataArray.length] || 10;
+            const h = Math.max(6, (val / 255) * (canvas.height - 10));
+            const x = i * (barWidth + 3) + 4;
+            const y = (canvas.height - h) / 2;
+            ctx.fillStyle = "#1E4D4B";
+            ctx.beginPath();
+            ctx.roundRect(x, y, barWidth, h, 2);
+            ctx.fill();
+          }
+        };
+        draw();
+      } catch (e) {
+        // Ignoruj błąd wizualizacji, nagrywanie do bufora RAM działa nadal
+      }
+    }
+
+    function cleanupAudioModeB() {
+      if (waveformAnimationId) {
+        cancelAnimationFrame(waveformAnimationId);
+        waveformAnimationId = null;
+      }
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        try { mediaRecorder.stop(); } catch (e) {}
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+      if (audioContext) {
+        try { audioContext.close(); } catch (e) {}
+        audioContext = null;
+      }
+    }
+
+    async function processRamAudioWithGemini(audioBlob, mimeType) {
+      const btn = document.getElementById("btn-toggle-mic");
+      setButtonLoading(btn, true, "Transkrypcja AI z bufora RAM...");
+      setSpeechDiagnostic("Przesyłanie ulotnego strumienia z pamięci RAM do modelu Gemini w celu transkrypcji klinicznej...", "info");
+
+      let base64Audio = null;
+      try {
+        base64Audio = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result || "";
+            const commaIdx = result.indexOf(",");
+            resolve(commaIdx !== -1 ? result.slice(commaIdx + 1) : result);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(audioBlob);
+        });
+
+        const cleanMime = mimeType.split(";")[0] || "audio/webm";
+        const payload = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: "Dokonaj dokładnej, wiernej transkrypcji w języku polskim tego nagrania głosowego psychoterapeuty omawiającego przebieg sesji po spotkaniu. Zachowaj terminologię kliniczną (CBT, DBT, ACT, Terapia Schematów, Dialog Motywujący), dodaj poprawną interpunkcję, ale nie dopisuj własnych komentarzy, nagłówków ani interpretacji – zwróć wyłącznie czysty tekst wypowiedzi."
+                },
+                {
+                  inlineData: {
+                    mimeType: cleanMime,
+                    data: base64Audio
+                  }
+                }
+              ]
+            }
+          ]
+        };
+
+        const transcriptText = await callGeminiAudioWithFallback(payload);
+        const textarea = document.getElementById("raw-dictation-input");
+        const existing = textarea.value.trim();
+        textarea.value = existing ? `${existing} ${transcriptText.trim()}` : transcriptText.trim();
+        getCurrentPatient().rawDictation = textarea.value;
+        saveAppState();
+
+        setSpeechDiagnostic(
+          "Transkrypcja AI zakończona pomyślnie. Ulotny bufor RAM został trwale wyczyszczony (RODO).",
+          "success"
+        );
+        showToast("Przetworzono mowę na tekst i wyczyszczono bufor RAM.", "success");
+      } catch (err) {
+        setSpeechDiagnostic(
+          "Nie udało się połączyć z usługą transkrypcji AI (sprawdź połączenie sieciowe lub klucz API). Bufor RAM został wyczyszczony.",
+          "warning"
+        );
+        showToast("Błąd transkrypcji AI z bufora RAM. Wpisz tekst lub użyj przykładu.", "warning");
+      } finally {
+        // Gwarantowane wyczyszczenie referencji z pamięci RAM
+        base64Audio = null;
+        ramAudioChunks = [];
+        setButtonLoading(btn, false, "Rozpocznij dyktowanie po sesji");
+      }
+    }
+
+    async function callGeminiAudioWithFallback(payload) {
+      const modelsToTry = ["gemini-2.5-flash", GEMINI_MODEL];
+      let lastError = null;
+      for (const modelName of modelsToTry) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error(`HTTP_${response.status}`);
+          const data = await response.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) throw new Error("EMPTY_AUDIO_TRANSCRIPT");
+          return text;
+        } catch (e) {
+          lastError = e;
+        }
+      }
+      throw lastError || new Error("AUDIO_TRANSCRIPTION_FAILED");
+    }
+
+    function stopSpeechRecognition() {
+      manualStopRequested = true;
+      isRecording = false;
+
+      if (recordingTimerInterval) {
+        clearInterval(recordingTimerInterval);
+        recordingTimerInterval = null;
+      }
+
+      cleanupSpeechModeA();
+      cleanupAudioModeB();
+      updateRecordingUI(false);
+      initIdleWaveform();
+    }
+
+    function updateRecordingUI(active, customStatusText = "") {
+      const btn = document.getElementById("btn-toggle-mic");
+      const label = document.getElementById("mic-btn-label");
+      const status = document.getElementById("mic-status-text");
+      const timerEl = document.getElementById("recording-timer");
+
+      if (active) {
+        btn.className = "mic-pulse relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-xs transition";
+        label.textContent = "Zatrzymaj dyktowanie";
+        status.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-600 animate-ping shrink-0"></span><span class="text-red-700 font-semibold">${escapeHtml(customStatusText || "Nasłuchiwanie mowy (pl-PL)...")}</span>`;
+        recordingSeconds = 0;
+        timerEl.textContent = "00:00";
+        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+        recordingTimerInterval = setInterval(() => {
+          recordingSeconds++;
+          const m = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
+          const s = String(recordingSeconds % 60).padStart(2, "0");
+          timerEl.textContent = `${m}:${s}`;
+        }, 1000);
+      } else {
+        btn.className = "relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white font-semibold text-sm shadow-xs transition";
+        label.textContent = "Rozpocznij dyktowanie po sesji";
+        const modeDesc = activeSpeechMode === "live"
+          ? "Gotowy do dyktowania (Tryb A: Web Speech API · pl-PL)"
+          : "Gotowy do dyktowania (Tryb B: Bufor RAM -> Transkrypcja Gemini)";
+        status.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span><span>${modeDesc}</span>`;
       }
     }
 
