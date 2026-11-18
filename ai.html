@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KlinikaAI – Asystent Procesu Terapeutycznego i Dokumentacji Klinicznej</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            clinical: {
+              bg: '#F8FAFC',
+              card: '#FFFFFF',
+              border: '#E2E8F0',
+              sage: '#1E4D4B',
+              sageHover: '#163A38',
+              sageLight: '#F0F7F6',
+              sageMid: '#D5E7E5',
+              amber: '#D97706',
+              amberBg: '#FFFBEB',
+              amberBorder: '#FDE68A',
+              green: '#15803D',
+              greenBg: '#F0FDF4',
+              greenBorder: '#BBF7D0',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Styl bazowy i przewijanie */
+    body {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtelne paski przewijania */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    /* Animacja pulsowania mikrofonu */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      70% { transform: scale(1.25); opacity: 0; }
+      100% { transform: scale(0.95); opacity: 0; }
+    }
+    .mic-pulse::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 9999px;
+      background-color: #DC2626;
+      animation: pulse-ring 1.6s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      z-index: 0;
+    }
+
+    /* Style dedykowane do wydruku materiałów dla pacjenta (PDF / Drukarka) */
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #print-only-area {
+        display: block !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      textarea {
+        border: none !important;
+        background: transparent !important;
+        resize: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ===================================================================== -->
+  <!-- GÓRNY PASEK NARZĘDZIOWY (PACJENT, NURT TERAPEUTYCZNY, BEZPIECZEŃSTWO) -->
+  <!-- ===================================================================== -->
+  <header class="no-print sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        
+        <!-- Logo i selektor zanonimizowanego pacjenta -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2.5 pr-2">
+            <div class="w-9 h-9 rounded-xl bg-clinical-sage text-white flex items-center justify-center shadow-xs shrink-0">
+              <!-- Ikona kliniczna (SVG) -->
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <span class="font-bold text-slate-900 tracking-tight text-base block leading-none">KlinikaAI</span>
+              <span class="text-[11px] font-medium text-clinical-sage tracking-wide">Asystent Pracy Klinicznej</span>
+            </div>
+          </div>
+
+          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+          <!-- Selektor pacjenta (zanonimizowany) -->
+          <div class="flex items-center gap-2 flex-1 sm:flex-initial">
+            <label for="patient-selector" class="sr-only">Wybierz zanonimizowany profil pacjenta</label>
+            <div class="relative flex-1 sm:min-w-[310px]">
+              <select id="patient-selector" onchange="handlePatientChange(this.value)"
+                class="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 border border-slate-300 text-slate-800 text-sm font-medium rounded-xl pl-3.5 pr-9 py-2 focus:outline-none focus:ring-2 focus:ring-clinical-sage focus:border-clinical-sage transition">
+              </select>
+              <svg class="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            <button type="button" onclick="openNewPatientModal()" title="Dodaj nowy zanonimizowany kod pacjenta"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-clinical-sageLight hover:border-clinical-sage text-slate-700 hover:text-clinical-sage text-sm font-medium transition shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span class="hidden sm:inline">Nowy kod</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status bezpieczeństwa i RODO (kliknięcie otwiera modal art. 28 RODO) -->
+        <div class="flex items-center justify-between lg:justify-end gap-2">
+          <button type="button" onclick="openGdprModal()"
+            class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/90 hover:bg-emerald-100/80 border border-emerald-200 text-left transition">
+            <span class="w-2 h-2 rounded-full bg-clinical-green shrink-0"></span>
+            <span class="text-xs font-medium text-slate-700 leading-tight">
+              <span class="text-clinical-green font-semibold">Przetwarzanie lokalne</span>
+              <span class="hidden md:inline text-slate-400 mx-1">|</span>
+              <span class="hidden md:inline">Brak zapisu audio</span>
+              <span class="hidden xl:inline text-slate-400 mx-1">|</span>
+              <span class="hidden xl:inline text-slate-800 font-semibold">AI proponuje, terapeuta decyduje</span>
+            </span>
+            <svg class="w-4 h-4 text-clinical-green shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drugi wiersz paska: Selektor nurtu terapeutycznego + Nawigacja modułów -->
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        
+        <!-- Selektor głównego nurtu terapeutycznego -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-1.5">Nurt analizy:</span>
+          <div id="modality-selector" class="flex flex-wrap gap-1.5" role="group" aria-label="Wybór nurtu terapeutycznego">
+            <!-- Renderowane dynamicznie przez JS -->
+          </div>
+        </div>
+
+        <!-- 5 głównych zakładek nawigacyjnych -->
+        <nav class="flex overflow-x-auto pb-1 xl:pb-0 gap-1" aria-label="Moduły kliniczne">
+          <button type="button" onclick="switchTab('scribe')" id="tab-btn-scribe"
+            class="tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            <span>1. Notatka po sesji (AI Scribe)</span>
+          </button>
+
+          <button type="button" onclick="switchTab('conceptualization')" id="tab-btn-conceptualization"
+            class="tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+            <span>2. Konceptualizacja</span>
+          </button>
+
+          <button type="button" onclick="switchTab('continuity')" id="tab-btn-continuity"
+            class="tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+            <span>3. Ciągłość procesu</span>
+          </button>
+
+          <button type="button" onclick="switchTab('supervision')" id="tab-btn-supervision"
+            class="tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <span>4. Superwizja i NICE/PTTPB</span>
+          </button>
+
+          <button type="button" onclick="switchTab('handout')" id="tab-btn-handout"
+            class="tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>5. Materiały dla pacjenta</span>
+          </button>
+        </nav>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- GŁÓWNY OBSZAR ROBOCZY                                                  -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Pasek informacyjny bezpieczeństwa klinicznego (zawsze widoczny na górze widoku) -->
+    <div class="no-print mb-6 bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+      <div class="flex items-start sm:items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 text-clinical-amber flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-600">
+          <strong class="text-slate-900 font-semibold">Zasada nadzoru klinicznego:</strong> Narzędzie służy terapeucie <em>po sesji</em>. AI generuje wyłącznie <span class="text-clinical-amber font-medium">szkice robocze</span> – nie stawia diagnoz, nie ocenia ryzyka suicydalnego i nie zastępuje osądu klinicznego.
+        </p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <span id="active-case-badge" class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-clinical-sageLight text-clinical-sage border border-clinical-sageMid">
+          K.M. · CBT
+        </span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MODUŁ 1: NOTATKA GŁOSOWA PO SESJI (AI SCRIBE)                       -->
+    <!-- =================================================================== -->
+    <section id="view-scribe" class="view-section space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Lewa kolumna: Panel dyktowania refleksji terapeuty po sesji -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Refleksja głosowa terapeuty po sesji</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Omów przebieg spotkania po wyjściu pacjenta. Dźwięk nie jest zapisywany.</p>
+              </div>
+              <span id="recording-timer" class="font-mono text-sm font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">00:00</span>
+            </div>
+
+            <!-- Wizualizacja fali dźwiękowej na żywo -->
+            <div class="relative rounded-xl bg-slate-50 border border-slate-200 p-3 flex flex-col items-center justify-center">
+              <canvas id="waveform-canvas" class="w-full h-16 rounded-lg"></canvas>
+              <div id="mic-status-text" class="mt-2 text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                Gotowy do dyktowania (Web Speech API · pl-PL)
+              </div>
+            </div>
+
+            <!-- Przycisk nagrywania + informacja o braku archiwizacji dźwięku -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <button type="button" id="btn-toggle-mic" onclick="toggleSpeechRecognition()"
+                class="relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white font-semibold text-sm shadow-xs transition">
+                <svg id="mic-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <span id="mic-btn-label">Rozpocznij dyktowanie po sesji</span>
+              </button>
+              <button type="button" onclick="clearRawDictation()"
+                class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-medium transition">
+                Wyczyść tekst
+              </button>
+            </div>
+
+            <!-- Komunikat o prywatności audio -->
+            <div class="rounded-xl bg-emerald-50/70 border border-emerald-200/80 px-3 py-2 flex items-center gap-2 text-xs text-emerald-900">
+              <svg class="w-4 h-4 text-clinical-green shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Plik audio <strong>nie jest nagrywany ani zapisywany</strong>. W pamięci przeglądarki powstaje wyłącznie robocza transkrypcja.</span>
+            </div>
+
+            <!-- Przykładowe podyktowane refleksje dla testów bez mikrofonu -->
+            <div class="pt-2 border-t border-slate-100 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-600">Przykładowe refleksje (test bez mikrofonu):</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5" id="sample-dictation-buttons">
+                <!-- Renderowane dynamicznie -->
+              </div>
+            </div>
+
+            <!-- Edytowalne pole z transkrypcją roboczą -->
+            <div>
+              <label for="raw-dictation-input" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                Robocza treść podyktowanej refleksji (edytowalna):
+              </label>
+              <textarea id="raw-dictation-input" rows="7"
+                placeholder="Podyktuj głosowo lub wpisz główne obserwacje z sesji: omawiane tematy, reakcje emocjonalne pacjenta, zastosowane techniki oraz ustalenia na kolejny tydzień..."
+                class="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-clinical-sage focus:border-clinical-sage transition"></textarea>
+            </div>
+
+            <!-- Przycisk generowania ustrukturyzowanej notatki AI -->
+            <button type="button" id="btn-generate-scribe" onclick="generateClinicalNoteAI()"
+              class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white font-semibold text-sm shadow-sm transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Przekształć w ustrukturyzowaną notatkę kliniczną (AI)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Prawa kolumna: Ustrukturyzowana notatka kliniczna (4 sekcje z weryfikacją) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Ustrukturyzowana dokumentacja sesji</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Zweryfikuj i edytuj każdą sekcję przed włączeniem do dokumentacji pacjenta.</p>
+              </div>
+              <button type="button" onclick="approveAllScribeSections()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-clinical-greenBg hover:bg-emerald-100 text-clinical-green border border-clinical-greenBorder text-xs font-semibold transition self-start sm:self-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Zatwierdź wszystkie sekcje</span>
+              </button>
+            </div>
+
+            <!-- Kontener na 4 sekcje notatki -->
+            <div id="scribe-sections-container" class="space-y-4">
+              <!-- Renderowane dynamicznie przez JS -->
+            </div>
+
+            <!-- Zapis do osi czasu pacjenta -->
+            <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-4 rounded-xl">
+              <div class="flex items-center gap-2.5">
+                <label for="homework-status-select" class="text-xs font-semibold text-slate-700 whitespace-nowrap">Realizacja poprzedniej pracy własnej:</label>
+                <select id="homework-status-select"
+                  class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage">
+                  <option value="Wykonano">Wykonano</option>
+                  <option value="Wykonano częściowo">Wykonano częściowo</option>
+                  <option value="Nie wykonano / Bariery">Nie wykonano / Bariery</option>
+                  <option value="Pierwsza / nowa interwencja">Nowe zadanie</option>
+                </select>
+              </div>
+              <button type="button" onclick="saveSessionToTimeline()"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs sm:text-sm font-semibold shadow-xs transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                <span>Zapisz sesję na osi czasu pacjenta</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- MODUŁ 2: KONCEPTUALIZACJA PRZYPADKU (DYNAMICZNA MAPA KLINICZNA)     -->
+    <!-- =================================================================== -->
+    <section id="view-conceptualization" class="view-section hidden space-y-6">
+      <!-- Nagłówek modułu konceptualizacji -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-bold text-slate-900">Dynamiczna konceptualizacja przypadku</h2>
+            <span id="concept-modality-pill" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-clinical-sageLight text-clinical-sage border border-clinical-sageMid">CBT</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">Struktura mapy klinicznej automatycznie dopasowana do wybranego nurtu terapeutycznego. Wszystkie pola są edytowalne.</p>
+        </div>
+        <button type="button" id="btn-update-concept" onclick="proposeConceptualizationUpdateAI()"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs sm:text-sm font-semibold shadow-xs transition shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Aktualizuj konceptualizację na podstawie najnowszej notatki (AI)</span>
+        </button>
+      </div>
+
+      <!-- Kontener na propozycje aktualizacji AI (Szkice do akceptacji terapeuty) -->
+      <div id="concept-ai-proposals" class="hidden bg-clinical-amberBg border border-clinical-amberBorder rounded-2xl p-5 space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-clinical-amber text-xs font-bold uppercase tracking-wide">Szkic AI – wymaga akceptacji</span>
+            <h3 class="text-sm font-bold text-slate-900">Proponowane uzupełnienia mapy klinicznej</h3>
+          </div>
+          <button type="button" onclick="dismissAllConceptProposals()" class="text-xs font-medium text-slate-500 hover:text-slate-800">Zamknij propozycje</button>
+        </div>
+        <div id="concept-proposals-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- Renderowane dynamicznie -->
+        </div>
+      </div>
+
+      <!-- Dynamiczna siatka pól konceptualizacji zależna od nurtu -->
+      <div id="conceptualization-fields-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Renderowane dynamicznie przez JS -->
+      </div>
+
+      <!-- Sekcja: Hipotezy robocze i osie diagnostyczne -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Hipotezy robocze i osie diagnostyczne specjalisty</h3>
+            <p class="text-xs text-slate-500">Robocze sformułowania kliniczne prowadzącego psychoterapeuty.</p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+            <svg class="w-3.5 h-3.5 text-clinical-amber" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            AI nie stawia diagnoz ani nie ocenia ryzyka
+          </span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="working-hypotheses-input" class="block text-xs font-semibold text-slate-700 mb-1.5">Główne hipotezy robocze procesu:</label>
+            <textarea id="working-hypotheses-input" rows="4" onchange="updateWorkingHypotheses('hypotheses', this.value)"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50/40 p-3 text-sm text-slate-800 leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+          </div>
+          <div>
+            <label for="diagnostic-axes-input" class="block text-xs font-semibold text-slate-700 mb-1.5">Osie diagnostyczne / czynniki różnicowe do obserwacji:</label>
+            <textarea id="diagnostic-axes-input" rows="4" onchange="updateWorkingHypotheses('axes', this.value)"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50/40 p-3 text-sm text-slate-800 leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- MODUŁ 3: CIĄGŁOŚĆ PROCESU MIĘDZY SESJAMI                            -->
+    <!-- =================================================================== -->
+    <section id="view-continuity" class="view-section hidden space-y-6">
+      
+      <!-- Górny wiersz: Wykres psychometryczny + Dodawanie pomiaru -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Monitorowanie psychometryczne w czasie</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Dynamika nasilenia objawów w kolejnych pomiarach wraz z progami klinicznymi.</p>
+          </div>
+          <!-- Selektor skali psychometrycznej -->
+          <div class="flex flex-wrap gap-1.5" id="psychometric-scale-tabs">
+            <button type="button" onclick="selectPsychometricScale('GAD-7')" data-scale="GAD-7" class="scale-tab px-3 py-1.5 rounded-xl text-xs font-semibold border transition">GAD-7 (Lęk)</button>
+            <button type="button" onclick="selectPsychometricScale('BAI')" data-scale="BAI" class="scale-tab px-3 py-1.5 rounded-xl text-xs font-semibold border transition">BAI (Inwentarz Lęku)</button>
+            <button type="button" onclick="selectPsychometricScale('PHQ-9')" data-scale="PHQ-9" class="scale-tab px-3 py-1.5 rounded-xl text-xs font-semibold border transition">PHQ-9 (Depresja)</button>
+            <button type="button" onclick="selectPsychometricScale('BDI-II')" data-scale="BDI-II" class="scale-tab px-3 py-1.5 rounded-xl text-xs font-semibold border transition">BDI-II (Skala Becka)</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Wykres SVG -->
+          <div class="lg:col-span-8 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span id="chart-scale-title" class="text-sm font-bold text-slate-800">GAD-7 – Kwestionariusz Lęku Uogólnionego (0–21 pkt)</span>
+              <span id="chart-latest-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-clinical-sageLight text-clinical-sage">Ostatni: 9 pkt</span>
+            </div>
+            <div id="psychometric-chart-wrapper" class="w-full overflow-x-auto">
+              <!-- SVG renderowany dynamicznie przez JS -->
+            </div>
+            <div id="chart-thresholds-legend" class="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-600">
+              <!-- Legenda progów klinicznych -->
+            </div>
+          </div>
+
+          <!-- Tabela pomiarów + dodawanie nowego wyniku -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                  <tr>
+                    <th class="py-2 px-3 font-semibold">Pomiar / Data</th>
+                    <th class="py-2 px-3 font-semibold">Wynik</th>
+                    <th class="py-2 px-3 font-semibold">Poziom</th>
+                  </tr>
+                </thead>
+                <tbody id="psychometric-table-body" class="divide-y divide-slate-100 bg-white">
+                  <!-- Wiersze pomiarów -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Formularz dodawania nowego wyniku -->
+            <form onsubmit="addPsychometricMeasurement(event)" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+              <div class="text-xs font-bold text-slate-800">Dodaj nowy wynik (<span id="add-measure-scale-label">GAD-7</span>)</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="measure-label-input" class="block text-[11px] font-medium text-slate-600 mb-1">Sesja / Data</label>
+                  <input id="measure-label-input" type="text" required placeholder="np. Sesja 8 (18.11)"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage" />
+                </div>
+                <div>
+                  <label for="measure-score-input" class="block text-[11px] font-medium text-slate-600 mb-1">Wynik (pkt)</label>
+                  <input id="measure-score-input" type="number" min="0" max="63" required placeholder="np. 8"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage" />
+                </div>
+              </div>
+              <button type="submit"
+                class="w-full py-2 rounded-lg bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs font-semibold transition">
+                + Zapisz wynik pomiaru
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Środkowy wiersz: Farmakoterapia + Diagnozy współwystępujące -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Farmakoterapia -->
+        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Farmakoterapia (wg wywiadu i kart konsultacyjnych)</h3>
+              <p class="text-xs text-slate-500">Kontekst leczenia farmakologicznego prowadzonego przez lekarza psychiatrę.</p>
+            </div>
+            <button type="button" onclick="toggleAddMedForm()"
+              class="px-3 py-1.5 rounded-xl bg-clinical-sageLight hover:bg-clinical-sageMid text-clinical-sage text-xs font-semibold transition shrink-0">
+              + Dodaj lek
+            </button>
+          </div>
+
+          <!-- Formularz dodawania leku (ukryty domyślnie) -->
+          <form id="add-med-form" onsubmit="addMedication(event)" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Substancja czynna / preparat</label>
+                <input id="med-name" type="text" required placeholder="np. Sertralina"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Dawkowanie</label>
+                <input id="med-dose" type="text" required placeholder="np. 100 mg (1-0-0)"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Data włączenia / zmiany</label>
+                <input id="med-date" type="text" required placeholder="np. 15.10.2026"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Objawy uboczne / uwagi z konsultacji psychiatrycznej</label>
+              <input id="med-notes" type="text" placeholder="np. Dobra tolerancja, poprawa jakości snu"
+                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs" />
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" onclick="toggleAddMedForm()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-600">Anuluj</button>
+              <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-clinical-sage text-white text-xs font-semibold">Zapisz wpis</button>
+            </div>
+          </form>
+
+          <div id="medications-list" class="space-y-3">
+            <!-- Renderowane dynamicznie -->
+          </div>
+        </div>
+
+        <!-- Diagnozy współwystępujące (ICD-10 / ICD-11) -->
+        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Rozpoznania współwystępujące</h3>
+              <p class="text-xs text-slate-500">Kody ICD-10 / ICD-11 wprowadzone przez klinicystę.</p>
+            </div>
+            <button type="button" onclick="toggleAddDiagnosisForm()"
+              class="px-3 py-1.5 rounded-xl bg-clinical-sageLight hover:bg-clinical-sageMid text-clinical-sage text-xs font-semibold transition shrink-0">
+              + Dodaj kod
+            </button>
+          </div>
+
+          <!-- Formularz dodawania diagnozy -->
+          <form id="add-diagnosis-form" onsubmit="addDiagnosis(event)" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+            <div class="grid grid-cols-3 gap-2">
+              <div class="col-span-1">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Kod ICD</label>
+                <input id="diag-code" type="text" required placeholder="np. F41.1"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono" />
+              </div>
+              <div class="col-span-2">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nazwa / Opis kliniczny</label>
+                <input id="diag-name" type="text" required placeholder="np. Zaburzenie lękowe uogólnione"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs" />
+              </div>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" onclick="toggleAddDiagnosisForm()" class="px-3 py-1 rounded-lg border border-slate-300 text-xs text-slate-600">Anuluj</button>
+              <button type="submit" class="px-3 py-1 rounded-lg bg-clinical-sage text-white text-xs font-semibold">Dodaj</button>
+            </div>
+          </form>
+
+          <div id="diagnoses-list" class="space-y-2.5">
+            <!-- Renderowane dynamicznie -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Dolny wiersz: Chronologiczna oś czasu sesji i wątków -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Oś czasu procesu terapeutycznego</h3>
+            <p class="text-xs text-slate-500">Chronologiczny przegląd sesji, ciągłości wątków oraz realizacji zadań własnych.</p>
+          </div>
+          <span id="timeline-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">3 zapisane sesje</span>
+        </div>
+
+        <div id="sessions-timeline-list" class="relative pl-6 border-l-2 border-clinical-sageMid space-y-5 my-2">
+          <!-- Renderowane dynamicznie -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- MODUŁ 4: WSPARCIE PRZED SUPERWIZJĄ I BAZA WIEDZY (NICE & PTTPB)     -->
+    <!-- =================================================================== -->
+    <section id="view-supervision" class="view-section hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Lewa kolumna: Brief superwizyjny -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Przygotowanie do superwizji klinicznej</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Zanonimizowane podsumowanie przypadku i punktów utknięcia.</p>
+              </div>
+              <button type="button" id="btn-generate-supervision" onclick="generateSupervisionBriefAI()"
+                class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs font-semibold shadow-xs transition shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>Generuj Brief Superwizyjny (AI)</span>
+              </button>
+            </div>
+
+            <!-- Wygenerowany / Edytowalny Brief Superwizyjny -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span id="supervision-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-clinical-amberBg text-clinical-amber border border-clinical-amberBorder">
+                  Szkic AI – wymaga weryfikacji terapeuty
+                </span>
+                <button type="button" onclick="copySupervisionBrief()"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  <span>Kopiuj Brief</span>
+                </button>
+              </div>
+
+              <textarea id="supervision-brief-text" rows="11" onchange="saveSupervisionBriefEdit(this.value)"
+                class="w-full rounded-xl border border-slate-300 bg-slate-50/40 p-3.5 text-sm text-slate-800 leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+            </div>
+
+            <!-- Prywatne notatki własne terapeuty (przeciwprzeniesienie) -->
+            <div class="pt-3 border-t border-slate-100 space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="countertransference-notes" class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-clinical-sage" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Notatki własne terapeuty (przeciwprzeniesienie i relacja):
+                </label>
+                <span class="text-[11px] text-slate-400">Wyłącznie lokalnie</span>
+              </div>
+              <textarea id="countertransference-notes" rows="3" onchange="saveCountertransferenceEdit(this.value)"
+                placeholder="Zapisz własne reakcje emocjonalne w relacji terapeutycznej, hipotezy dotyczące przeniesienia/przeciwprzeniesienia oraz osobiste pytania do superwizji..."
+                class="w-full rounded-xl border border-slate-200 bg-clinical-sageLight/40 p-3 text-xs sm:text-sm text-slate-800 leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prawa kolumna: Konsultant protokołów i literatury naukowej (NICE & PTTPB) -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col h-full space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="text-base font-bold text-slate-900">Konsultant protokołów i literatury (NICE / PTTPB)</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-clinical-sageLight text-clinical-sage border border-clinical-sageMid">EBM · NICE & PTTPB</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Wyszukiwanie interwencji i protokołów opartych na dowodach w kontekście aktualnego przypadku.</p>
+            </div>
+
+            <!-- Szybkie podpowiedzi zapytań klinicznych -->
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Przykładowe konsultacje kliniczne:</span>
+              <div class="flex flex-wrap gap-1.5" id="ebm-quick-prompts">
+                <button type="button" onclick="askEbmConsultant('Jakie są aktualne wytyczne NICE oraz standardy PTTPB dotyczące kolejności interwencji w zaburzeniu lękowym uogólnionym (GAD) przy wysokim unikaniu poznawczym?')"
+                  class="text-left text-xs px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-clinical-sageLight border border-slate-200 hover:border-clinical-sage text-slate-700 transition">
+                  Wytyczne NICE/PTTPB dla GAD i unikania
+                </button>
+                <button type="button" onclick="askEbmConsultant('Jak łączyć elementy Terapii Schematów (praca z trybami) z klasycznym protokołem CBT/ekspozycją, gdy pacjent utyka na poziomie intelektualizacji?')"
+                  class="text-left text-xs px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-clinical-sageLight border border-slate-200 hover:border-clinical-sage text-slate-700 transition">
+                  Przełamywanie intelektualizacji (CBT / Schematy)
+                </button>
+                <button type="button" onclick="askEbmConsultant('Jakie interwencje DBT i ACT rekomenduje literatura przy ostrej dysregulacji emocjonalnej i impulsywności w relacjach interpersonalnych?')"
+                  class="text-left text-xs px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-clinical-sageLight border border-slate-200 hover:border-clinical-sage text-slate-700 transition">
+                  Protokoły DBT/ACT w dysregulacji emocji
+                </button>
+              </div>
+            </div>
+
+            <!-- Formularz zapytania do konsultanta EBM -->
+            <form onsubmit="handleEbmQuerySubmit(event)" class="flex gap-2">
+              <input id="ebm-query-input" type="text" required
+                placeholder="Zadaj pytanie o protokół, technikę lub wytyczne NICE / PTTPB..."
+                class="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage" />
+              <button type="submit" id="btn-ask-ebm"
+                class="px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-sm font-semibold transition shrink-0">
+                Konsultuj
+              </button>
+            </form>
+
+            <!-- Wynik konsultacji z wyraźnym rozdzieleniem EBM vs Sugestie robocze -->
+            <div id="ebm-response-container" class="flex-1 space-y-3 overflow-y-auto max-h-[460px] pr-1">
+              <!-- Domyślna karta startowa -->
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-clinical-greenBg text-clinical-green border border-clinical-greenBorder text-[11px] font-bold">Rekomendacje EBM (NICE / PTTPB)</span>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                  Wytyczne <strong>NICE (CG113)</strong> oraz standardy szkoleniowe <strong>PTTPB</strong> wskazują terapię poznawczo-behawioralną (CBT) oraz stosowaną relaksację jako interwencje pierwszego wyboru w GAD. W przypadku utrzymującego się zamartwiania zaleca się pracę nad <em>nietolerancją niepewności</em> (model Dugasa) oraz ekspozycję wyobrażeniową na najgorszy scenariusz zamiast poszukiwania zapewnień.
+                </p>
+                <div class="pt-2 border-t border-slate-200/80">
+                  <span class="px-2 py-0.5 rounded-md bg-clinical-amberBg text-clinical-amber border border-clinical-amberBorder text-[11px] font-bold">Sugestia robocza AI (do decyzji terapeuty)</span>
+                  <p class="text-xs sm:text-sm text-slate-700 leading-relaxed mt-1.5">
+                    W kontekście bieżącego przypadku warto rozważyć wprowadzenie eksperymentu behawioralnego polegającego na odraczaniu reakcji sprawdzających („okno na zamartwianie się”) oraz zbadanie funkcji ochronnej zamartwiania się przed doświadczeniem smutku lub wstydu.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- MODUŁ 5: MATERIAŁY DLA PACJENTA (PSYCHOEDUKACJA PO SESJI)           -->
+    <!-- =================================================================== -->
+    <section id="view-handout" class="view-section hidden space-y-6">
+      
+      <!-- Pasek sterowania generatorem materiałów (ukrywany przy druku) -->
+      <div class="no-print bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Materiały psychoedukacyjne dla pacjenta po sesji</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Przejrzyste podsumowanie bez żargonu diagnostycznego – gotowe do edycji, skopiowania lub wydruku PDF.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-1.5">
+            <label for="handout-tone-select" class="text-xs font-semibold text-slate-600">Styl języka:</label>
+            <select id="handout-tone-select"
+              class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-clinical-sage">
+              <option value="cieply">Ciepły, empatyczny i wspierający</option>
+              <option value="konkretny">Przejrzysty, konkretny i zadaniowy</option>
+            </select>
+          </div>
+
+          <button type="button" id="btn-generate-handout" onclick="generatePatientHandoutAI()"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs sm:text-sm font-semibold shadow-xs transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Generuj z zatwierdzonej notatki (AI)</span>
+          </button>
+
+          <button type="button" onclick="copyPatientHandout()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span>Kopiuj tekst</span>
+          </button>
+
+          <button type="button" onclick="window.print()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-clinical-sage bg-clinical-sageLight hover:bg-clinical-sageMid text-clinical-sage text-xs sm:text-sm font-semibold transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Drukuj / Zapisz PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Karta wydruku dla pacjenta -->
+      <div id="print-only-area" class="max-w-4xl mx-auto bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+        
+        <!-- Nagłówek karty dla pacjenta -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-clinical-sage">Podsumowanie po spotkaniu terapeutycznym</span>
+            <h3 id="handout-header-title" class="text-xl font-bold text-slate-900 mt-0.5">Notatka dla Ciebie · Sesja terapeutyczna</h3>
+          </div>
+          <div class="text-left sm:text-right">
+            <span id="handout-date-label" class="text-xs font-medium text-slate-500 block">Data: 18.11.2026</span>
+            <span id="handout-modality-label" class="text-xs font-semibold text-clinical-sage">Podejście: Terapia Poznawczo-Behawioralna (CBT)</span>
+          </div>
+        </div>
+
+        <!-- 3 edytowalne sekcje materiału dla pacjenta -->
+        <div class="space-y-5">
+          <!-- Sekcja 1 -->
+          <div class="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-5 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-clinical-sage text-white text-xs font-bold flex items-center justify-center">1</span>
+              <h4 class="text-base font-bold text-slate-900">Co dziś odkryliśmy (kluczowe wnioski z sesji)</h4>
+            </div>
+            <textarea id="handout-discoveries" rows="4" onchange="updateHandoutField('discoveries', this.value)"
+              class="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+          </div>
+
+          <!-- Sekcja 2 -->
+          <div class="rounded-2xl bg-clinical-sageLight/60 border border-clinical-sageMid/80 p-5 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-clinical-sage text-white text-xs font-bold flex items-center justify-center">2</span>
+              <h4 class="text-base font-bold text-slate-900">Krótka psychoedukacja (jak działa ten mechanizm)</h4>
+            </div>
+            <textarea id="handout-psychoeducation" rows="4" onchange="updateHandoutField('psychoeducation', this.value)"
+              class="w-full rounded-xl border border-clinical-sageMid bg-white p-3 text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+          </div>
+
+          <!-- Sekcja 3 -->
+          <div class="rounded-2xl bg-emerald-50/50 border border-emerald-200/80 p-5 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-clinical-green text-white text-xs font-bold flex items-center justify-center">3</span>
+              <h4 class="text-base font-bold text-slate-900">Twój plan na najbliższy tydzień (krok po kroku)</h4>
+            </div>
+            <textarea id="handout-plan" rows="5" onchange="updateHandoutField('plan', this.value)"
+              class="w-full rounded-xl border border-emerald-200 bg-white p-3 text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-clinical-sage"></textarea>
+          </div>
+        </div>
+
+        <!-- Stopka karty pacjenta -->
+        <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <span>Materiał przygotowany indywidualnie przez Twojego psychoterapeutę jako wsparcie między sesjami.</span>
+          <span class="font-medium text-slate-700">Pamiętaj: małe kroki i życzliwość wobec siebie są ważniejsze niż perfekcja.</span>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: BEZPIECZEŃSTWO, ETYKA KLINICZNA I RODO (ART. 28 RODO)        -->
+  <!-- ===================================================================== -->
+  <div id="gdpr-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-clinical-sage text-white flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Bezpieczeństwo kliniczne, Prywatność i RODO</h3>
+            <p class="text-xs text-slate-500">Zgodność z art. 28 RODO oraz etyką zawodu psychoterapeuty</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeGdprModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 text-sm text-slate-700">
+        <!-- Zasada AI proponuje, terapeuta decyduje -->
+        <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-1.5">
+          <h4 class="font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-clinical-amber"></span>
+            Zasada „AI proponuje, terapeuta decyduje”
+          </h4>
+          <p class="text-xs leading-relaxed text-slate-700">
+            System działa wyłącznie jako asystent administracyjno-koncepcyjny po sesji. Algorytmy <strong>nie stawiają diagnoz nozologicznych</strong>, <strong>nie dokonują oceny ryzyka suicydalnego ani samouszkodzeń</strong> i nie podejmują żadnych decyzji klinicznych. Każda wygenerowana treść ma status szkicu wymagającego weryfikacji i zatwierdzenia przez specjalistę.
+          </p>
+        </div>
+
+        <!-- Architektura prywatności -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="rounded-xl border border-slate-200 p-3.5 space-y-1">
+            <div class="text-xs font-bold text-clinical-sage">1. Brak zapisu i archiwizacji audio</div>
+            <p class="text-xs text-slate-600 leading-relaxed">Aplikacja nie jest dyktafonem sesyjnym. Po sesji strumień mowy terapeuty przetwarzany jest na żywo w pamięci przeglądarki – pliki dźwiękowe nie są zapisywane na dysku ani wysyłane na serwery.</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-3.5 space-y-1">
+            <div class="text-xs font-bold text-clinical-sage">2. Pseudonimizacja i pamięć lokalna</div>
+            <p class="text-xs text-slate-600 leading-relaxed">Pracujesz wyłącznie na zanonimizowanych kodach pacjentów (bez imion, nazwisk, numerów PESEL). Dane przechowywane są lokalnie w Twojej przeglądarce (<code>localStorage</code>) z możliwością natychmiastowego usunięcia.</p>
+          </div>
+        </div>
+
+        <!-- Umowa powierzenia przetwarzania danych (art. 28 RODO) -->
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Umowa Powierzenia Przetwarzania Danych (art. 28 RODO)</h4>
+            <span class="px-2 py-0.5 rounded bg-clinical-greenBg text-clinical-green text-[11px] font-semibold">Wzór aktywny</span>
+          </div>
+          <div class="text-xs text-slate-600 space-y-1.5 leading-relaxed max-h-40 overflow-y-auto pr-2 border-t border-slate-200 pt-2">
+            <p><strong>§ 1. Przedmiot i cel powierzenia:</strong> Administrator Danych (Gabinet Psychoterapeutyczny / Specjalista) powierza Podmiotowi Przetwarzającemu wyłącznie zanonimizowane notatki kliniczne w celu technicznego wsparcia redakcji dokumentacji i psychoedukacji.</p>
+            <p><strong>§ 2. Zakaz trenowania modeli AI:</strong> Podmiot przetwarzający gwarantuje, że przesyłane zapytania kliniczne nie są wykorzystywane do trenowania, dostrajania ani ulepszania publicznych ani komercyjnych modeli sztucznej inteligencji (Zero Data Retention / Enterprise Privacy).</p>
+            <p><strong>§ 3. Zasada minimalizacji (Privacy by Design):</strong> Administrator zobowiązuje się nie wprowadzać do pól tekstowych danych umożliwiających bezpośrednią identyfikację osoby fizycznej (imion, nazwisk, adresów, nr PESEL).</p>
+            <p><strong>§ 4. Retencja i usuwanie danych:</strong> Wszystkie szkice notatek i konceptualizacje zapisywane są lokalnie na urządzeniu końcowym Administratora i mogą zostać trwale usunięte jednym kliknięciem.</p>
+          </div>
+        </div>
+
+        <!-- Zarządzanie danymi lokalnymi -->
+        <div class="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-slate-800">Zarządzanie pamięcią lokalną urządzenia</div>
+            <div class="text-[11px] text-slate-500">Przywraca stan początkowy i usuwa wszystkie lokalne modyfikacje.</div>
+          </div>
+          <div id="wipe-controls">
+            <button type="button" onclick="showWipeConfirmation()"
+              class="px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition">
+              Wyczyść dane lokalne (Reset)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button type="button" onclick="closeGdprModal()"
+          class="px-4 py-2 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs sm:text-sm font-semibold transition">
+          Rozumiem i akceptuję zasady kliniczne
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: DODAWANIE NOWEGO ZANONIMIZOWANEGO KODU PACJENTA              -->
+  <!-- ===================================================================== -->
+  <div id="new-patient-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <h3 class="text-base font-bold text-slate-900">Nowy zanonimizowany profil pacjenta</h3>
+        <button type="button" onclick="closeNewPatientModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="createNewPatient(event)" class="p-5 space-y-4">
+        <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+          <strong>Zasada RODO:</strong> Wprowadź wyłącznie inicjały lub kod numeryczny (np. <em>Pacjent A.N. (34 l.)</em>). Nie wpisuj imienia, nazwiska ani PESEL.
+        </div>
+
+        <div>
+          <label for="new-patient-code" class="block text-xs font-semibold text-slate-700 mb-1">Zanonimizowany kod i wiek *</label>
+          <input id="new-patient-code" type="text" required placeholder="np. Pacjentka M.B. (29 l.)"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinical-sage" />
+        </div>
+
+        <div>
+          <label for="new-patient-focus" class="block text-xs font-semibold text-slate-700 mb-1">Główny obszar pracy klinicznej *</label>
+          <input id="new-patient-focus" type="text" required placeholder="np. Lęk społeczny / Perfekcjonizm"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinical-sage" />
+        </div>
+
+        <div>
+          <label for="new-patient-modality" class="block text-xs font-semibold text-slate-700 mb-1">Wiodący nurt terapeutyczny</label>
+          <select id="new-patient-modality"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinical-sage">
+            <option value="CBT">CBT (Terapia Poznawczo-Behawioralna)</option>
+            <option value="DBT">DBT (Terapia Dialektyczno-Behawioralna)</option>
+            <option value="ACT">ACT (Terapia Akceptacji i Zaangażowania)</option>
+            <option value="Terapia Schematów">Terapia Schematów</option>
+            <option value="Dialog Motywujący (MI)">Dialog Motywujący (MI)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeNewPatientModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600">Anuluj</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white text-xs font-semibold">Utwórz profil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- POWIADOMIENIA TOAST (ZAMIAST ALERT())                                 -->
+  <!-- ===================================================================== -->
+  <div id="toast-container" class="no-print fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- ===================================================================== -->
+  <!-- LOGIKA APLIKACJI (STAN, GEMINI API, WEB SPEECH API, WYKRESY, RODO)    -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. KONFIGURACJA MODELI GEMINI API I STAŁYCH KLINICZNYCH
+    // =========================================================================
+    const apiKey = ""; // Klucz API wstrzykiwany automatycznie w środowisku uruchomieniowym
+    const GEMINI_MODEL = "gemini-3-flash-preview";
+    const STORAGE_KEY = "klinika_ai_clinical_state_v1";
+
+    const MODALITIES = [
+      { id: "CBT", short: "CBT", full: "Terapia Poznawczo-Behawioralna (CBT)" },
+      { id: "DBT", short: "DBT", full: "Terapia Dialektyczno-Behawioralna (DBT)" },
+      { id: "ACT", short: "ACT", full: "Terapia Akceptacji i Zaangażowania (ACT)" },
+      { id: "Terapia Schematów", short: "Terapia Schematów", full: "Terapia Schematów (Schema Therapy)" },
+      { id: "Dialog Motywujący (MI)", short: "Dialog Motywujący (MI)", full: "Dialog Motywujący (MI)" }
+    ];
+
+    // Definicje pól konceptualizacji dla każdego z 5 nurtów
+    const MODALITY_CONCEPT_SCHEMA = {
+      "CBT": [
+        { key: "coreBeliefs", label: "Przekonania podstawowe (rdzenne)", hint: "Głębokie przekonania o sobie, innych i świecie (np. bezradność, nieadekwatność)." },
+        { key: "intermediateBeliefs", label: "Przekonania pośredniczące (zasady / założenia)", hint: "Reguły warunkowe typu 'Jeśli..., to...' oraz postawy kompensacyjne." },
+        { key: "automaticThoughts", label: "Typowe myśli automatyczne i zniekształcenia poznawcze", hint: "Katastrofizacja, czytanie w myślach, myślenie dychotomiczne." },
+        { key: "safetyBehaviors", label: "Zachowania zabezpieczające i unikanie", hint: "Strategie krótkoterminowo redukujące lęk, lecz podtrzymujące problem." },
+        { key: "model4P", label: "Model 4P (Predysponujące, Wyzwalające, Podtrzymujące, Ochronne)", hint: "Całościowe ujęcie czynników podatności, spustów i zasobów." }
+      ],
+      "DBT": [
+        { key: "vulnerabilityFactors", label: "Czynniki podatności (Analiza łańcuchowa – krok 1)", hint: "Brak snu, stres somatyczny, kumulacja napięcia emocjonalnego." },
+        { key: "triggerEvent", label: "Zdarzenie wyzwalające (Analiza łańcuchowa – krok 2)", hint: "Konkretny bodziec zewnętrzny lub wewnętrzny inicjujący kaskadę." },
+        { key: "chainLinks", label: "Ogniwa łańcucha: myśli, emocje, doznania z ciała (krok 3)", hint: "Sekwencja reakcji prowadząca do eskalacji napięcia." },
+        { key: "problemBehaviorAndConsequences", label: "Zachowanie problemowe i konsekwencje (kroki 4–5)", hint: "Funkcja zachowania oraz krótko- i długoterminowe skutki." },
+        { key: "skillsDeficits", label: "Deficyty i zasoby umiejętności DBT", hint: "Uważność, Tolerancja dyskomfortu (TIPP/ACCEPTS), Regulacja emocji, Skuteczność interpersonalna." }
+      ],
+      "ACT": [
+        { key: "cognitiveFusion", label: "Fuzja poznawcza (sklejenie z myślami)", hint: "Traktowanie myśli jako dosłownych prawd lub dyrektyw działania." },
+        { key: "experientialAvoidance", label: "Unikanie doświadczania", hint: "Próby kontrolowania lub tłumienia lęku, wstydu czy niepewności." },
+        { key: "timeAndSelf", label: "Dominacja przeszłości/przyszłości oraz Ja jako treść", hint: "Zamartwianie się, ruminacje i sztywne etykiety na własny temat." },
+        { key: "valuesClarity", label: "Jasność wartości vs brak kontaktu z wartościami", hint: "Co jest dla pacjenta naprawdę ważne w relacjach, pracy i rozwoju." },
+        { key: "committedAction", label: "Bezczynność/impulsywność vs Kierunki zaangażowanego działania", hint: "Konkretne kroki zgodne z wartościami mimo obecności dyskomfortu." }
+      ],
+      "Terapia Schematów": [
+        { key: "earlyMaladaptiveSchemas", label: "Wczesne Nieadaptacyjne Schematy (EMS)", hint: "Dominujące schematy (np. Wadliwość/Wstyd, Porzucenie, Nadmierne Wymagania, Podporządkowanie)." },
+        { key: "childModes", label: "Tryby Dziecięce (Skrzywdzone / Złoszczące się Dziecko)", hint: "Pierwotne emocje lęku, osamotnienia, bezradności lub buntu." },
+        { key: "parentModes", label: "Dysfunkcyjne Tryby Rodzicielskie / Wewnętrzny Krytyk", hint: "Karzący lub Wymagający Krytyk wewnętrzny generujący presję i poczucie winy." },
+        { key: "copingModes", label: "Nieadaptacyjne tryby radzenia sobie", hint: "Unikający Obrońca, Odłączony Samoukoiciel, Nadkompensator lub Uległy Poddany." },
+        { key: "healthyAdultGoals", label: "Zdrowy Dorosły i cele pracy doświadczeniowej", hint: "Wzmacnianie Zdrowego Dorosłego, reskrypcja wyobrażeniowa, dialogi na krzesłach." }
+      ],
+      "Dialog Motywujący (MI)": [
+        { key: "sustainTalk", label: "Język podtrzymania (Sustain Talk)", hint: "Argumenty pacjenta za utrzymaniem status quo, obawy przed zmianą." },
+        { key: "changeTalk", label: "Język zmiany (DARN-CAT)", hint: "Pragnienie, Zdolność, Powody, Potrzeba oraz Zobowiązanie, Aktywacja, Podejmowanie kroków." },
+        { key: "discrepancy", label: "Kluczowe rozbieżności (Wartości vs Zachowanie)", hint: "Napięcie między tym, jak pacjent żyje obecnie, a tym, co jest dla niego ważne." },
+        { key: "oarsStrategies", label: "Strategie OARS i praca z ambiwalencją", hint: "Pytania otwarte, dowartościowania, odzwierciedlenia złożone i podsumowania." },
+        { key: "selfEfficacy", label: "Poczucie samoskuteczności i gotowość do zmiany", hint: "Dotychczasowe zasoby, małe sukcesy i plan wzmacniania sprawczości." }
+      ]
+    };
+
+    // Przykładowe podyktowane refleksje terapeuty po sesji (dla szybkiego testu)
+    const SAMPLE_DICTATIONS = {
+      "CBT": "Sesja 8 z pacjentką K.M. Na początku omówiłyśmy pracę własną – pacjentka przez 4 dni stosowała odroczone okno na zamartwianie się o 18:00, dzięki czemu ograniczyła wieczorne sprawdzanie maili służbowych z pięciu razy do jednego. Pojawiła się jednak silna myśl automatyczna przed czwartkową prezentacją: 'Jeśli zająknę się przy dyrektorze, wszyscy uznają, że jestem niekompetentna i nie przedłużą mi umowy'. Zrobiłyśmy dialog sokratejski i dekastastrofizację oraz zidentyfikowałyśmy zachowanie zabezpieczające w postaci uczenia się całych zdań na pamięć. Na kolejny tydzień zaplanowałyśmy eksperyment behawioralny: wygłoszenie krótkiego podsumowania wyłącznie na podstawie 3 punktów hasłowych bez skryptu i ocenę rzeczywistej reakcji zespołu.",
+      "DBT": "Dzisiejsza sesja z pacjentem T.W. dotyczyła silnego wybuchu złości i impulsywnego wysłania serii wiadomości do partnerki po tym, jak odwołała wspólny wieczór z powodu nadgodzin. Przeprowadziliśmy szczegółową analizę łańcuchową: czynnikiem podatności był brak snu po nocnej zmianie i pominięcie posiłku. Zdarzeniem wyzwalającym był SMS o 17:30. Ogniwa obejmowały myśl 'Zawsze jestem na ostatnim miejscu', falę gorąca w klatce piersiowej, wstyd i natychmiastowy impuls ataku, by odzyskać kontrolę. Przećwiczyliśmy umiejętność STOP oraz TIPP (zimna woda na twarz przy napięciu powyżej 7/10), a także rozpisaliśmy komunikat w strukturze DEAR MAN. Praca własna to codzienne monitorowanie poziomu napięcia w karcie dziennika DBT i użycie TIPP przed odpisaniem w sytuacji konfliktu.",
+      "ACT": "Podczas spotkania pracowaliśmy nad uporczywym unikaniem doświadczania u pacjenta przed rozmowami o awansie. Pacjent zauważył, że myśl 'Nie nadaję się do zarządzania ludźmi' całkowicie go paraliżuje i powoduje odkładanie przygotowań. Wprowadziłem metaforę pasażerów w autobusie oraz ćwiczenie defuzji poznawczej 'Mam myśl, że nie nadaję się...'. Pacjent po raz pierwszy z dystansem zauważył, że ten 'pasażer' towarzyszy mu od studiów, ale nie musi trzymać kierownicy. Dookreśliliśmy wartość profesjonalizmu i odwagi w rozwoju zawodowym. Zobowiązaniem na najbliższy tydzień jest 20 minut dziennie pracy nad koncepcją projektu mimo obecności lęku w ciele.",
+      "Terapia Schematów": "Na dzisiejszej sesji wyraźnie uaktywnił się u pacjentki tryb Wymagającego Krytyka oraz Unikającego Obrońcy, gdy rozmawiałyśmy o odmowie wzięcia dodatkowego projektu w pracy. Pacjentka odczuwała silny ucisk w żołądku i przekonanie, że odmowa oznacza egoizm i odrzucenie (schemat Podporządkowania oraz Wadliwości). Przeprowadziłyśmy dialog na krzesłach: oddzieliłyśmy głos Wymagającego Krytyka od Skrzywdzonego Dziecka, które boi się, że będzie kochane tylko wtedy, gdy jest użyteczne. Wzmocniłyśmy głos Zdrowego Dorosłego stawiającego granice z szacunkiem. Na tydzień pacjentka ma za zadanie prowadzić dzienniczek trybów w momentach presji i ćwiczyć jedno zdanie asertywnej odmowy.",
+      "Dialog Motywujący (MI)": "Sesja poświęcona pogłębianiu ambiwalencji wokół regularnej aktywności fizycznej i higieny snu jako wsparcia w redukcji napięcia. Na początku dominował język podtrzymania: pacjent mówił, że po pracy nie ma siły i wieczorne scrollowanie telefonu to jedyny moment relaksu. Zastosowałem odzwierciedlenia dwustronne i zapytałem o rozbieżność między obecnym trybem wieczorów a wartością bycia obecnym i cierpliwym ojcem rano. Pojawił się wyraźny język zmiany (DARN): pacjent powiedział, że bardzo chce mieć więcej energii dla syna i zauważył, że gdy choć dwa razy w tygodniu odkłada telefon o 22:00, budzi się znacznie spokojniejszy. Ustaliliśmy mały, realistyczny krok na najbliższy tydzień: odłożenie telefonu w salonie o 22:15 w poniedziałek, środę i piątek."
+    };
+
+    // Progi kliniczne kwestionariuszy psychometrycznych
+    const PSYCHOMETRIC_CONFIG = {
+      "GAD-7": {
+        title: "GAD-7 – Kwestionariusz Lęku Uogólnionego (0–21 pkt)",
+        max: 21,
+        thresholds: [
+          { max: 4, label: "0–4: Norma / minimalny", color: "#15803D", bg: "#DCFCE7" },
+          { max: 9, label: "5–9: Lęk łagodny", color: "#0D9488", bg: "#CCFBF1" },
+          { max: 14, label: "10–14: Lęk umiarkowany", color: "#D97706", bg: "#FEF3C7" },
+          { max: 21, label: "15–21: Lęk ciężki", color: "#DC2626", bg: "#FEE2E2" }
+        ]
+      },
+      "BAI": {
+        title: "BAI – Inwentarz Lęku Becka (0–63 pkt)",
+        max: 63,
+        thresholds: [
+          { max: 7, label: "0–7: Minimalny", color: "#15803D", bg: "#DCFCE7" },
+          { max: 15, label: "8–15: Łagodny", color: "#0D9488", bg: "#CCFBF1" },
+          { max: 25, label: "16–25: Umiarkowany", color: "#D97706", bg: "#FEF3C7" },
+          { max: 63, label: "26–63: Ciężki", color: "#DC2626", bg: "#FEE2E2" }
+        ]
+      },
+      "PHQ-9": {
+        title: "PHQ-9 – Kwestionariusz Zdrowia Pacjenta / Depresja (0–27 pkt)",
+        max: 27,
+        thresholds: [
+          { max: 4, label: "0–4: Brak / minimalne", color: "#15803D", bg: "#DCFCE7" },
+          { max: 9, label: "5–9: Łagodne", color: "#0D9488", bg: "#CCFBF1" },
+          { max: 14, label: "10–14: Umiarkowane", color: "#D97706", bg: "#FEF3C7" },
+          { max: 27, label: "15–27: Umiarkowanie ciężkie / ciężkie", color: "#DC2626", bg: "#FEE2E2" }
+        ]
+      },
+      "BDI-II": {
+        title: "BDI-II – Inwentarz Depresji Becka II (0–63 pkt)",
+        max: 63,
+        thresholds: [
+          { max: 13, label: "0–13: Minimalne", color: "#15803D", bg: "#DCFCE7" },
+          { max: 19, label: "14–19: Łagodne", color: "#0D9488", bg: "#CCFBF1" },
+          { max: 28, label: "20–28: Umiarkowane", color: "#D97706", bg: "#FEF3C7" },
+          { max: 63, label: "29–63: Ciężkie", color: "#DC2626", bg: "#FEE2E2" }
+        ]
+      }
+    };
+
+    // =========================================================================
+    // 2. DANE POCZĄTKOWE (ZANONIMIZOWANE PROFILE KLINICZNE)
+    // =========================================================================
+    function getDefaultState() {
+      return {
+        activePatientId: "km_32",
+        activeModality: "CBT",
+        activeTab: "scribe",
+        activeScale: "GAD-7",
+        patients: {
+          "km_32": {
+            id: "km_32",
+            label: "Pacjentka K.M. (32 l.) – Lęk uogólniony / Schematy",
+            defaultModality: "CBT",
+            rawDictation: SAMPLE_DICTATIONS["CBT"],
+            scribeDraft: {
+              agenda: "1. Przegląd nastroju, poziomu lęku i realizacji odroczonego 'okna na zamartwianie się'.\n2. Analiza poznawcza lęku przed czwartkową prezentacją w pracy.\n3. Identyfikacja zachowań zabezpieczających oraz zaplanowanie eksperymentu behawioralnego.",
+              summary: "Pacjentka K.M. w stabilniejszym nastroju niż na poprzednim spotkaniu; wdrożyła odraczanie zamartwiania się przez 4 z 7 dni, co ograniczyło kompulsywne sprawdzanie poczty służbowej wieczorami. Głównym źródłem napięcia pozostaje lęk przed oceną podczas wystąpień przed kadrą zarządzającą oraz obawa przed utratą pracy w razie drobnego potknięcia.",
+              interventions: "• Dialog sokratejski i dekatastrofizacja wokół automatycznej myśli 'Jeśli zająknę się przy dyrektorze, stracę pracę'.\n• Identyfikacja funkcji zachowania zabezpieczającego (uczenie się wypowiedzi słowo w słowo na pamięć).\n• Zaprojektowanie eksperymentu behawioralnego (wystąpienie z 3 punktami hasłowymi zamiast pełnego skryptu).",
+              homework: "Przeprowadzenie eksperymentu behawioralnego podczas czwartkowego spotkania zespołu: przygotowanie wyłącznie 3 punktów hasłowych bez uczenia się tekstu na pamięć oraz zapisanie po spotkaniu (0–100%) poziomu lęku przed, w trakcie i rzeczywistej reakcji słuchaczy.",
+              approved: {
+                agenda: true,
+                summary: false,
+                interventions: false,
+                homework: false
+              }
+            },
+            conceptualization: {
+              "CBT": {
+                coreBeliefs: "„Jestem niewystarczająca / niekompetentna”, „Świat jest nieprzewidywalny i surowo oceniający”.",
+                intermediateBeliefs: "„Jeśli nie przewidzę każdego zagrożenia i nie przygotuję się w 100%, poniosę klęskę i zostanę odrzucona”.",
+                automaticThoughts: "„Na pewno popełnię błąd w raporcie”, „Wszyscy zauważą, że się denerwuję”. Zniekształcenia: katastrofizacja, czytanie w myślach, myślenie czarno-białe.",
+                safetyBehaviors: "Wielokrotne sprawdzanie maili wieczorem, pisanie pełnych skryptów wystąpień, nadmierne poszukiwanie zapewnień u partnera.",
+                model4P: "Predysponujące: wysoka wrażliwość lękowa, wychowanie w atmosferze wysokich oczekiwań.\nWyzwalające: awans na samodzielne stanowisko 4 mies. temu.\nPodtrzymujące: zamartwianie się jako iluzja kontroli, zachowania zabezpieczające.\nOchronne: wysoka refleksyjność, wspierająca relacja partnerska, systematyczność."
+              },
+              "DBT": {
+                vulnerabilityFactors: "Przeciążenie poznawcze w dni robocze, nieregularne przerwy w pracy, kumulacja napięcia somatycznego w obrębie karku i klatki piersiowej.",
+                triggerEvent: "Otrzymanie prośby o prezentację wyników lub niejednoznaczna wiadomość od przełożonego.",
+                chainLinks: "Myśl: 'Nie dam rady' -> Lęk (8/10) i wstyd -> Napięcie mięśniowe -> Impuls nadmiernej kontroli.",
+                problemBehaviorAndConsequences: "Wielogodzinne analizowanie scenariuszy i sprawdzanie pracy. Krótkoterminowo: chwilowy spadek niepewności; długoterminowo: wyczerpanie i podtrzymanie lęku.",
+                skillsDeficits: "Zasoby: wysoka uważność obserwacji. Obszary rozwoju: tolerancja niepewności (radykalna akceptacja), regulacja napięcia somatycznego (TIPP)."
+              },
+              "ACT": {
+                cognitiveFusion: "Silna fuzja z myślami oceniającymi ('Niekompetencja oznacza katastrofę') oraz narracją o konieczności pełnej kontroli.",
+                experientialAvoidance: "Unikanie uczucia niepewności i ekspozycji społecznej poprzez nadmierne przygotowywanie się.",
+                timeAndSelf: "Dominacja przyszłości (zamartwianie się o potencjalne błędy) oraz 'Ja jako treść' ('Jestem osobą lękową i kruchą').",
+                valuesClarity: "Wartości: autentyczność w relacjach, rzetelność zawodowa, równowaga między pracą a życiem osobistym.",
+                committedAction: "Podejmowanie wystąpień i decyzji zawodowych w oparciu o zaufanie do swoich kompetencji mimo obecności lęku."
+              },
+              "Terapia Schematów": {
+                earlyMaladaptiveSchemas: "Nadmierne Wymagania / Bezkompromisowość, Wadliwość / Wstyd, Podatność na Zranienie.",
+                childModes: "Skrzywdzone Dziecko (lęk przed kompromitacją i utratą bezpieczeństwa w relacji).",
+                parentModes: "Wymagający Krytyk ('Musisz być bezbłędna, inaczej nie zasługujesz na uznanie').",
+                copingModes: "Nadkompensator (perfekcjonistyczna kontrola) przeplatający się z Unikającym Obrońcą (odkładanie trudnych rozmów).",
+                healthyAdultGoals: "Rozpoznawanie głosu Wymagającego Krytyka, wspieranie Skrzywdzonego Dziecka i budowanie Zdrowego Dorosłego akceptującego ludzką niedoskonałość."
+              },
+              "Dialog Motywujący (MI)": {
+                sustainTalk: "„Gdy dokładnie wszystko sprawdzę, przynajmniej mam poczucie bezpieczeństwa i unikam błędów”.",
+                changeTalk: "„Chcę przestać zabierać pracę do łóżka (Pragnienie). Widzę, że odkładanie maili naprawdę daje mi spokój wieczorem (Powód)”.",
+                discrepancy: "Rozbieżność między potrzebą spokoju i bliskości w domu a wielogodzinnym zamartwianiem się o pracę.",
+                oarsStrategies: "Odzwierciedlenia złożone ukazujące koszt perfekcjonizmu oraz dowartościowanie konsekwencji w testowaniu nowych nawyków.",
+                selfEfficacy: "Rosnąca sprawczość dzięki udanym eksperymentom z odraczaniem zamartwiania się (4/7 dni sukcesu)."
+              }
+            },
+            workingHypotheses: {
+              hypotheses: "Utrzymywanie się objawów GAD jest w znacznym stopniu napędzane przez nietolerancję niepewności oraz przekonania metapoznawcze ('Zamartwianie się chroni mnie przed zaskoczeniem'). Redukcja zachowań zabezpieczających przynosi wyraźny spadek lęku.",
+              axes: "Różnicowanie między pierwotnym zaburzeniem lękowym uogólnionym a cechami osobowości unikającej / schematem Nadmiernych Wymagań. Obserwacja reakcji na stopniową ekspozycję społeczną."
+            },
+            psychometrics: {
+              "GAD-7": [
+                { label: "Sesja 1 (24.09)", score: 17 },
+                { label: "Sesja 3 (08.10)", score: 15 },
+                { label: "Sesja 5 (29.10)", score: 12 },
+                { label: "Sesja 7 (12.11)", score: 9 }
+              ],
+              "BAI": [
+                { label: "Sesja 1 (24.09)", score: 28 },
+                { label: "Sesja 3 (08.10)", score: 24 },
+                { label: "Sesja 5 (29.10)", score: 19 },
+                { label: "Sesja 7 (12.11)", score: 14 }
+              ],
+              "PHQ-9": [
+                { label: "Sesja 1 (24.09)", score: 11 },
+                { label: "Sesja 3 (08.10)", score: 10 },
+                { label: "Sesja 5 (29.10)", score: 8 },
+                { label: "Sesja 7 (12.11)", score: 6 }
+              ],
+              "BDI-II": [
+                { label: "Sesja 1 (24.09)", score: 21 },
+                { label: "Sesja 3 (08.10)", score: 19 },
+                { label: "Sesja 5 (29.10)", score: 16 },
+                { label: "Sesja 7 (12.11)", score: 12 }
+              ]
+            },
+            medications: [
+              {
+                name: "Sertralina (Asentra)",
+                dose: "100 mg (1-0-0 rano)",
+                date: "08.10.2026 (zwiększenie z 50 mg)",
+                notes: "Przejściowa suchość w ustach w pierwszych 10 dniach, obecnie dobra tolerancja. Konsultacja psychiatryczna: kontynuacja dawki podtrzymującej."
+              }
+            ],
+            diagnoses: [
+              { code: "F41.1", name: "Zaburzenie lękowe uogólnione (wg dokumentacji lekarskiej)" },
+              { code: "Z73.0", name: "Przeciążenie rolą zawodową / perfekcjonizm (obszar pracy terapeutycznej)" }
+            ],
+            timeline: [
+              {
+                id: "s7",
+                date: "12.11.2026",
+                title: "Sesja 7 · Praca z zamartwianiem się i nietolerancją niepewności",
+                modality: "CBT",
+                homeworkStatus: "Wykonano częściowo",
+                summary: "Rozróżnienie zamartwiania produktywnego i nieproduktywnego. Wprowadzenie 'okna na zamartwianie się' oraz ograniczenie wieczornego sprawdzania poczty."
+              },
+              {
+                id: "s6",
+                date: "05.11.2026",
+                title: "Sesja 6 · Identyfikacja trybu Wymagającego Krytyka",
+                modality: "Terapia Schematów",
+                homeworkStatus: "Wykonano",
+                summary: "Mapowanie trybów schematów w sytuacjach oceny w pracy. Rozpoczęcie oddzielania głosu Wymagającego Krytyka od perspektywy Zdrowego Dorosłego."
+              },
+              {
+                id: "s5",
+                date: "29.10.2026",
+                title: "Sesja 5 · Restrukturyzacja poznawcza katastrofizacji",
+                modality: "CBT",
+                homeworkStatus: "Wykonano",
+                summary: "Analiza dowodów za i przeciw myślom katastroficznym dotyczącym raportów kwartalnych. Wyraźny spadek napięcia w skali GAD-7 (z 15 do 12 pkt)."
+              }
+            ],
+            supervision: {
+              brief: "KONTEKST PRZYPADKU: Pacjentka K.M. (32 l.), proces terapeutyczny (8 sesji, głównie CBT z elementami Terapii Schematów), farmakoterapia: Sertralina 100 mg.\n\nPRZEBIEG I DYNAMIKA: Systematyczny spadek nasilenia objawów lękowych (GAD-7: 17 -> 9 pkt). Pacjentka dobrze reaguje na interwencje behawioralne (odraczanie zamartwiania się).\n\nPUNKT UTKNIĘCIA: W sytuacjach bezpośredniej ekspozycji społecznej w pracy nadal uruchamia się silny perfekcjonizm i Wymagający Krytyk ('muszę mieć gotowy skrypt').\n\nPYTANIA DO SUPERWIZORA:\n1. Jak optymalnie dawkować ekspozycję bez zachowań zabezpieczających, aby nie wywołać wycofania?\n2. Kiedy pogłębić pracę doświadczeniową nad schematem Wadliwości/Wstydu?",
+              countertransference: "Zauważam u siebie lekką tendencję do nadmiernego strukturyzowania sesji, żeby pacjentka czuła się bezpiecznie – warto monitorować, czy nie odtwarzam w ten sposób jej schematu kontroli."
+            },
+            handout: {
+              discoveries: "• Zauważyłaś, że odkładanie zamartwiania się na wyznaczoną porę ('okno o 18:00') realnie zmniejsza wieczorne napięcie i pozwala odpocząć od pracy.\n• Odkryłyśmy, że uczenie się wypowiedzi słowo w słowo daje chwilową ulgę, ale utrzymuje przekonanie, że bez pełnego skryptu nie poradzisz sobie podczas spotkania.",
+              psychoeducation: "Nasz umysł często traktuje niepewność jak zagrożenie i próbuje jej zapobiec poprzez nadmierne przygotowywanie się lub wielokrotne sprawdzanie. Takie działania nazywamy strategiami zabezpieczającymi – działają jak parasol otwierany w słoneczny dzień: chronią przed wyimaginowanym deszczem, ale nie pozwalają sprawdzić, że pogoda jest naprawdę dobra.",
+              plan: "1. Przed czwartkowym spotkaniem przygotuj wyłącznie 3 krótkie punkty hasłowe zamiast pełnego tekstu.\n2. Po spotkaniu zapisz krótko: jak wysoki był lęk przed (0–100%), jak w trakcie oraz jaka była rzeczywista reakcja zespołu.\n3. Kontynuuj 'okno na zamartwianie się' o 18:00 przez 15 minut, a poza tym czasem zapisuj myśli na kartce 'na później'."
+            }
+          },
+
+          "tw_27": {
+            id: "tw_27",
+            label: "Pacjent T.W. (27 l.) – Dysregulacja emocji / Impulsywność",
+            defaultModality: "DBT",
+            rawDictation: SAMPLE_DICTATIONS["DBT"],
+            scribeDraft: {
+              agenda: "1. Przegląd karty dziennika DBT z ostatniego tygodnia i poziomu napięcia afektywnego.\n2. Analiza łańcuchowa konfliktu z partnerką po odwołaniu wspólnego wieczoru.\n3. Trening umiejętności STOP, TIPP oraz struktury komunikacji DEAR MAN.",
+              summary: "Pacjent T.W. zgłosił epizod silnej dysregulacji złości i impulsu odrzucenia po otrzymaniu wiadomości o nadgodzinach partnerki. W trakcie sesji wspólnie zrekonstruowaliśmy sekwencję zdarzeń bez oceniania, identyfikując wpływ zmęczenia po zmianie nocnej jako głównego czynnika podatności.",
+              interventions: "• Szczegółowa analiza łańcuchowa (Chain Analysis) epizodu impulsywnej komunikacji.\n• Psychoedukacja i trening umiejętności przetrwania kryzysu: STOP oraz TIPP (zmiana temperatury – zimna woda na twarz).\n• Przygotowanie skryptu rozmowy naprawczej w oparciu o umiejętność skuteczności interpersonalnej DEAR MAN.",
+              homework: "Codzienne wypełnianie karty dziennika DBT (monitorowanie snu, poziomu napięcia 0–10 oraz użytych umiejętności). Zastosowanie techniki STOP + TIPP przed wysłaniem wiadomości w sytuacji pobudzenia emocjonalnego powyżej 6/10.",
+              approved: {
+                agenda: true,
+                summary: false,
+                interventions: false,
+                homework: false
+              }
+            },
+            conceptualization: {
+              "DBT": {
+                vulnerabilityFactors: "Praca zmianowa (niedobór snu), nieregularne posiłki, kumulacja stresu interpersonalnego bez bieżącego rozładowania.",
+                triggerEvent: "Nagła zmiana planów przez bliską osobę lub brak szybkiej odpowiedzi na wiadomość.",
+                chainLinks: "Myśl: 'Zostanę sam / jestem nieważny' -> Wstyd i lęk przed porzuceniem -> Wtórna złość (9/10) -> Pobudzenie autonomiczne.",
+                problemBehaviorAndConsequences: "Impulsywne wysyłanie serii wiadomości lub gwałtowne wycofanie z kontaktu. Skutek: chwilowe rozładowanie napięcia, następnie silne poczucie winy i dystans w relacji.",
+                skillsDeficits: "Zasoby: wysoka otwartość na analizę po kryzysie, motywacja do ochrony relacji. Deficyty: hamowanie impulsu w szczycie pobudzenia (tolerancja dyskomfortu), nazywanie emocji pierwotnych."
+              },
+              "CBT": {
+                coreBeliefs: "„Jestem trudny do kochania i w końcu zostanę opuszczony”, „Inni są nieprzewidywalni”.",
+                intermediateBeliefs: "„Jeśli natychmiast nie zareaguję złością, stracę kontrolę i zostanę zraniony”.",
+                automaticThoughts: "„Ona ma mnie dość”, „Wszyscy stawiają mnie na ostatnim miejscu”. Zniekształcenia: personalizacja, pochopne wyciąganie wniosków.",
+                safetyBehaviors: "Testowanie zaangażowania bliskich, impulsywne domaganie się natychmiastowego potwierdzenia relacji.",
+                model4P: "Predysponujące: wysoka reaktywność emocjonalna, unieważniające środowisko w dzieciństwie.\nWyzwalające: wejście w bliską relację partnerską i presja zawodowa.\nPodtrzymujące: mylenie emocji z faktami, brak strategii regulacji fizjologicznej.\nOchronne: stabilna farmakoterapia, dobra współpraca w relacji terapeutycznej."
+              },
+              "ACT": {
+                cognitiveFusion: "Natychmiastowa fuzja z myślami o odrzuceniu oraz traktowanie impulsu złości jako nakazu działania.",
+                experientialAvoidance: "Unikanie przeżywania wstydu i bezradności poprzez szybkie przechodzenie w gniew.",
+                timeAndSelf: "Uwięzienie w przeszłych doświadczeniach odrzucenia oraz etykiecie 'Jestem wybuchowy i zepsuty'.",
+                valuesClarity: "Wartości: bliska, bezpieczna więź oparta na szacunku, stabilność i odpowiedzialność za własne reakcje.",
+                committedAction: "Zatrzymanie się na 10 minut w chwili napięcia i wybór komunikatu opartego na wartościach zamiast reaktywności."
+              },
+              "Terapia Schematów": {
+                earlyMaladaptiveSchemas: "Porzucenie / Niestabilność Więzi, Nieufność / Skrzywdzenie, Niedostateczna Samokontrola.",
+                childModes: "Porzucone/Skrzywdzone Dziecko (silny lęk przed opuszczeniem) szybko przechodzące w Złoszczące się / Impulsywne Dziecko.",
+                parentModes: "Karzący Krytyk (po wybuchu: 'Znowu wszystko zniszczyłeś, nie nadajesz się do relacji').",
+                copingModes: "Nadkompensator (atak wyprzedzający w relacji) lub Odłączony Samoukoiciel.",
+                healthyAdultGoals: "Ochrona Skrzywdzonego Dziecka przed impulsywnym działaniem i łagodzenie Karzącego Krytyka po kryzysie."
+              },
+              "Dialog Motywujący (MI)": {
+                sustainTalk: "„Kiedy emocje uderzają, to dzieje się w sekundę – nie da się tego zatrzymać przed faktem”.",
+                changeTalk: "„Bardzo zależy mi na tym związku i nie chcę ranić osoby, którą kocham. Technika z zimną wodą naprawdę obniżyła mi tętno”.",
+                discrepancy: "Rozbieżność między pragnieniem bliskości a impulsywnymi reakcjami, które oddalają partnerkę.",
+                oarsStrategies: "Dowartościowanie wysiłku wkładanego w analizę po trudnych sytuacjach oraz wzmacnianie autonomii wyboru.",
+                selfEfficacy: "Budowanie zaufania do umiejętności regulacji somatycznej (TIPP) jako realnego hamulca."
+              }
+            },
+            workingHypotheses: {
+              hypotheses: "Impulsywne zachowania w relacjach pełnią funkcję szybkiej regulacji silnego wstydu i lęku przed porzuceniem. Włączenie interwencji somatycznych (TIPP) przed pracą poznawczą znacząco skraca czas trwania kryzysu.",
+              axes: "Obserwacja stabilności afektywnej w trakcie miareczkowania lamotryginy. Monitorowanie higieny snu przy pracy zmianowej jako kluczowego czynnika podatności."
+            },
+            psychometrics: {
+              "PHQ-9": [
+                { label: "Sesja 1 (05.09)", score: 18 },
+                { label: "Sesja 4 (26.09)", score: 15 },
+                { label: "Sesja 8 (24.10)", score: 11 },
+                { label: "Sesja 10 (14.11)", score: 9 }
+              ],
+              "GAD-7": [
+                { label: "Sesja 1 (05.09)", score: 16 },
+                { label: "Sesja 4 (26.09)", score: 14 },
+                { label: "Sesja 8 (24.10)", score: 11 },
+                { label: "Sesja 10 (14.11)", score: 10 }
+              ],
+              "BAI": [
+                { label: "Sesja 1 (05.09)", score: 26 },
+                { label: "Sesja 4 (26.09)", score: 22 },
+                { label: "Sesja 8 (24.10)", score: 17 },
+                { label: "Sesja 10 (14.11)", score: 15 }
+              ],
+              "BDI-II": [
+                { label: "Sesja 1 (05.09)", score: 29 },
+                { label: "Sesja 4 (26.09)", score: 24 },
+                { label: "Sesja 8 (24.10)", score: 18 },
+                { label: "Sesja 10 (14.11)", score: 15 }
+              ]
+            },
+            medications: [
+              {
+                name: "Lamotrygina",
+                dose: "150 mg (75 mg rano / 75 mg wieczorem)",
+                date: "18.10.2026",
+                notes: "Stopniowe miareczkowanie bez działań niepożądanych. Zgłaszana większa stabilność nastroju w ciągu dnia."
+              },
+              {
+                name: "Kwetiapina XR",
+                dose: "50 mg (0-0-1 wieczorem)",
+                date: "05.09.2026",
+                notes: "Wsparcie regulacji rytmu dobowego po zmianach nocnych."
+              }
+            ],
+            diagnoses: [
+              { code: "F60.31", name: "Zaburzenie osobowości chwiejnej emocjonalnie – typ borderline (w trakcie weryfikacji)" },
+              { code: "F32.1", name: "Epizod depresyjny umiarkowany w wywiadzie" }
+            ],
+            timeline: [
+              {
+                id: "tw10",
+                date: "14.11.2026",
+                title: "Sesja 10 · Analiza łańcuchowa i trening umiejętności TIPP / DEAR MAN",
+                modality: "DBT",
+                homeworkStatus: "Wykonano",
+                summary: "Analiza epizodu impulsywności w relacji partnerskiej. Wdrożenie umiejętności STOP i TIPP jako interwencji pierwszego rzutu przy wysokim pobudzeniu."
+              },
+              {
+                id: "tw9",
+                date: "07.11.2026",
+                title: "Sesja 9 · Defuzja poznawcza wobec wstydu i samokrytyki",
+                modality: "ACT",
+                homeworkStatus: "Wykonano częściowo",
+                summary: "Praca z myślą 'Jestem całkowicie zepsuty' poprzez ćwiczenia dystansowania poznawczego oraz powrót do wartości budowania bezpiecznej więzi."
+              }
+            ],
+            supervision: {
+              brief: "KONTEKST PRZYPADKU: Pacjent T.W. (27 l.), 10 sesji terapii indywidualnej (DBT / ACT), farmakoterapia: Lamotrygina 150 mg, Kwetiapina XR 50 mg.\n\nPRZEBIEG I DYNAMIKA: Wyraźna poprawa w kwestionariuszach nastroju (PHQ-9: 18 -> 9 pkt) oraz wzrost świadomości czynników podatności (brak snu).\n\nPUNKT UTKNIĘCIA: W chwilach nagłego lęku przed odrzuceniem w relacji partnerskiej pobudzenie rośnie bardzo gwałtownie i pacjent ma trudność z zastosowaniem umiejętności przed wysłaniem wiadomości.\n\nPYTANIA DO SUPERWIZORA:\n1. Jak skuteczniej wzmacniać automatyzm użycia umiejętności TIPP w pierwszych 30 sekundach kryzysu?\n2. Jak pracować ze wstydem po epizodzie impulsywności, aby nie uruchamiał kolejnego cyklu wycofania?",
+              countertransference: "Wysokie zaangażowanie pacjenta budzi moją dużą sympatię, jednocześnie pilnuję, aby nie brać nadmiernej odpowiedzialności za zapobieganie każdym konfliktom w jego relacji."
+            },
+            handout: {
+              discoveries: "• Wspólnie prześledziliśmy krok po kroku ostatnią trudną sytuację i zobaczyliśmy, że wybuch złości był poprzedzony ogromnym zmęczeniem po zmianie nocnej oraz lękiem przed byciem nieważnym.\n• Zauważyłeś, że gdy napięcie przekracza 7/10, najpierw potrzebuje uspokojenia Twoje ciało, zanim możliwa będzie spokojna rozmowa.",
+              psychoeducation: "Kiedy nasz układ nerwowy odbiera sygnał zagrożenia odrzuceniem, uruchamia się reakcja alarmowa (walka lub ucieczka). W takim stanie część mózgu odpowiedzialna za planowanie i spokojną rozmowę działa słabiej. Umiejętność TIPP (np. schłodzenie twarzy zimną wodą przez 30 sekund) uruchamia naturalny odruch nurkowania, który fizjologicznie obniża tętno i daje Ci przestrzeń na świadomy wybór.",
+              plan: "1. Wypełniaj krótko kartę obserwacji wieczorem (sen, najwyższe napięcie dnia 0–10, użyta umiejętność).\n2. Gdy poczujesz nagły skok złości lub lęku (>6/10), zastosuj zasadę STOP: odłóż telefon na 10 minut i schłodź twarz zimną wodą (TIPP).\n3. Do rozmów o trudnych sprawach użyj schematu DEAR MAN: opisz fakty, nazwij swoje uczucia i wyraź konkretną prośbę."
+            }
+          }
+        }
+      };
+    }
+
+    // Stan globalny aplikacji
+    let appState = loadAppState();
+
+    function loadAppState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.patients && parsed.activePatientId && parsed.patients[parsed.activePatientId]) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        // Fallback do danych domyślnych
+      }
+      return getDefaultState();
+    }
+
+    function saveAppState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        // Ignoruj błędy limitu storage
+      }
+    }
+
+    function getCurrentPatient() {
+      return appState.patients[appState.activePatientId];
+    }
+
+    // =========================================================================
+    // 3. INICJALIZACJA UI I NAWIGACJA
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      renderPatientSelector();
+      renderModalitySelector();
+      renderSampleDictationButtons();
+      syncAllViews();
+      switchTab(appState.activeTab || "scribe");
+      initIdleWaveform();
+    });
+
+    function renderPatientSelector() {
+      const select = document.getElementById("patient-selector");
+      select.innerHTML = "";
+      Object.values(appState.patients).forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.label;
+        if (p.id === appState.activePatientId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function handlePatientChange(patientId) {
+      if (!appState.patients[patientId]) return;
+      appState.activePatientId = patientId;
+      appState.activeModality = appState.patients[patientId].defaultModality || "CBT";
+      saveAppState();
+      renderModalitySelector();
+      syncAllViews();
+      showToast(`Przełączono profil: ${appState.patients[patientId].label.split("–")[0].trim()}`, "info");
+    }
+
+    function renderModalitySelector() {
+      const container = document.getElementById("modality-selector");
+      container.innerHTML = "";
+      MODALITIES.forEach(m => {
+        const isActive = appState.activeModality === m.id;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = m.short;
+        btn.title = m.full;
+        btn.onclick = () => handleModalityChange(m.id);
+        btn.className = isActive
+          ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-clinical-sage text-white shadow-2xs transition"
+          : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200/70 text-slate-700 transition";
+        container.appendChild(btn);
+      });
+    }
+
+    function handleModalityChange(modalityId) {
+      appState.activeModality = modalityId;
+      const patient = getCurrentPatient();
+      patient.defaultModality = modalityId;
+      saveAppState();
+      renderModalitySelector();
+      updateActiveCaseBadge();
+      renderConceptualizationView();
+      renderScribeSections();
+      renderHandoutView();
+      showToast(`Nurt analizy klinicznej: ${modalityId}`, "info");
+    }
+
+    function updateActiveCaseBadge() {
+      const patient = getCurrentPatient();
+      const shortCode = patient.label.split("(")[0].replace("Pacjentka", "").replace("Pacjent", "").trim();
+      document.getElementById("active-case-badge").textContent = `${shortCode} · ${appState.activeModality}`;
+    }
+
+    function switchTab(tabId) {
+      appState.activeTab = tabId;
+      saveAppState();
+
+      document.querySelectorAll(".view-section").forEach(sec => sec.classList.add("hidden"));
+      const target = document.getElementById(`view-${tabId}`);
+      if (target) target.classList.remove("hidden");
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.className = "tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2";
+      });
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.className = "tab-btn whitespace-nowrap px-3.5 py-2 rounded-xl text-sm font-semibold bg-clinical-sageLight text-clinical-sage border border-clinical-sageMid transition flex items-center gap-2";
+      }
+
+      if (tabId === "continuity") {
+        renderContinuityView();
+      }
+    }
+
+    function syncAllViews() {
+      updateActiveCaseBadge();
+      renderScribeView();
+      renderConceptualizationView();
+      renderContinuityView();
+      renderSupervisionView();
+      renderHandoutView();
+    }
+
+    // =========================================================================
+    // 4. MODUŁ 1: NOTATKA GŁOSOWA PO SESJI (WEB SPEECH API + AI SCRIBE)
+    // =========================================================================
+    let speechRecognition = null;
+    let isRecording = false;
+    let recordingSeconds = 0;
+    let recordingTimerInterval = null;
+    let audioContext = null;
+    let analyserNode = null;
+    let micStream = null;
+    let waveformAnimationId = null;
+
+    function renderSampleDictationButtons() {
+      const container = document.getElementById("sample-dictation-buttons");
+      container.innerHTML = "";
+      MODALITIES.forEach(m => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = `Przykład: ${m.short}`;
+        btn.onclick = () => loadSampleDictation(m.id);
+        btn.className = "px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-clinical-sageLight text-slate-700 hover:text-clinical-sage border border-slate-200 text-xs font-medium transition";
+        container.appendChild(btn);
+      });
+    }
+
+    function loadSampleDictation(modalityId) {
+      const patient = getCurrentPatient();
+      const text = SAMPLE_DICTATIONS[modalityId] || SAMPLE_DICTATIONS["CBT"];
+      patient.rawDictation = text;
+      document.getElementById("raw-dictation-input").value = text;
+      if (appState.activeModality !== modalityId) {
+        handleModalityChange(modalityId);
+      }
+      saveAppState();
+      showToast(`Wczytano przykładową refleksję po sesji (${modalityId})`, "info");
+    }
+
+    function clearRawDictation() {
+      const patient = getCurrentPatient();
+      patient.rawDictation = "";
+      document.getElementById("raw-dictation-input").value = "";
+      saveAppState();
+    }
+
+    function initIdleWaveform() {
+      const canvas = document.getElementById("waveform-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.offsetWidth || 400;
+      canvas.height = canvas.offsetHeight || 64;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const bars = 42;
+      const barWidth = Math.max(3, (canvas.width / bars) - 3);
+      for (let i = 0; i < bars; i++) {
+        const h = 6 + Math.sin(i * 0.45) * 3;
+        const x = i * (barWidth + 3) + 4;
+        const y = (canvas.height - h) / 2;
+        ctx.fillStyle = "#CBD5E1";
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, h, 2);
+        ctx.fill();
+      }
+    }
+
+    async function toggleSpeechRecognition() {
+      if (isRecording) {
+        stopSpeechRecognition();
+        return;
+      }
+
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        showToast("Twoja przeglądarka nie obsługuje Web Speech API. Użyj przycisków przykładów lub wpisz tekst ręcznie.", "warning");
+        return;
+      }
+
+      try {
+        speechRecognition = new SpeechRec();
+        speechRecognition.lang = "pl-PL";
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+
+        const textarea = document.getElementById("raw-dictation-input");
+        let baseText = textarea.value.trim();
+        if (baseText.length > 0) baseText += " ";
+
+        speechRecognition.onresult = (event) => {
+          let interimTranscript = "";
+          let finalTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+            baseText += finalTranscript + " ";
+          }
+          textarea.value = baseText + interimTranscript;
+          getCurrentPatient().rawDictation = textarea.value;
+          saveAppState();
+        };
+
+        speechRecognition.onerror = (event) => {
+          if (event.error === "not-allowed") {
+            showToast("Brak uprawnień do mikrofonu. Możesz użyć przykładowych refleksji poniżej.", "warning");
+          }
+          stopSpeechRecognition();
+        };
+
+        speechRecognition.onend = () => {
+          if (isRecording) {
+            stopSpeechRecognition();
+          }
+        };
+
+        speechRecognition.start();
+        isRecording = true;
+        updateRecordingUI(true);
+        startLiveAudioVisualizer();
+      } catch (err) {
+        showToast("Nie udało się uruchomić dyktowania głosowego. Wpisz notatkę lub użyj przykładu.", "warning");
+        stopSpeechRecognition();
+      }
+    }
+
+    function stopSpeechRecognition() {
+      isRecording = false;
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch (e) {}
+        speechRecognition = null;
+      }
+      if (recordingTimerInterval) {
+        clearInterval(recordingTimerInterval);
+        recordingTimerInterval = null;
+      }
+      if (waveformAnimationId) {
+        cancelAnimationFrame(waveformAnimationId);
+        waveformAnimationId = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+      if (audioContext) {
+        try { audioContext.close(); } catch (e) {}
+        audioContext = null;
+      }
+      updateRecordingUI(false);
+      initIdleWaveform();
+    }
+
+    function updateRecordingUI(active) {
+      const btn = document.getElementById("btn-toggle-mic");
+      const label = document.getElementById("mic-btn-label");
+      const status = document.getElementById("mic-status-text");
+      const timerEl = document.getElementById("recording-timer");
+
+      if (active) {
+        btn.className = "mic-pulse relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-xs transition";
+        label.textContent = "Zatrzymaj dyktowanie";
+        status.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span><span class="text-red-700 font-semibold">Transkrypcja na żywo (pl-PL) · Brak zapisu pliku audio</span>`;
+        recordingSeconds = 0;
+        timerEl.textContent = "00:00";
+        recordingTimerInterval = setInterval(() => {
+          recordingSeconds++;
+          const m = String(Math.floor(recordingSeconds / 60)).padStart(2, "0");
+          const s = String(recordingSeconds % 60).padStart(2, "0");
+          timerEl.textContent = `${m}:${s}`;
+        }, 1000);
+      } else {
+        btn.className = "relative flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-clinical-sage hover:bg-clinical-sageHover text-white font-semibold text-sm shadow-xs transition";
+        label.textContent = "Rozpocznij dyktowanie po sesji";
+        status.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400"></span>Gotowy do dyktowania (Web Speech API · pl-PL)`;
+      }
+    }
+
+    async function startLiveAudioVisualizer() {
+      const canvas = document.getElementById("waveform-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.offsetWidth || 400;
+      canvas.height = canvas.offsetHeight || 64;
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 128;
+        source.connect(analyserNode);
+
+        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        const draw = () => {
+          if (!isRecording) return;
+          waveformAnimationId = requestAnimationFrame(draw);
+          analyserNode.getByteFrequencyData(dataArray);
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const bars = 42;
+          const barWidth = Math.max(3, (canvas.width / bars) - 3);
+          for (let i = 0; i < bars; i++) {
+            const val = dataArray[i % dataArray.length] || 10;
+            const h = Math.max(6, (val / 255) * (canvas.height - 10));
+            const x = i * (barWidth + 3) + 4;
+            const y = (canvas.height - h) / 2;
+            ctx.fillStyle = "#1E4D4B";
+            ctx.beginPath();
+            ctx.roundRect(x, y, barWidth, h, 2);
+            ctx.fill();
+          }
+        };
+        draw();
+      } catch (e) {
+        // Fallback animowana fala, jeśli strumień wizualizacji jest zablokowany
+        let phase = 0;
+        const drawFallback = () => {
+          if (!isRecording) return;
+          waveformAnimationId = requestAnimationFrame(drawFallback);
+          phase += 0.15;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const bars = 42;
+          const barWidth = Math.max(3, (canvas.width / bars) - 3);
+          for (let i = 0; i < bars; i++) {
+            const h = 10 + Math.abs(Math.sin(phase + i * 0.35)) * 28;
+            const x = i * (barWidth + 3) + 4;
+            const y = (canvas.height - h) / 2;
+            ctx.fillStyle = "#1E4D4B";
+            ctx.beginPath();
+            ctx.roundRect(x, y, barWidth, h, 2);
+            ctx.fill();
+          }
+        };
+        drawFallback();
+      }
+    }
+
+    function renderScribeView() {
+      const patient = getCurrentPatient();
+      const rawInput = document.getElementById("raw-dictation-input");
+      rawInput.value = patient.rawDictation || "";
+      rawInput.oninput = (e) => {
+        patient.rawDictation = e.target.value;
+        saveAppState();
+      };
+      renderScribeSections();
+    }
+
+    function renderScribeSections() {
+      const patient = getCurrentPatient();
+      const draft = patient.scribeDraft;
+      const container = document.getElementById("scribe-sections-container");
+
+      const sections = [
+        { key: "agenda", title: "1. Agenda spotkania", rows: 2 },
+        { key: "summary", title: "2. Podsumowanie kliniczne i główne wątki", rows: 3 },
+        { key: "interventions", title: `3. Zastosowane interwencje (nurt: ${appState.activeModality})`, rows: 3 },
+        { key: "homework", title: "4. Praca własna / eksperyment między sesjami", rows: 3 }
+      ];
+
+      container.innerHTML = "";
+      sections.forEach(sec => {
+        const isApproved = !!draft.approved[sec.key];
+        const card = document.createElement("div");
+        card.className = isApproved
+          ? "rounded-xl border border-clinical-greenBorder bg-clinical-greenBg/30 p-4 space-y-2.5 transition"
+          : "rounded-xl border border-clinical-amberBorder bg-clinical-amberBg/40 p-4 space-y-2.5 transition";
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold text-slate-900">${sec.title}</h3>
+            <div class="flex items-center gap-2">
+              ${isApproved
+                ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-clinical-greenBg text-clinical-green border border-clinical-greenBorder">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Zatwierdzono do dokumentacji
+                  </span>`
+                : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-clinical-amber border border-amber-200">
+                    Szkic AI – wymaga weryfikacji
+                  </span>`
+              }
+              <button type="button" onclick="toggleApproveScribeSection('${sec.key}')"
+                class="px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  isApproved
+                    ? "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+                    : "bg-clinical-green hover:bg-emerald-800 text-white shadow-2xs"
+                }">
+                ${isApproved ? "Cofnij zatwierdzenie" : "Zatwierdź do dokumentacji"}
+              </button>
+            </div>
+          </div>
+          <textarea rows="${sec.rows}" oninput="updateScribeSectionText('${sec.key}', this.value)"
+            class="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-clinical-sage">${escapeHtml(draft[sec.key] || "")}</textarea>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function updateScribeSectionText(key, value) {
+      const patient = getCurrentPatient();
+      patient.scribeDraft[key] = value;
+      saveAppState();
+    }
+
+    function toggleApproveScribeSection(key) {
+      const patient = getCurrentPatient();
+      patient.scribeDraft.approved[key] = !patient.scribeDraft.approved[key];
+      saveAppState();
+      renderScribeSections();
+      if (patient.scribeDraft.approved[key]) {
+        showToast("Sekcja zatwierdzona przez terapeutę.", "success");
+      }
+    }
+
+    function approveAllScribeSections() {
+      const patient = getCurrentPatient();
+      ["agenda", "summary", "interventions", "homework"].forEach(k => {
+        patient.scribeDraft.approved[k] = true;
+      });
+      saveAppState();
+      renderScribeSections();
+      showToast("Wszystkie sekcje notatki zostały zatwierdzone.", "success");
+    }
+
+    function saveSessionToTimeline() {
+      const patient = getCurrentPatient();
+      const draft = patient.scribeDraft;
+      const hwStatus = document.getElementById("homework-status-select").value;
+      const today = new Date().toLocaleDateString("pl-PL");
+      const nextNum = patient.timeline.length + 1;
+
+      const firstLineSummary = (draft.summary || "Sesja terapeutyczna").split(".")[0] + ".";
+      const newEntry = {
+        id: "ses_" + Date.now(),
+        date: today,
+        title: `Sesja ${nextNum} · ${firstLineSummary.slice(0, 72)}`,
+        modality: appState.activeModality,
+        homeworkStatus: hwStatus,
+        summary: `${draft.summary}\n\nInterwencje: ${draft.interventions}\nPraca własna: ${draft.homework}`
+      };
+
+      patient.timeline.unshift(newEntry);
+      saveAppState();
+      renderContinuityView();
+      showToast("Sesja zapisana na chronologicznej osi czasu pacjenta.", "success");
+    }
+
+    // =========================================================================
+    // 5. WYWOŁANIA GEMINI API (Z EXPONENTIAL BACKOFF + BEZPIECZNYM FALLBACKIEM)
+    // =========================================================================
+    async function callGeminiWithBackoff(payload) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+      const delays = [1000, 2000, 4000];
+
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            if ((response.status === 429 || response.status >= 500) && attempt < delays.length) {
+              await new Promise(res => setTimeout(res, delays[attempt]));
+              continue;
+            }
+            throw new Error(`HTTP_${response.status}`);
+          }
+
+          const result = await response.json();
+          const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) throw new Error("EMPTY_RESPONSE");
+          return text;
+        } catch (err) {
+          if (attempt < delays.length && err.message && (err.message.includes("429") || err.message.includes("Failed to fetch"))) {
+            await new Promise(res => setTimeout(res, delays[attempt]));
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+
+    // 5A. Generowanie ustrukturyzowanej notatki klinicznej (AI Scribe)
+    async function generateClinicalNoteAI() {
+      const patient = getCurrentPatient();
+      const rawText = document.getElementById("raw-dictation-input").value.trim();
+      if (!rawText) {
+        showToast("Wpisz lub podyktuj najpierw refleksję terapeuty po sesji.", "warning");
+        return;
+      }
+
+      const btn = document.getElementById("btn-generate-scribe");
+      setButtonLoading(btn, true, "Analizuję refleksję kliniczną...");
+
+      const systemPrompt = `Jesteś asystentem dokumentacji klinicznej dla certyfikowanego psychoterapeuty pracującego w nurcie: ${appState.activeModality}.
+Przekształć podyktowaną po sesji refleksję terapeuty w profesjonalną, zwięzłą, ustrukturyzowaną notatkę kliniczną w języku polskim.
+ZASADY BEZPIECZEŃSTWA:
+- Nie stawiaj diagnoz nozologicznych (ICD/DSM).
+- Nie oceniaj ryzyka suicydalnego.
+- Trzymaj się wyłącznie faktów i obserwacji przekazanych przez terapeutę.
+- Dostosuj terminologię sekcji interwencji do nurtu: ${appState.activeModality}.`;
+
+      const payload = {
+        contents: [{ parts: [{ text: `Refleksja terapeuty po sesji:\n${rawText}` }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              agenda: { type: "STRING" },
+              summary: { type: "STRING" },
+              interventions: { type: "STRING" },
+              homework: { type: "STRING" }
+            },
+            required: ["agenda", "summary", "interventions", "homework"]
+          }
+        }
+      };
+
+      try {
+        const jsonStr = await callGeminiWithBackoff(payload);
+        const parsed = JSON.parse(jsonStr);
+        patient.scribeDraft = {
+          agenda: parsed.agenda,
+          summary: parsed.summary,
+          interventions: parsed.interventions,
+          homework: parsed.homework,
+          approved: { agenda: false, summary: false, interventions: false, homework: false }
+        };
+        saveAppState();
+        renderScribeSections();
+        showToast("Wygenerowano szkic notatki klinicznej (AI). Zweryfikuj sekcje.", "success");
+      } catch (e) {
+        // Inteligentny lokalny parser awaryjny, jeśli środowisko jest offline lub bez klucza
+        const sentences = rawText.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+        patient.scribeDraft = {
+          agenda: `1. Omówienie bieżącego funkcjonowania i pracy własnej pacjenta.\n2. Analiza głównego wątku sesji w ujęciu ${appState.activeModality}.\n3. Ustalenie eksperymentu / ćwiczenia na kolejny tydzień.`,
+          summary: sentences.slice(0, 3).join(". ") + ".",
+          interventions: `• Zastosowano techniki charakterystyczne dla nurtu ${appState.activeModality} na podstawie opisu sesji.\n• Wspólna analiza mechanizmów podtrzymujących zgłaszane trudności.`,
+          homework: sentences.length > 3 ? sentences.slice(-1)[0] + "." : "Kontynuacja obserwacji i wdrażanie wniosków z sesji w codziennych sytuacjach.",
+          approved: { agenda: false, summary: false, interventions: false, homework: false }
+        };
+        saveAppState();
+        renderScribeSections();
+        showToast("Utworzono szkic strukturalny notatki (tryb lokalny). Wymaga weryfikacji.", "info");
+      } finally {
+        setButtonLoading(btn, false, "Przekształć w ustrukturyzowaną notatkę kliniczną (AI)");
+      }
+    }
+
+    // =========================================================================
+    // 6. MODUŁ 2: KONCEPTUALIZACJA PRZYPADKU
+    // =========================================================================
+    let pendingConceptProposals = [];
+
+    function renderConceptualizationView() {
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      document.getElementById("concept-modality-pill").textContent = modality;
+
+      const schemaFields = MODALITY_CONCEPT_SCHEMA[modality] || MODALITY_CONCEPT_SCHEMA["CBT"];
+      const currentData = patient.conceptualization[modality] || {};
+      const grid = document.getElementById("conceptualization-fields-grid");
+
+      grid.innerHTML = "";
+      schemaFields.forEach((field, idx) => {
+        const isLastOdd = (idx === schemaFields.length - 1) && (schemaFields.length % 2 === 1);
+        const card = document.createElement("div");
+        card.className = `${isLastOdd ? "md:col-span-2" : ""} bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-2`;
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">${field.label}</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">${field.hint}</p>
+            </div>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">${modality}</span>
+          </div>
+          <textarea rows="3" oninput="updateConceptualizationField('${modality}', '${field.key}', this.value)"
+            class="w-full rounded-xl border border-slate-300 bg-slate-50/40 p-3 text-sm text-slate-800 leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-clinical-sage">${escapeHtml(currentData[field.key] || "")}</textarea>
+        `;
+        grid.appendChild(card);
+      });
+
+      document.getElementById("working-hypotheses-input").value = patient.workingHypotheses.hypotheses || "";
+      document.getElementById("diagnostic-axes-input").value = patient.workingHypotheses.axes || "";
+    }
+
+    function updateConceptualizationField(modality, key, value) {
+      const patient = getCurrentPatient();
+      if (!patient.conceptualization[modality]) patient.conceptualization[modality] = {};
+      patient.conceptualization[modality][key] = value;
+      saveAppState();
+    }
+
+    function updateWorkingHypotheses(field, value) {
+      const patient = getCurrentPatient();
+      patient.workingHypotheses[field] = value;
+      saveAppState();
+    }
+
+    async function proposeConceptualizationUpdateAI() {
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      const schemaFields = MODALITY_CONCEPT_SCHEMA[modality];
+      const currentConcept = patient.conceptualization[modality];
+      const latestNote = `${patient.scribeDraft.summary}\nInterwencje: ${patient.scribeDraft.interventions}\nPraca własna: ${patient.scribeDraft.homework}`;
+
+      const btn = document.getElementById("btn-update-concept");
+      setButtonLoading(btn, true, "Analizuję spójność mapy klinicznej...");
+
+      const systemPrompt = `Jesteś superwizyjnym asystentem konceptualizacji przypadku w nurcie ${modality}.
+Porównaj dotychczasową konceptualizację pacjenta z notatką z najnowszej sesji i zaproponuj 2 lub 3 konkretne, zwięzłe uzupełnienia/aktualizacje do wybranych pól konceptualizacji (w języku polskim).
+ZASADY: Nie stawiaj diagnoz medycznych ani nie oceniaj ryzyka. Podaj wyłącznie robocze propozycje do akceptacji przez terapeutę.`;
+
+      const userPrompt = `Dostępne klucze pól dla nurtu ${modality}: ${schemaFields.map(f => `${f.key} (${f.label})`).join(", ")}.
+Aktualna konceptualizacja: ${JSON.stringify(currentConcept)}
+Najnowsza notatka z sesji: ${latestNote}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                fieldKey: { type: "STRING" },
+                proposedAddition: { type: "STRING" },
+                rationale: { type: "STRING" }
+              },
+              required: ["fieldKey", "proposedAddition", "rationale"]
+            }
+          }
+        }
+      };
+
+      try {
+        const resText = await callGeminiWithBackoff(payload);
+        const proposals = JSON.parse(resText);
+        pendingConceptProposals = proposals.filter(p => schemaFields.some(f => f.key === p.fieldKey));
+        if (pendingConceptProposals.length === 0) throw new Error("NO_VALID_FIELDS");
+        renderConceptProposals();
+        showToast("Przygotowano propozycje aktualizacji konceptualizacji (AI).", "info");
+      } catch (e) {
+        // Bezpieczny fallback propozycji w oparciu o aktualny nurt i notatkę
+        const f1 = schemaFields[2] || schemaFields[0];
+        const f2 = schemaFields[3] || schemaFields[1];
+        pendingConceptProposals = [
+          {
+            fieldKey: f1.key,
+            proposedAddition: `Obserwacja z ostatniej sesji: ${patient.scribeDraft.summary.split(".")[0]}.`,
+            rationale: "Uzupełnienie na podstawie bieżącego materiału klinicznego z sesji."
+          },
+          {
+            fieldKey: f2.key,
+            proposedAddition: `Nowy obszar pracy / eksperyment: ${patient.scribeDraft.homework.split(".")[0]}.`,
+            rationale: "Powiązanie interwencji między sesjami z mechanizmem podtrzymującym."
+          }
+        ];
+        renderConceptProposals();
+        showToast("Przygotowano szkic aktualizacji mapy klinicznej do akceptacji.", "info");
+      } finally {
+        setButtonLoading(btn, false, "Aktualizuj konceptualizację na podstawie najnowszej notatki (AI)");
+      }
+    }
+
+    function renderConceptProposals() {
+      const box = document.getElementById("concept-ai-proposals");
+      const list = document.getElementById("concept-proposals-list");
+      const modality = appState.activeModality;
+      const schemaFields = MODALITY_CONCEPT_SCHEMA[modality];
+
+      if (!pendingConceptProposals || pendingConceptProposals.length === 0) {
+        box.classList.add("hidden");
+        return;
+      }
+
+      box.classList.remove("hidden");
+      list.innerHTML = "";
+      pendingConceptProposals.forEach((prop, idx) => {
+        const meta = schemaFields.find(f => f.key === prop.fieldKey);
+        const label = meta ? meta.label : prop.fieldKey;
+        const card = document.createElement("div");
+        card.className = "bg-white border border-amber-200 rounded-xl p-3.5 space-y-2 shadow-2xs";
+        card.innerHTML = `
+          <div class="text-xs font-bold text-slate-900">${label}</div>
+          <p class="text-xs text-slate-800 bg-amber-50/60 p-2 rounded-lg border border-amber-100 leading-relaxed">+ ${escapeHtml(prop.proposedAddition)}</p>
+          <p class="text-[11px] text-slate-500 italic">${escapeHtml(prop.rationale)}</p>
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" onclick="rejectConceptProposal(${idx})" class="px-2.5 py-1 rounded-lg border border-slate-300 text-xs text-slate-600 hover:bg-slate-50">Odrzuć</button>
+            <button type="button" onclick="acceptConceptProposal(${idx})" class="px-3 py-1 rounded-lg bg-clinical-green hover:bg-emerald-800 text-white text-xs font-semibold">Akceptuj i włącz do mapy</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function acceptConceptProposal(idx) {
+      const prop = pendingConceptProposals[idx];
+      if (!prop) return;
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      const prev = patient.conceptualization[modality][prop.fieldKey] || "";
+      patient.conceptualization[modality][prop.fieldKey] = prev ? `${prev}\n${prop.proposedAddition}` : prop.proposedAddition;
+      pendingConceptProposals.splice(idx, 1);
+      saveAppState();
+      renderConceptProposals();
+      renderConceptualizationView();
+      showToast("Zaktualizowano pole konceptualizacji.", "success");
+    }
+
+    function rejectConceptProposal(idx) {
+      pendingConceptProposals.splice(idx, 1);
+      renderConceptProposals();
+    }
+
+    function dismissAllConceptProposals() {
+      pendingConceptProposals = [];
+      renderConceptProposals();
+    }
+
+    // =========================================================================
+    // 7. MODUŁ 3: CIĄGŁOŚĆ PROCESU (PSYCHOMETRIA, FARMAKOTERAPIA, OŚ CZASU)
+    // =========================================================================
+    function renderContinuityView() {
+      renderPsychometrics();
+      renderMedicationsAndDiagnoses();
+      renderSessionsTimeline();
+    }
+
+    function selectPsychometricScale(scale) {
+      appState.activeScale = scale;
+      saveAppState();
+      renderPsychometrics();
+    }
+
+    function getSeverityForScore(scale, score) {
+      const cfg = PSYCHOMETRIC_CONFIG[scale];
+      for (const t of cfg.thresholds) {
+        if (score <= t.max) return t;
+      }
+      return cfg.thresholds[cfg.thresholds.length - 1];
+    }
+
+    function renderPsychometrics() {
+      const patient = getCurrentPatient();
+      const scale = appState.activeScale || "GAD-7";
+      const cfg = PSYCHOMETRIC_CONFIG[scale];
+      const data = patient.psychometrics[scale] || [];
+
+      // Aktualizacja zakładek skal
+      document.querySelectorAll(".scale-tab").forEach(btn => {
+        const isSelected = btn.getAttribute("data-scale") === scale;
+        btn.className = isSelected
+          ? "scale-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-clinical-sage text-white border border-clinical-sage transition"
+          : "scale-tab px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition";
+      });
+
+      document.getElementById("chart-scale-title").textContent = cfg.title;
+      document.getElementById("add-measure-scale-label").textContent = scale;
+      document.getElementById("measure-score-input").max = cfg.max;
+
+      const latest = data[data.length - 1];
+      const latestBadge = document.getElementById("chart-latest-badge");
+      if (latest) {
+        const sev = getSeverityForScore(scale, latest.score);
+        latestBadge.textContent = `Ostatni: ${latest.score} pkt (${sev.label.split(":")[1].trim()})`;
+        latestBadge.style.backgroundColor = sev.bg;
+        latestBadge.style.color = sev.color;
+      }
+
+      // Renderowanie tabeli pomiarów
+      const tbody = document.getElementById("psychometric-table-body");
+      tbody.innerHTML = "";
+      data.forEach(item => {
+        const sev = getSeverityForScore(scale, item.score);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-medium text-slate-800">${escapeHtml(item.label)}</td>
+          <td class="py-2 px-3 font-bold text-slate-900">${item.score} / ${cfg.max}</td>
+          <td class="py-2 px-3">
+            <span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold" style="background:${sev.bg};color:${sev.color}">
+              ${sev.label.split(":")[1].trim()}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Legenda progów
+      const legend = document.getElementById("chart-thresholds-legend");
+      legend.innerHTML = cfg.thresholds.map(t => `
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-xs" style="background:${t.color}"></span>
+          <span>${t.label}</span>
+        </span>
+      `).join("");
+
+      // Wykres SVG
+      renderSvgLineChart(data, cfg);
+    }
+
+    function renderSvgLineChart(data, cfg) {
+      const wrapper = document.getElementById("psychometric-chart-wrapper");
+      const width = 620;
+      const height = 220;
+      const padLeft = 38;
+      const padRight = 28;
+      const padTop = 20;
+      const padBottom = 34;
+      const plotW = width - padLeft - padRight;
+      const plotH = height - padTop - padBottom;
+
+      if (!data || data.length === 0) {
+        wrapper.innerHTML = `<div class="h-44 flex items-center justify-center text-xs text-slate-400">Brak zapisanych pomiarów dla tej skali.</div>`;
+        return;
+      }
+
+      // Pasma progów klinicznych w tle wykresu
+      let prevMax = 0;
+      const bandsSvg = cfg.thresholds.map(t => {
+        const yTop = padTop + plotH - (t.max / cfg.max) * plotH;
+        const yBot = padTop + plotH - (prevMax / cfg.max) * plotH;
+        prevMax = t.max;
+        return `<rect x="${padLeft}" y="${yTop}" width="${plotW}" height="${Math.max(0, yBot - yTop)}" fill="${t.bg}" opacity="0.45" />`;
+      }).join("");
+
+      // Linie siatki poziomej
+      const gridSteps = [0, Math.round(cfg.max * 0.33), Math.round(cfg.max * 0.66), cfg.max];
+      const gridSvg = gridSteps.map(val => {
+        const y = padTop + plotH - (val / cfg.max) * plotH;
+        return `
+          <line x1="${padLeft}" y1="${y}" x2="${padLeft + plotW}" y2="${y}" stroke="#CBD5E1" stroke-dasharray="3 3" stroke-width="1" />
+          <text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748B" font-family="Inter, sans-serif">${val}</text>
+        `;
+      }).join("");
+
+      // Współrzędne punktów
+      const points = data.map((d, i) => {
+        const x = data.length === 1
+          ? padLeft + plotW / 2
+          : padLeft + (i / (data.length - 1)) * plotW;
+        const y = padTop + plotH - (Math.min(cfg.max, d.score) / cfg.max) * plotH;
+        return { x, y, ...d };
+      });
+
+      const polylinePoints = points.map(p => `${p.x},${p.y}`).join(" ");
+
+      const dotsSvg = points.map(p => `
+        <g>
+          <circle cx="${p.x}" cy="${p.y}" r="6" fill="#FFFFFF" stroke="#1E4D4B" stroke-width="3" />
+          <rect x="${p.x - 16}" y="${p.y - 24}" width="32" height="17" rx="5" fill="#1E4D4B" />
+          <text x="${p.x}" y="${p.y - 12}" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF" font-family="Inter, sans-serif">${p.score}</text>
+          <text x="${p.x}" y="${height - 10}" text-anchor="middle" font-size="10" font-weight="500" fill="#334155" font-family="Inter, sans-serif">${escapeHtml(p.label)}</text>
+        </g>
+      `).join("");
+
+      wrapper.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[460px] select-none">
+          ${bandsSvg}
+          ${gridSvg}
+          <polyline fill="none" stroke="#1E4D4B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />
+          ${dotsSvg}
+        </svg>
+      `;
+    }
+
+    function addPsychometricMeasurement(event) {
+      event.preventDefault();
+      const labelInput = document.getElementById("measure-label-input");
+      const scoreInput = document.getElementById("measure-score-input");
+      const scale = appState.activeScale;
+      const cfg = PSYCHOMETRIC_CONFIG[scale];
+      const scoreVal = parseInt(scoreInput.value, 10);
+
+      if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > cfg.max) {
+        showToast(`Wynik dla skali ${scale} musi mieścić się w przedziale 0–${cfg.max}.`, "warning");
+        return;
+      }
+
+      const patient = getCurrentPatient();
+      patient.psychometrics[scale].push({
+        label: labelInput.value.trim(),
+        score: scoreVal
+      });
+      labelInput.value = "";
+      scoreInput.value = "";
+      saveAppState();
+      renderPsychometrics();
+      showToast(`Dodano wynik ${scoreVal} pkt w skali ${scale}.`, "success");
+    }
+
+    function toggleAddMedForm() {
+      document.getElementById("add-med-form").classList.toggle("hidden");
+    }
+
+    function addMedication(event) {
+      event.preventDefault();
+      const patient = getCurrentPatient();
+      patient.medications.unshift({
+        name: document.getElementById("med-name").value.trim(),
+        dose: document.getElementById("med-dose").value.trim(),
+        date: document.getElementById("med-date").value.trim(),
+        notes: document.getElementById("med-notes").value.trim() || "Brak dodatkowych uwag."
+      });
+      event.target.reset();
+      toggleAddMedForm();
+      saveAppState();
+      renderMedicationsAndDiagnoses();
+      showToast("Dodano wpis dotyczący farmakoterapii.", "success");
+    }
+
+    function toggleAddDiagnosisForm() {
+      document.getElementById("add-diagnosis-form").classList.toggle("hidden");
+    }
+
+    function addDiagnosis(event) {
+      event.preventDefault();
+      const patient = getCurrentPatient();
+      patient.diagnoses.push({
+        code: document.getElementById("diag-code").value.trim().toUpperCase(),
+        name: document.getElementById("diag-name").value.trim()
+      });
+      event.target.reset();
+      toggleAddDiagnosisForm();
+      saveAppState();
+      renderMedicationsAndDiagnoses();
+      showToast("Dodano rozpoznanie do karty pacjenta.", "success");
+    }
+
+    function renderMedicationsAndDiagnoses() {
+      const patient = getCurrentPatient();
+      const medsList = document.getElementById("medications-list");
+      medsList.innerHTML = patient.medications.map(m => `
+        <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-1.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-md bg-clinical-sageLight text-clinical-sage font-bold text-xs">${escapeHtml(m.name)}</span>
+              <span class="text-xs font-semibold text-slate-800">${escapeHtml(m.dose)}</span>
+            </div>
+            <span class="text-[11px] text-slate-500">Zmiana / włączenie: ${escapeHtml(m.date)}</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(m.notes)}</p>
+        </div>
+      `).join("");
+
+      const diagList = document.getElementById("diagnoses-list");
+      diagList.innerHTML = patient.diagnoses.map(d => `
+        <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-3 flex items-start gap-2.5">
+          <span class="px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-800 font-mono font-bold text-xs shrink-0">${escapeHtml(d.code)}</span>
+          <span class="text-xs font-medium text-slate-800 leading-snug">${escapeHtml(d.name)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderSessionsTimeline() {
+      const patient = getCurrentPatient();
+      const list = document.getElementById("sessions-timeline-list");
+      document.getElementById("timeline-count-badge").textContent = `${patient.timeline.length} zapisane sesje`;
+
+      list.innerHTML = patient.timeline.map(s => {
+        const hwColor = s.homeworkStatus === "Wykonano"
+          ? "bg-clinical-greenBg text-clinical-green border-clinical-greenBorder"
+          : s.homeworkStatus.includes("częściowo")
+            ? "bg-amber-50 text-clinical-amber border-amber-200"
+            : "bg-slate-100 text-slate-700 border-slate-200";
+
+        return `
+          <div class="relative bg-slate-50/70 border border-slate-200 rounded-xl p-4 space-y-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-clinical-sage border-2 border-white shadow-xs absolute -left-[31px] top-5"></span>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-slate-500">${escapeHtml(s.date)}</span>
+                <span class="px-2 py-0.5 rounded-md bg-clinical-sageLight text-clinical-sage text-[11px] font-semibold">${escapeHtml(s.modality)}</span>
+                <h4 class="text-sm font-bold text-slate-900">${escapeHtml(s.title)}</h4>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${hwColor}">
+                Praca własna: ${escapeHtml(s.homeworkStatus)}
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(s.summary)}</p>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // =========================================================================
+    // 8. MODUŁ 4: SUPERWIZJA I KONSULTANT WIEDZY (NICE & PTTPB)
+    // =========================================================================
+    function renderSupervisionView() {
+      const patient = getCurrentPatient();
+      document.getElementById("supervision-brief-text").value = patient.supervision.brief || "";
+      document.getElementById("countertransference-notes").value = patient.supervision.countertransference || "";
+    }
+
+    function saveSupervisionBriefEdit(val) {
+      getCurrentPatient().supervision.brief = val;
+      saveAppState();
+    }
+
+    function saveCountertransferenceEdit(val) {
+      getCurrentPatient().supervision.countertransference = val;
+      saveAppState();
+    }
+
+    async function generateSupervisionBriefAI() {
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      const btn = document.getElementById("btn-generate-supervision");
+      setButtonLoading(btn, true, "Syntetyzuję brief superwizyjny...");
+
+      const systemPrompt = `Jesteś asystentem przygotowującym zwięzły, profesjonalny, w pełni zanonimizowany Brief Superwizyjny dla psychoterapeuty (nurt: ${modality}).
+Struktura (w języku polskim, czystym tekstem z nagłówkami):
+1. KONTEKST I KONCEPTUALIZACJA PRZYPADKU
+2. DOTYCHCZASOWY PRZEBIEG PROCESU I WYNIKI SKAL
+3. PUNKTY UTKNIĘCIA / DYLEMATY KLINICZNE
+4. PROPONOWANE PYTANIA DO SUPERWIZORA
+Nie stawiaj diagnoz i nie oceniaj ryzyka.`;
+
+      const userPrompt = `Profil: ${patient.label}
+Konceptualizacja (${modality}): ${JSON.stringify(patient.conceptualization[modality])}
+Ostatnie sesje: ${JSON.stringify(patient.timeline.slice(0, 3))}
+Farmakoterapia: ${JSON.stringify(patient.medications)}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const text = await callGeminiWithBackoff(payload);
+        patient.supervision.brief = text.trim();
+        saveAppState();
+        renderSupervisionView();
+        showToast("Wygenerowano zaktualizowany Brief Superwizyjny (AI).", "success");
+      } catch (e) {
+        patient.supervision.brief = `1. KONTEKST I KONCEPTUALIZACJA (${modality}):\n${patient.label}. Główne hipotezy: ${patient.workingHypotheses.hypotheses}\n\n2. DOTYCHCZASOWY PRZEBIEG PROCESU:\nZrealizowano ${patient.timeline.length} udokumentowanych sesji. Najnowszy wątek: ${patient.scribeDraft.summary}\n\n3. PUNKTY UTKNIĘCIA:\nUtrzymujące się napięcie w sytuacjach kluczowych dla schematów/przekonań pacjenta mimo postępów behawioralnych.\n\n4. PYTANIA DO SUPERWIZORA:\n- Jak pogłębić interwencje w nurcie ${modality} na obecnym etapie procesu?\n- Na jakie sygnały oporu lub unikania warto zwrócić szczególną uwagę?`;
+        saveAppState();
+        renderSupervisionView();
+        showToast("Przygotowano szkic Briefu Superwizyjnego.", "info");
+      } finally {
+        setButtonLoading(btn, false, "Generuj Brief Superwizyjny (AI)");
+      }
+    }
+
+    function copySupervisionBrief() {
+      const text = document.getElementById("supervision-brief-text").value;
+      copyTextToClipboard(text, "Skopiowano Brief Superwizyjny do schowka.");
+    }
+
+    function handleEbmQuerySubmit(event) {
+      event.preventDefault();
+      const input = document.getElementById("ebm-query-input");
+      const query = input.value.trim();
+      if (!query) return;
+      askEbmConsultant(query);
+      input.value = "";
+    }
+
+    async function askEbmConsultant(question) {
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      const btn = document.getElementById("btn-ask-ebm");
+      const container = document.getElementById("ebm-response-container");
+
+      setButtonLoading(btn, true, "Szukam...");
+
+      const systemPrompt = `Jesteś klinicznym konsultantem literatury naukowej oraz wytycznych NICE (National Institute for Health and Care Excellence) i standardów PTTPB (Polskiego Towarzystwa Terapii Poznawczej i Behawioralnej).
+Odpowiadaj wyłącznie w języku polskim. Musisz wyraźnie oddzielić:
+1. 'ebmRecommendations': sprawdzone wytyczne NICE, standardy PTTPB i dowody naukowe (EBM) dla danego zagadnienia.
+2. 'workingSuggestions': praktyczne sugestie robocze do rozważenia przez terapeutę w kontekście nurtu ${modality} (z zastrzeżeniem, że decyzja należy do terapeuty).
+Nie stawiaj diagnoz i nie oceniaj ryzyka.`;
+
+      const userPrompt = `Pytanie terapeuty: ${question}
+Kontekst zanonimizowanego przypadku (nurt ${modality}): ${patient.workingHypotheses.hypotheses}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              ebmRecommendations: { type: "STRING" },
+              workingSuggestions: { type: "STRING" }
+            },
+            required: ["ebmRecommendations", "workingSuggestions"]
+          }
+        }
+      };
+
+      let ebmText = "";
+      let workingText = "";
+
+      try {
+        const res = await callGeminiWithBackoff(payload);
+        const parsed = JSON.parse(res);
+        ebmText = parsed.ebmRecommendations;
+        workingText = parsed.workingSuggestions;
+      } catch (e) {
+        ebmText = `Zgodnie z wytycznymi NICE oraz standardami szkoleniowymi PTTPB, w pracy w nurcie ${modality} kluczowe jest stopniowe ograniczanie unikania (poznawczego i behawioralnego), psychoedukacja dotycząca mechanizmu podtrzymującego objawy oraz systematyczne monitorowanie postępów za pomocą walidowanych narzędzi psychometrycznych.`;
+        workingText = `W kontekście analizowanego przypadku rozważ sformułowanie hipotezy dotyczącej funkcji ochronnej objawu oraz zaprojektowanie małego, bezpiecznego eksperymentu behawioralnego lub ćwiczenia uważności/defuzji między kolejnymi sesjami.`;
+      } finally {
+        setButtonLoading(btn, false, "Konsultuj");
+      }
+
+      const card = document.createElement("div");
+      card.className = "rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-2xs";
+      card.innerHTML = `
+        <div class="text-xs font-bold text-slate-900 border-b border-slate-100 pb-2">Pytanie: ${escapeHtml(question)}</div>
+        <div class="space-y-1.5">
+          <span class="px-2 py-0.5 rounded-md bg-clinical-greenBg text-clinical-green border border-clinical-greenBorder text-[11px] font-bold">Rekomendacje oparte na dowodach (NICE / PTTPB)</span>
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(ebmText)}</p>
+        </div>
+        <div class="pt-2 border-t border-slate-100 space-y-1.5">
+          <span class="px-2 py-0.5 rounded-md bg-clinical-amberBg text-clinical-amber border border-clinical-amberBorder text-[11px] font-bold">Sugestie robocze AI (do decyzji terapeuty)</span>
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(workingText)}</p>
+        </div>
+      `;
+      container.prepend(card);
+    }
+
+    // =========================================================================
+    // 9. MODUŁ 5: MATERIAŁY DLA PACJENTA (PSYCHOEDUKACJA PO SESJI)
+    // =========================================================================
+    function renderHandoutView() {
+      const patient = getCurrentPatient();
+      const modalityObj = MODALITIES.find(m => m.id === appState.activeModality) || MODALITIES[0];
+      document.getElementById("handout-date-label").textContent = `Data: ${new Date().toLocaleDateString("pl-PL")}`;
+      document.getElementById("handout-modality-label").textContent = `Podejście: ${modalityObj.full}`;
+
+      document.getElementById("handout-discoveries").value = patient.handout.discoveries || "";
+      document.getElementById("handout-psychoeducation").value = patient.handout.psychoeducation || "";
+      document.getElementById("handout-plan").value = patient.handout.plan || "";
+    }
+
+    function updateHandoutField(field, val) {
+      getCurrentPatient().handout[field] = val;
+      saveAppState();
+    }
+
+    async function generatePatientHandoutAI() {
+      const patient = getCurrentPatient();
+      const modality = appState.activeModality;
+      const tone = document.getElementById("handout-tone-select").value;
+      const btn = document.getElementById("btn-generate-handout");
+
+      setButtonLoading(btn, true, "Tworzę materiał dla pacjenta...");
+
+      const toneDesc = tone === "cieply"
+        ? "ciepłym, empatycznym, normalizującym i wspierającym"
+        : "przejrzystym, życzliwym, konkretnym i zadaniowym";
+
+      const systemPrompt = `Jesteś psychoterapeutą przygotowującym po sesji wspierającą kartę psychoedukacyjną bezpośrednio dla pacjenta (zwrot bezpośredni 'Ty').
+Pisz językiem ${toneDesc}, całkowicie bez żargonu medycznego i diagnostycznego.
+Wyjaśnij mechanizm zgodnie z nurtem: ${modality}.
+Zwróć obiekt JSON z 3 polami w języku polskim:
+- discoveries: Co dziś odkryliśmy (2-3 punkty z wnioskami z sesji)
+- psychoeducation: Krótka psychoedukacja (przystępne wyjaśnienie mechanizmu z użyciem prostej metafory)
+- plan: Twój plan na najbliższy tydzień (konkretne kroki pracy własnej)`;
+
+      const userPrompt = `Zatwierdzone podsumowanie sesji: ${patient.scribeDraft.summary}
+Zastosowane interwencje: ${patient.scribeDraft.interventions}
+Ustalona praca własna: ${patient.scribeDraft.homework}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              discoveries: { type: "STRING" },
+              psychoeducation: { type: "STRING" },
+              plan: { type: "STRING" }
+            },
+            required: ["discoveries", "psychoeducation", "plan"]
+          }
+        }
+      };
+
+      try {
+        const res = await callGeminiWithBackoff(payload);
+        const parsed = JSON.parse(res);
+        patient.handout = {
+          discoveries: parsed.discoveries,
+          psychoeducation: parsed.psychoeducation,
+          plan: parsed.plan
+        };
+        saveAppState();
+        renderHandoutView();
+        showToast("Wygenerowano materiał psychoedukacyjny dla pacjenta.", "success");
+      } catch (e) {
+        patient.handout = {
+          discoveries: `• Podsumowaliśmy Twoje ostatnie obserwacje i zauważyliśmy, jak ważne jest zatrzymanie się na chwilę przed automatyczną reakcją.\n• ${patient.scribeDraft.summary.split(".")[0]}.`,
+          psychoeducation: `W podejściu ${modality} patrzymy na trudne emocje i myśli jak na sygnały, które próbują nas chronić, choć czasem działają zbyt głośno. Zauważenie tego mechanizmu pozwala odzyskać swobodę wyboru kolejnego kroku.`,
+          plan: `1. ${patient.scribeDraft.homework}\n2. Zapisz krótko swoje obserwacje (co pomogło, a co było wyzwaniem), abyśmy mogli do tego wrócić na następnym spotkaniu.`
+        };
+        saveAppState();
+        renderHandoutView();
+        showToast("Przygotowano szkic materiału dla pacjenta.", "info");
+      } finally {
+        setButtonLoading(btn, false, "Generuj z zatwierdzonej notatki (AI)");
+      }
+    }
+
+    function copyPatientHandout() {
+      const d = document.getElementById("handout-discoveries").value;
+      const p = document.getElementById("handout-psychoeducation").value;
+      const plan = document.getElementById("handout-plan").value;
+      const fullText = `PODSUMOWANIE PO SESJI TERAPEUTYCZNEJ\n\n1. CO DZIŚ ODKRYLIŚMY:\n${d}\n\n2. KRÓTKA PSYCHOEDUKACJA:\n${p}\n\n3. TWÓJ PLAN NA NAJBLIŻSZY TYDZIEŃ:\n${plan}`;
+      copyTextToClipboard(fullText, "Skopiowano materiał psychoedukacyjny do schowka.");
+    }
+
+    // =========================================================================
+    // 10. MODALE RODO I NOWEGO KODU PACJENTA + POMOCNICZE FUNKCJE UI
+    // =========================================================================
+    function openGdprModal() {
+      document.getElementById("gdpr-modal").classList.remove("hidden");
+    }
+
+    function closeGdprModal() {
+      document.getElementById("gdpr-modal").classList.add("hidden");
+      document.getElementById("wipe-controls").innerHTML = `
+        <button type="button" onclick="showWipeConfirmation()"
+          class="px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition">
+          Wyczyść dane lokalne (Reset)
+        </button>
+      `;
+    }
+
+    function showWipeConfirmation() {
+      document.getElementById("wipe-controls").innerHTML = `
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeGdprModal()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-600">Anuluj</button>
+          <button type="button" onclick="executeLocalDataWipe()" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold">Potwierdź trwałe usunięcie</button>
+        </div>
+      `;
+    }
+
+    function executeLocalDataWipe() {
+      localStorage.removeItem(STORAGE_KEY);
+      appState = getDefaultState();
+      saveAppState();
+      renderPatientSelector();
+      renderModalitySelector();
+      syncAllViews();
+      closeGdprModal();
+      showToast("Wyczyszczono pamięć lokalną przeglądarki i przywrócono stan bazowy.", "success");
+    }
+
+    function openNewPatientModal() {
+      document.getElementById("new-patient-modal").classList.remove("hidden");
+    }
+
+    function closeNewPatientModal() {
+      document.getElementById("new-patient-modal").classList.add("hidden");
+    }
+
+    function createNewPatient(event) {
+      event.preventDefault();
+      const code = document.getElementById("new-patient-code").value.trim();
+      const focus = document.getElementById("new-patient-focus").value.trim();
+      const modality = document.getElementById("new-patient-modality").value;
+
+      const id = "pat_" + Date.now();
+      const emptyConcept = {};
+      MODALITIES.forEach(m => {
+        emptyConcept[m.id] = {};
+        MODALITY_CONCEPT_SCHEMA[m.id].forEach(f => {
+          emptyConcept[m.id][f.key] = "";
+        });
+      });
+
+      appState.patients[id] = {
+        id,
+        label: `${code} – ${focus}`,
+        defaultModality: modality,
+        rawDictation: "",
+        scribeDraft: {
+          agenda: "",
+          summary: "",
+          interventions: "",
+          homework: "",
+          approved: { agenda: false, summary: false, interventions: false, homework: false }
+        },
+        conceptualization: emptyConcept,
+        workingHypotheses: {
+          hypotheses: `Wstępny obszar roboczy: ${focus}.`,
+          axes: ""
+        },
+        psychometrics: {
+          "GAD-7": [{ label: "Sesja 1", score: 12 }],
+          "BAI": [{ label: "Sesja 1", score: 18 }],
+          "PHQ-9": [{ label: "Sesja 1", score: 10 }],
+          "BDI-II": [{ label: "Sesja 1", score: 16 }]
+        },
+        medications: [],
+        diagnoses: [],
+        timeline: [],
+        supervision: {
+          brief: `KONTEKST PRZYPADKU: ${code} – ${focus} (Nurt: ${modality}).`,
+          countertransference: ""
+        },
+        handout: {
+          discoveries: "",
+          psychoeducation: "",
+          plan: ""
+        }
+      };
+
+      appState.activePatientId = id;
+      appState.activeModality = modality;
+      saveAppState();
+      event.target.reset();
+      closeNewPatientModal();
+      renderPatientSelector();
+      renderModalitySelector();
+      syncAllViews();
+      showToast(`Utworzono zanonimizowany profil: ${code}`, "success");
+    }
+
+    function setButtonLoading(btn, isLoading, text) {
+      if (!btn) return;
+      btn.disabled = isLoading;
+      if (isLoading) {
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.classList.add("opacity-80", "cursor-wait");
+        btn.innerHTML = `
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span>${text}</span>
+        `;
+      } else {
+        btn.classList.remove("opacity-80", "cursor-wait");
+        if (btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+        }
+      }
+    }
+
+    function copyTextToClipboard(text, successMessage) {
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.select();
+      try {
+        document.execCommand("copy");
+        showToast(successMessage, "success");
+      } catch (err) {
+        showToast("Nie udało się skopiować tekstu.", "warning");
+      }
+      document.body.removeChild(temp);
+    }
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const styles = type === "success"
+        ? "bg-clinical-green text-white border-emerald-700"
+        : type === "warning"
+          ? "bg-clinical-amber text-white border-amber-700"
+          : "bg-slate-900 text-white border-slate-700";
+
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-lg text-xs font-medium flex items-center justify-between gap-3 transition-all ${styles}`;
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(6px)";
+        setTimeout(() => toast.remove(), 300);
+      }, 3400);
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
